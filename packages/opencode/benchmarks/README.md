@@ -17,6 +17,12 @@ allowing `--agent` to override the primary agent for experiments.
 
 ## SWE-bench Verified
 
+This runner follows the official dataset, JSONL prediction schema, and Docker
+evaluation harness:
+
+- Dataset: <https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified>
+- Evaluation guide: <https://www.swebench.com/SWE-bench/guides/evaluation/>
+
 Run a smoke pass over one SWE-bench Verified instance:
 
 ```bash

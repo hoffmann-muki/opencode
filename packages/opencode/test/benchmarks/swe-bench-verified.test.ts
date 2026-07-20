@@ -4,8 +4,10 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import {
   assessPrediction,
+  buildEvaluationArgs,
   capturePatch,
   findProtectedPathOverlap,
+  parseSweBenchPredictions,
   parseSweBenchRow,
   parseUnifiedDiffPaths,
 } from "../../benchmarks/swe-bench-verified"
@@ -23,6 +25,63 @@ describe("SWE-bench Verified runner", () => {
       generationSucceeded: false,
     })
     expect(assessPrediction(0, "diff --git a/file b/file\n").generationSucceeded).toBe(true)
+  })
+
+  test("validates the official prediction JSONL schema", () => {
+    expect(
+      parseSweBenchPredictions([
+        {
+          instance_id: "owner__repo-1",
+          model_name_or_path: "opencode:model",
+          model_patch: "diff --git a/source.py b/source.py\n",
+        },
+      ]),
+    ).toEqual([
+      {
+        instance_id: "owner__repo-1",
+        model_name_or_path: "opencode:model",
+        model_patch: "diff --git a/source.py b/source.py\n",
+      },
+    ])
+
+    expect(() => parseSweBenchPredictions([])).toThrow("at least one row")
+    expect(() =>
+      parseSweBenchPredictions([
+        { instance_id: "owner__repo-1", model_name_or_path: "model", model_patch: "" },
+        { instance_id: "owner__repo-1", model_name_or_path: "model", model_patch: "" },
+      ]),
+    ).toThrow('Duplicate prediction for instance "owner__repo-1"')
+    expect(() => parseSweBenchPredictions([{ instance_id: "owner__repo-1", model_patch: "" }])).toThrow(
+      'missing string field "model_name_or_path"',
+    )
+  })
+
+  test("builds official SWE-bench harness arguments", () => {
+    expect(
+      buildEvaluationArgs({
+        datasetName: "SWE-bench/SWE-bench_Verified",
+        predictionsPath: "/run/predictions.jsonl",
+        maxWorkers: 2,
+        runId: "verified-run",
+        instanceIds: ["owner__repo-1"],
+        namespaceEmpty: true,
+      }),
+    ).toEqual([
+      "-m",
+      "swebench.harness.run_evaluation",
+      "--dataset_name",
+      "SWE-bench/SWE-bench_Verified",
+      "--predictions_path",
+      "/run/predictions.jsonl",
+      "--max_workers",
+      "2",
+      "--run_id",
+      "verified-run",
+      "--instance_ids",
+      "owner__repo-1",
+      "--namespace",
+      "",
+    ])
   })
 
   test("extracts protected paths from additions, deletions, and quoted diff headers", () => {

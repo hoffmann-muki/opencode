@@ -27,6 +27,8 @@ const DEFAULT_MODEL = "openrouter/qwen/qwen3-coder-next"
 const DEFAULT_AGENT = BENCHMARK_COORDINATOR_AGENT
 const DEFAULT_OPENCODE_TIMEOUT_MS = 6 * 60 * 1000
 const DATASET_PAGE_SIZE = 100
+const DATASET_FETCH_ATTEMPTS = 3
+const DATASET_FETCH_RETRY_MS = 1_000
 const OPENCODE_PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const REPO_ROOT = resolve(OPENCODE_PACKAGE_ROOT, "../..")
 const BUN_EXECUTABLE =
@@ -89,6 +91,21 @@ interface PredictionStatus {
   readonly agentCompleted: boolean
   readonly predictionProduced: boolean
   readonly generationSucceeded: boolean
+}
+
+export interface SweBenchPrediction {
+  readonly instance_id: string
+  readonly model_name_or_path: string
+  readonly model_patch: string
+}
+
+export interface SweBenchEvaluationConfig {
+  readonly datasetName: string
+  readonly predictionsPath: string
+  readonly maxWorkers: number
+  readonly runId: string
+  readonly instanceIds: readonly string[]
+  readonly namespaceEmpty: boolean
 }
 
 function usage(): string {
@@ -305,10 +322,32 @@ async function fetchRowsPage(offset: number, length: number): Promise<readonly S
   url.searchParams.set("offset", String(offset))
   url.searchParams.set("length", String(length))
 
-  const response = await fetch(url)
-  if (!response.ok) throw new Error(`Failed to fetch SWE-bench rows (${response.status}): ${await response.text()}`)
-  const parsed = (await response.json()) as { rows?: Array<{ row?: unknown }> }
-  return (parsed.rows ?? []).map((item) => parseSweBenchRow(item.row))
+  for (let attempt = 1; attempt <= DATASET_FETCH_ATTEMPTS; attempt += 1) {
+    let response: Response
+    try {
+      response = await fetch(url)
+    } catch (error) {
+      if (attempt === DATASET_FETCH_ATTEMPTS) throw error
+      await delay(DATASET_FETCH_RETRY_MS * attempt)
+      continue
+    }
+
+    if (response.ok) {
+      const parsed = (await response.json()) as { rows?: Array<{ row?: unknown }> }
+      return (parsed.rows ?? []).map((item) => parseSweBenchRow(item.row))
+    }
+
+    const message = `Failed to fetch SWE-bench rows (${response.status}): ${await response.text()}`
+    const retryable = response.status === 429 || response.status >= 500
+    if (!retryable || attempt === DATASET_FETCH_ATTEMPTS) throw new Error(message)
+    await delay(DATASET_FETCH_RETRY_MS * attempt)
+  }
+
+  throw new Error("SWE-bench dataset fetch exhausted without a response.")
+}
+
+function delay(milliseconds: number): Promise<void> {
+  return new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds))
 }
 
 export function parseSweBenchRow(value: unknown): SweBenchRow {
@@ -617,26 +656,62 @@ async function writeJsonl(path: string, rows: readonly unknown[]): Promise<void>
   await writeFile(path, rows.map((row) => JSON.stringify(row)).join("\n") + "\n", "utf8")
 }
 
-async function readJsonl(path: string): Promise<readonly JsonObject[]> {
+async function readJsonl(path: string): Promise<readonly unknown[]> {
   const text = await readFile(path, "utf8")
   return text
     .split("\n")
     .map((line) => line.trim())
     .filter((line) => line.length > 0)
-    .map((line) => JSON.parse(line) as JsonObject)
+    .map((line) => JSON.parse(line) as unknown)
 }
 
-async function readPredictionInstanceIds(predictionsPath: string): Promise<readonly string[]> {
-  const predictions = await readJsonl(predictionsPath)
-  const ids = predictions.map((prediction, index) => {
-    const id = prediction.instance_id
-    if (typeof id !== "string" || id.length === 0) {
-      throw new Error(`Prediction row ${index + 1} is missing string field "instance_id".`)
+export function parseSweBenchPredictions(value: unknown): readonly SweBenchPrediction[] {
+  if (!Array.isArray(value)) throw new Error("SWE-bench predictions must be provided as parsed JSONL rows.")
+  if (value.length === 0) throw new Error("SWE-bench predictions must contain at least one row.")
+
+  const instanceIds = new Set<string>()
+  return value.map((candidate, index) => {
+    if (!isObject(candidate)) throw new Error(`Prediction row ${index + 1} must be an object.`)
+    for (const field of ["instance_id", "model_name_or_path", "model_patch"] as const) {
+      if (typeof candidate[field] !== "string") {
+        throw new Error(`Prediction row ${index + 1} is missing string field "${field}".`)
+      }
     }
-    return id
+    const prediction = candidate as unknown as SweBenchPrediction
+    if (prediction.instance_id.length === 0) {
+      throw new Error(`Prediction row ${index + 1} has an empty "instance_id".`)
+    }
+    if (prediction.model_name_or_path.length === 0) {
+      throw new Error(`Prediction row ${index + 1} has an empty "model_name_or_path".`)
+    }
+    if (instanceIds.has(prediction.instance_id)) {
+      throw new Error(`Duplicate prediction for instance "${prediction.instance_id}".`)
+    }
+    instanceIds.add(prediction.instance_id)
+    return prediction
   })
-  if (ids.length === 0) throw new Error(`No predictions found at ${predictionsPath}.`)
-  return ids
+}
+
+async function readPredictions(predictionsPath: string): Promise<readonly SweBenchPrediction[]> {
+  return parseSweBenchPredictions(await readJsonl(predictionsPath))
+}
+
+export function buildEvaluationArgs(config: SweBenchEvaluationConfig): readonly string[] {
+  const args = [
+    "-m",
+    "swebench.harness.run_evaluation",
+    "--dataset_name",
+    config.datasetName,
+    "--predictions_path",
+    config.predictionsPath,
+    "--max_workers",
+    String(config.maxWorkers),
+    "--run_id",
+    config.runId,
+  ]
+  if (config.instanceIds.length > 0) args.push("--instance_ids", ...config.instanceIds)
+  if (config.namespaceEmpty) args.push("--namespace", "")
+  return args
 }
 
 async function runEvaluation(
@@ -644,20 +719,14 @@ async function runEvaluation(
   paths: BenchmarkPaths,
   instanceIds: readonly string[],
 ): Promise<void> {
-  const args = [
-    "-m",
-    "swebench.harness.run_evaluation",
-    "--dataset_name",
-    DATASET_NAME,
-    "--predictions_path",
-    paths.predictionsPath,
-    "--max_workers",
-    String(options.maxWorkers),
-    "--run_id",
-    options.runId,
-  ]
-  if (instanceIds.length > 0) args.push("--instance_ids", ...instanceIds)
-  if (options.namespaceEmpty) args.push("--namespace", "")
+  const args = buildEvaluationArgs({
+    datasetName: DATASET_NAME,
+    predictionsPath: paths.predictionsPath,
+    maxWorkers: options.maxWorkers,
+    runId: options.runId,
+    instanceIds,
+    namespaceEmpty: options.namespaceEmpty,
+  })
 
   console.log(`Running SWE-bench evaluation: python ${args.join(" ")}`)
   await runHostCommand("python", args, { cwd: paths.runs })
@@ -748,7 +817,21 @@ function killProcessTree(child: ReturnType<typeof spawn>): void {
 }
 
 function hostEnv(env: Record<string, string | undefined>): Record<string, string | undefined> {
-  const keep = ["HOME", "LANG", "LC_ALL", "LOGNAME", "PATH", "SHELL", "TEMP", "TERM", "TMP", "TMPDIR", "USER"]
+  const keep = [
+    "HOME",
+    "LANG",
+    "LC_ALL",
+    "LOGNAME",
+    "PATH",
+    "SHELL",
+    "TEMP",
+    "TERM",
+    "TMP",
+    "TMPDIR",
+    "USER",
+    "DOCKER_CONTEXT",
+    "DOCKER_HOST",
+  ]
   const out: Record<string, string | undefined> = {}
   for (const key of keep) {
     if (env[key] !== undefined) out[key] = env[key]
@@ -828,6 +911,7 @@ async function writeRunProgress(
         ).length,
         complete,
         predictionsPath: paths.predictionsPath,
+        selectedInstancesPath: paths.datasetPath,
         summaries,
       },
       null,
@@ -849,8 +933,9 @@ async function main(): Promise<void> {
   await mkdir(paths.worktrees, { recursive: true })
 
   if (options.evaluateOnly) {
+    const predictions = await readPredictions(paths.predictionsPath)
     const instanceIds =
-      options.instanceIds.length > 0 ? options.instanceIds : await readPredictionInstanceIds(paths.predictionsPath)
+      options.instanceIds.length > 0 ? options.instanceIds : predictions.map((prediction) => prediction.instance_id)
     console.log(`Evaluating ${instanceIds.length} existing SWE-bench predictions: ${paths.predictionsPath}`)
     await runEvaluation(options, paths, instanceIds)
     return
