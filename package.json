@@ -16,6 +16,7 @@
     "typecheck": "bun turbo typecheck",
     "bench:swe-pro": "bun run --cwd packages/opencode bench:swe-pro",
     "bench:swe-verified": "bun run --cwd packages/opencode bench:swe-verified",
+    "bench:terminal": "bun run --cwd packages/opencode bench:terminal",
     "upgrade-opentui": "bun run script/upgrade-opentui.ts",
     "postinstall": "bun run --cwd packages/core fix-node-pty",
     "prepare": "husky",

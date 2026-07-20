@@ -1,7 +1,7 @@
 # Benchmarks
 
-This directory contains SWE-bench runners for exercising opencode as a black-box
-coding agent.
+This directory contains official-harness benchmark runners for exercising
+opencode as a black-box agent.
 
 Generated data is written under `.benchmark-runs/` at the repository root and is
 ignored by git.
@@ -115,3 +115,58 @@ Use `--use-local-docker` for the evaluator's beta local-Docker mode. When
 evaluating an external prediction file, pass both `--predictions-path` and the
 matching `--evaluation-instances-path`; the latter can be reused from the run
 that generated those predictions.
+
+## Terminal-Bench 2.1
+
+Terminal-Bench 2.1 is run through Harbor, the benchmark's official evaluation
+framework. The wrapper does not recreate task setup or grading: Harbor downloads
+`terminal-bench/terminal-bench-2-1`, installs the pinned opencode version in each
+task environment, runs the dataset verifier, and preserves its native results,
+agent logs, and ATIF trajectories.
+
+- Dataset: <https://hub.harborframework.com/datasets/terminal-bench/terminal-bench-2-1/6>
+- Harbor evaluation guide: <https://www.harborframework.com/docs/run-jobs/run-evals>
+- Terminal-Bench 2.1 release: <https://www.tbench.ai/news/terminal-bench-2-1>
+
+Prerequisites are Python 3.12+, Harbor, and a supported Harbor environment.
+For the default local environment, Docker must be installed and running:
+
+```bash
+uv tool install harbor
+docker info
+```
+
+Run a one-task smoke evaluation:
+
+```bash
+OPENROUTER_API_KEY=... bun run bench:terminal
+```
+
+Select named tasks or increase the smoke sample without changing official task
+behavior:
+
+```bash
+bun run bench:terminal -- --task-name task-name --attempts 1
+bun run bench:terminal -- --max-tasks 5 --concurrency 2
+bun run bench:terminal -- --dry-run
+```
+
+The official leaderboard protocol requires the complete 89-task dataset, at
+least five attempts per task, and a public Harbor upload. The leaderboard preset
+enforces those conditions while leaving concurrency configurable:
+
+```bash
+OPENROUTER_API_KEY=... bun run bench:terminal -- \
+  --leaderboard \
+  --concurrency 4
+```
+
+Generated data is stored under
+`.benchmark-runs/terminal-bench-2.1/runs/<run-id>/`. `manifest.json` records the
+resolved dataset, model, opencode and Harbor versions, execution settings, and
+exit status. Harbor's complete official job directory is retained under
+`harbor-jobs/`, alongside streamed stdout and stderr logs. Credentials are
+inherited through the environment and are never written to the command or
+manifest. A completed wrapper run means Harbor finished successfully; per-task
+resolution is determined only by the official verifier rewards in Harbor's
+`result.json` and trial artifacts.
