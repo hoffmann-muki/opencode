@@ -1,7 +1,7 @@
 # Benchmarks
 
-This directory contains the SWE-bench Verified runner for exercising opencode as
-a black-box coding agent.
+This directory contains SWE-bench runners for exercising opencode as a black-box
+coding agent.
 
 Generated data is written under `.benchmark-runs/` at the repository root and is
 ignored by git.
@@ -66,3 +66,46 @@ bun run bench:swe-verified -- \
 
 Use `--predictions-path <path>/predictions.jsonl` when evaluating a predictions
 file outside the standard run directory.
+
+## SWE-bench Pro
+
+SWE-bench Pro uses Scale AI's official test split and its separate evaluator:
+
+- Dataset: <https://huggingface.co/datasets/ScaleAI/SWE-bench_Pro>
+- Evaluator: <https://github.com/scaleapi/SWE-bench_Pro-os>
+
+Run one prediction instance:
+
+```bash
+OPENROUTER_API_KEY=... bun run bench:swe-pro -- --max-instances 1
+```
+
+The runner gives opencode the public problem statement, requirements, and
+interface fields, but never the gold patch or hidden test patch. It writes the
+official JSON-array `predictions.json` with `instance_id`, `patch`, and `prefix`,
+plus a minimal `evaluation-instances.jsonl` containing the fields needed by the
+official evaluator. The default per-instance timeout is 30 minutes because Pro
+tasks are intended to exercise longer-horizon repository work.
+
+Clone and install the official evaluator separately, following its upstream
+README. Evaluation uses Modal by default:
+
+```bash
+SWE_BENCH_PRO_HARNESS_DIR=/path/to/SWE-bench_Pro-os \
+  bun run bench:swe-pro -- --run-id swe-pro-example --evaluate
+```
+
+Evaluate an existing run without generating predictions again:
+
+```bash
+SWE_BENCH_PRO_HARNESS_DIR=/path/to/SWE-bench_Pro-os \
+  bun run bench:swe-pro -- \
+    --run-id swe-pro-example \
+    --evaluate-only \
+    --max-workers 1
+```
+
+Use `--use-local-docker` for the evaluator's beta local-Docker mode. When
+evaluating an external prediction file, pass both `--predictions-path` and the
+matching `--evaluation-instances-path`; the latter can be reused from the run
+that generated those predictions.
