@@ -1,6 +1,7 @@
 .DS_Store
 node_modules
 .worktrees
+.benchmark-runs
 .sst
 .env
 .env.local
