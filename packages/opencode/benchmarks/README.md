@@ -17,61 +17,91 @@ allowing `--agent` to override the primary agent for experiments.
 
 ## SWE-bench Verified
 
-This runner follows the official dataset, JSONL prediction schema, and Docker
-evaluation harness:
+This runner follows the official dataset, per-instance task images, JSONL
+prediction schema, and Docker evaluation harness:
 
-- Dataset: <https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified>
+- Dataset: <https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified>
 - Evaluation guide: <https://www.swebench.com/SWE-bench/guides/evaluation/>
 
-Run a smoke pass over one SWE-bench Verified instance:
+Inference and evaluation are deliberately separate. Inference runs a pinned
+`opencode-ai` release inside the official SWE-bench image for each instance; it
+does not clone an approximate host-side worktree. The model receives the public
+problem statement and optional public hints, never the gold patch or hidden test
+patch.
+
+Docker is required for inference because the official task image defines the
+repository and dependency environment. Run a smoke inference pass:
 
 ```bash
-OPENROUTER_API_KEY=... bun run bench:swe-verified -- --max-instances 1
+OPENROUTER_API_KEY=... bun run bench:swe-verified:infer -- \
+  --run-id swe-verified-smoke \
+  --max-instances 1
 ```
 
 Useful flags:
 
 ```bash
-bun run bench:swe-verified -- --list-instances --max-instances 3
-bun run bench:swe-verified -- --instance-id astropy__astropy-12907
-bun run bench:swe-verified -- --model openrouter/qwen/qwen3-coder-next
-bun run bench:swe-verified -- --max-instances 1 --evaluate
+bun run bench:swe-verified:infer -- --list-instances --max-instances 3
+bun run bench:swe-verified:infer -- --instance-id astropy__astropy-12907
+bun run bench:swe-verified:infer -- --model openrouter/qwen/qwen3-coder-next
+bun run bench:swe-verified:infer -- --inference-workers 2
+bun run bench:swe-verified:infer -- --run-id existing-incomplete-run
+bun run bench:swe-verified:infer -- --run-id existing-run --restart
 ```
 
 The runner writes:
 
 - `instances.jsonl` with selected dataset rows.
-- Per-instance `prompt.txt`, `opencode.stdout.jsonl`, `opencode.stderr.txt`,
-  `run.json`, and `prediction.json`.
+- Per-attempt prompts, raw JSONL event output, a structured root-session export,
+  setup/cleanup logs, the captured patch, and runtime metadata under each
+  instance's `attempts/` directory.
+- Final per-instance `run.json`, `prediction.json`, `patch.diff`, and
+  `final-attempt.json` files referencing the selected attempt.
 - `predictions.jsonl` in SWE-bench harness format.
+- `prediction-manifest.json` with the selected instances, model, pinned
+  opencode version, official images, and SHA-256 of `predictions.jsonl`.
 - `summary.json` for the benchmark run.
 
-`predictions.jsonl` and `summary.json` are updated after every instance, so a
-later infrastructure failure does not discard completed predictions. Agent
-failures and empty patches remain explicit empty predictions, matching the
-official harness treatment of ungenerated patches. The runner also rejects a
-model patch that changes a path present in the hidden test patch; it records the
-rejected diff for audit without exposing the hidden patch to the agent or
-persisting it in benchmark artifacts.
+Predictions, manifest, and summary are atomically checkpointed after every
+instance. An interrupted run resumes completed instances and continues an
+interrupted retry sequence without resetting its attempt budget when invoked
+with the same configuration and run id. Agent failures remain explicit
+predictions, and any partial patch is preserved even when opencode exits
+nonzero. The runner never reads hidden evaluator fields to filter or rewrite a
+prediction.
+
+The inference coordinator supports bounded local concurrency with
+`--inference-workers` and up to three infrastructure retries by default. Each
+retry receives a fresh official task container and uses exponential backoff.
+Retries are deliberately conservative: only pre-action transient provider,
+network, service, container, or setup failures qualify. A timeout, any emitted
+patch, or any agent tool call makes the attempt final. Incorrect patches and
+empty completed attempts are never retried semantically. Configure the policy
+with `--max-infrastructure-retries` and `--retry-base-delay-ms`; use zero retries
+to reproduce one-shot inference. The retry count is capped at ten and each
+backoff delay is capped at one minute. This coordinator is reusable benchmark
+infrastructure, but it does not provide a remote/distributed runtime backend.
 
 Runner summaries distinguish agent completion, prediction production, and
 generation success. They do not claim that a task is resolved; resolution is
 reported only by the official Docker evaluation.
 
-The optional `--evaluate` flag calls the official SWE-bench Python/Docker
-harness, which must be installed separately.
-
-Evaluate an existing SWE-bench run without re-running opencode:
+On a Docker-capable evaluation machine, install the pinned official harness and
+evaluate the completed artifact without re-running inference:
 
 ```bash
-bun run bench:swe-verified -- \
-  --run-id swe-verified-example \
-  --evaluate-only \
+python -m pip install 'swebench==4.1.0'
+bun run bench:swe-verified:eval -- \
+  --run-id swe-verified-smoke \
   --max-workers 1
 ```
 
-Use `--predictions-path <path>/predictions.jsonl` when evaluating a predictions
-file outside the standard run directory.
+Evaluation verifies the prediction SHA-256 and run manifest before invoking
+`python -m swebench.harness.run_evaluation`. Use both `--predictions-path` and
+`--manifest-path` for an artifact outside the standard run directory. Harness
+stdout, stderr, version, command, prediction digest, and status are recorded in
+the run directory. `--dry-run` validates the artifact and prints the exact
+harness command without starting evaluation.
 
 ## SWE-bench Pro
 

@@ -12,6 +12,8 @@
     "bench:test": "bun run script/bench-test-suite.ts",
     "bench:swe-pro": "bun run benchmarks/swe-bench-pro.ts",
     "bench:swe-verified": "bun run benchmarks/swe-bench-verified.ts",
+    "bench:swe-verified:infer": "bun run benchmarks/swe-bench-verified.ts",
+    "bench:swe-verified:eval": "bun run benchmarks/swe-bench-verified.ts --evaluate-only",
     "bench:terminal": "bun run benchmarks/terminal-bench.ts",
     "profile:test": "bun run script/profile-test-files.ts",
     "build": "bun run script/build.ts",
