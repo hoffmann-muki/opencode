@@ -96,6 +96,18 @@ describe("Terminal-Bench runner", () => {
     expect(args).not.toContain("--n-tasks")
   })
 
+  test("all-tasks mode removes only the safe smoke limit", () => {
+    const options = parseArgs(["--all-tasks"], defaults)
+    const args = buildHarborArgs(options, "/runs/harbor-jobs")
+
+    expect(options.maxTasks).toBeUndefined()
+    expect(options.attempts).toBe(1)
+    expect(options.upload).toBe(false)
+    expect(options.public).toBe(false)
+    expect(args).not.toContain("--n-tasks")
+    expect(() => parseArgs(["--all-tasks", "--max-tasks", "5"], defaults)).toThrow("cannot be combined")
+  })
+
   test("rejects partial or under-sampled leaderboard runs", () => {
     expect(() => parseArgs(["--leaderboard", "--max-tasks", "5"], defaults)).toThrow(
       "complete Terminal-Bench 2.1 dataset",

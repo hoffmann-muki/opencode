@@ -193,8 +193,12 @@ behavior:
 ```bash
 bun run bench:terminal -- --task-name task-name --attempts 1
 bun run bench:terminal -- --max-tasks 5 --concurrency 2
+bun run bench:terminal -- --all-tasks
 bun run bench:terminal -- --dry-run
 ```
+
+`--all-tasks` runs the complete dataset locally with the configured attempt
+count, without enabling upload or the stricter leaderboard submission preset.
 
 The official leaderboard protocol requires the complete 89-task dataset, at
 least five attempts per task, and a public Harbor upload. The leaderboard preset

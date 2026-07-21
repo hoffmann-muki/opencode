@@ -8,7 +8,7 @@
 
 import { spawn } from "node:child_process"
 import { constants as fsConstants, createWriteStream } from "node:fs"
-import { access, mkdir, readFile, writeFile } from "node:fs/promises"
+import { access, mkdir, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
@@ -78,6 +78,8 @@ interface RunManifest {
   readonly maxRetries: number
   readonly upload: boolean
   readonly public: boolean
+  readonly leaderboard: boolean
+  readonly allTasks: boolean
   readonly command: readonly string[]
   readonly jobsDir: string
   readonly stdoutPath: string
@@ -97,6 +99,7 @@ export function usage(): string {
     "",
     "Flags:",
     `  --max-tasks N          Maximum tasks after filtering. Default: ${DEFAULT_MAX_TASKS}.`,
+    "  --all-tasks            Remove the smoke task limit without leaderboard upload.",
     "  --task-name NAME       Official task name or glob to include. Repeatable.",
     `  --attempts N           Attempts per task. Default: ${DEFAULT_ATTEMPTS}.`,
     `  --concurrency N        Concurrent Harbor trials. Default: ${DEFAULT_CONCURRENCY}.`,
@@ -128,6 +131,7 @@ export function parseArgs(
   const taskNames: string[] = []
   let maxTasks: number | undefined = DEFAULT_MAX_TASKS
   let maxTasksWasSet = false
+  let allTasks = false
   let attempts = DEFAULT_ATTEMPTS
   let attemptsWasSet = false
   let concurrency = DEFAULT_CONCURRENCY
@@ -152,13 +156,15 @@ export function parseArgs(
   }
 
   for (let i = 0; i < argv.length; i += 1) {
-    const arg = argv[i]!
+    const arg = argv[i]
     if (arg === "--help" || arg === "-h") {
       help = true
     } else if (arg === "--max-tasks") {
       maxTasks = parsePositiveInt(nextValue(i, arg), arg)
       maxTasksWasSet = true
       i += 1
+    } else if (arg === "--all-tasks") {
+      allTasks = true
     } else if (arg === "--task-name") {
       taskNames.push(nextValue(i, arg))
       i += 1
@@ -202,6 +208,11 @@ export function parseArgs(
       throw new Error(`Unknown argument: ${arg}`)
     }
   }
+
+  if (allTasks && maxTasksWasSet) {
+    throw new Error("--all-tasks cannot be combined with --max-tasks.")
+  }
+  if (allTasks) maxTasks = undefined
 
   if (leaderboard) {
     if (taskNames.length > 0 || maxTasksWasSet) {
@@ -315,8 +326,14 @@ function resolvePathFromRepoRoot(path: string): string {
 }
 
 async function readLocalOpencodeVersion(): Promise<string> {
-  const packageJson = JSON.parse(await readFile(OPENCODE_PACKAGE_JSON, "utf8")) as { version?: unknown }
-  if (typeof packageJson.version !== "string" || !packageJson.version.trim()) {
+  const packageJson: unknown = await Bun.file(OPENCODE_PACKAGE_JSON).json()
+  if (
+    typeof packageJson !== "object" ||
+    packageJson === null ||
+    !("version" in packageJson) ||
+    typeof packageJson.version !== "string" ||
+    !packageJson.version.trim()
+  ) {
     throw new Error(`Missing package version in ${OPENCODE_PACKAGE_JSON}.`)
   }
   return packageJson.version
@@ -455,6 +472,8 @@ async function main(): Promise<void> {
     maxRetries: options.maxRetries,
     upload: options.upload,
     public: options.public,
+    leaderboard: options.leaderboard,
+    allTasks: options.maxTasks === undefined,
     command: renderedCommand,
     jobsDir: paths.jobsDir,
     stdoutPath: paths.stdoutPath,
