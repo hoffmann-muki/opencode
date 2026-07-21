@@ -6,14 +6,14 @@ opencode as a black-box agent.
 Generated data is written under `.benchmark-runs/` at the repository root and is
 ignored by git.
 
-By default, each benchmark instance installs a project-local opencode benchmark
-team in the temporary worktree/workspace. The primary agent is
-`benchmark-coordinator`, which delegates to `benchmark-navigator`,
-`benchmark-patcher`, and `benchmark-reviewer` through opencode's task/subagent
-tool. Navigator -> patcher -> reviewer work stays foreground and ordered so the
-noninteractive runner cannot finish before a subagent result is incorporated.
-This makes benchmark runs exercise an explicit multi-agent workflow while still
-allowing `--agent` to override the primary agent for experiments.
+By default, each benchmark instance uses a primary `benchmark-coordinator` and
+foreground, ordered delegation through opencode's native task/subagent tool.
+The SWE runners install project-local navigator, patcher, and reviewer agents.
+Terminal-Bench passes an equivalent native coordinator configuration to the
+Harbor adapter and delegates to fresh built-in investigation, execution, and
+verification subagents. In both cases, one benchmark attempt remains one outer
+attempt; the subagent calls are the multi-agent work inside it. SWE runners
+still allow `--agent` to override the primary agent for experiments.
 
 ## SWE-bench Verified
 
@@ -170,7 +170,8 @@ Terminal-Bench 2.1 is run through Harbor, the benchmark's official evaluation
 framework. The wrapper does not recreate task setup or grading: Harbor downloads
 `terminal-bench/terminal-bench-2-1`, installs the pinned opencode version in each
 task environment, runs the dataset verifier, and preserves its native results,
-agent logs, and ATIF trajectories.
+agent logs, and ATIF trajectories. Each trial uses a supervisor-led foreground
+sequence of investigation, execution, and independent verification.
 
 - Dataset: <https://hub.harborframework.com/datasets/terminal-bench/terminal-bench-2-1/6>
 - Harbor evaluation guide: <https://www.harborframework.com/docs/run-jobs/run-evals>

@@ -5,6 +5,11 @@ import {
   parseArgs,
   resolveDefaultModel,
 } from "../../benchmarks/terminal-bench"
+import {
+  BENCHMARK_COORDINATOR_AGENT,
+  TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+  terminalBenchmarkAgentConfig,
+} from "../../benchmarks/opencode-benchmark-agents"
 
 const defaults = {
   model: "openrouter/qwen/qwen3-coder-next",
@@ -62,6 +67,8 @@ describe("Terminal-Bench runner", () => {
       defaults.model,
       "--agent-kwarg",
       "version=1.18.4",
+      "--agent-kwarg",
+      `opencode_config=${JSON.stringify(terminalBenchmarkAgentConfig())}`,
       "--env",
       "docker",
       "--n-attempts",
@@ -81,6 +88,19 @@ describe("Terminal-Bench runner", () => {
       "--n-tasks",
       "2",
     ])
+  })
+
+  test("configures a coordinator with blocking native subagent delegation", () => {
+    const config = terminalBenchmarkAgentConfig()
+    const coordinator = config.agent[BENCHMARK_COORDINATOR_AGENT]
+
+    expect(config.default_agent).toBe(BENCHMARK_COORDINATOR_AGENT)
+    expect(TERMINAL_BENCHMARK_AGENT_TOPOLOGY).toBe("supervisor-delegation")
+    expect(coordinator.mode).toBe("primary")
+    expect(coordinator.permission.task).toBe("allow")
+    expect(coordinator.prompt).toContain("explore subagent")
+    expect(coordinator.prompt.match(/fresh general subagent/g)).toHaveLength(2)
+    expect(coordinator.prompt).toContain("Do not use background delegation")
   })
 
   test("leaderboard mode enforces the complete public five-attempt protocol", () => {

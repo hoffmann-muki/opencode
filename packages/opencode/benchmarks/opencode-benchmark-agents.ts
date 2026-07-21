@@ -6,6 +6,8 @@ export const BENCHMARK_NAVIGATOR_AGENT = "benchmark-navigator"
 export const BENCHMARK_PATCHER_AGENT = "benchmark-patcher"
 export const BENCHMARK_REVIEWER_AGENT = "benchmark-reviewer"
 
+export const TERMINAL_BENCHMARK_AGENT_TOPOLOGY = "supervisor-delegation" as const
+
 const AGENT_DIR = join(".opencode", "agent")
 
 const AGENTS: readonly { readonly filename: string; readonly content: string }[] = [
@@ -114,6 +116,39 @@ export function benchmarkAgentWorkflowInstructions(): string {
     "The final answer should integrate the reviewer result with changed files, verification commands, and residual risk.",
     "",
   ].join("\n")
+}
+
+/**
+ * Harbor installs opencode inside each Terminal-Bench environment, so the
+ * project-local markdown agents used by the SWE runners are not available
+ * there. Supply an equivalent coordinator through opencode's native config and
+ * delegate to its built-in foreground subagents instead.
+ */
+export function terminalBenchmarkAgentConfig() {
+  return {
+    default_agent: BENCHMARK_COORDINATOR_AGENT,
+    agent: {
+      [BENCHMARK_COORDINATOR_AGENT]: {
+        mode: "primary",
+        description: "Coordinates Terminal-Bench tasks through investigation, execution, and verification subagents.",
+        temperature: 0.1,
+        steps: 24,
+        permission: {
+          task: "allow",
+        },
+        prompt: [
+          "You are the primary Terminal-Bench coordinator.",
+          "",
+          "Solve each task through blocking, foreground delegation while retaining responsibility for the final outcome:",
+          "1. Delegate investigation to the explore subagent. Ask it to inspect the environment, constraints, relevant files, and a practical verification strategy without changing state.",
+          "2. Delegate execution to a fresh general subagent. Give it the original task and investigation result, and require it to perform the concrete work in the shared environment.",
+          "3. Delegate independent verification to another fresh general subagent. Give it the original task and prior results, and require it to inspect the final state, run feasible checks, and correct small clear defects when necessary.",
+          "",
+          "Run these task calls sequentially in the stated order. Do not use background delegation. Integrate their results, inspect unresolved risks, and only then provide the final answer.",
+        ].join("\n"),
+      },
+    },
+  } as const
 }
 
 export async function installBenchmarkAgentTeam(workspace: string): Promise<void> {

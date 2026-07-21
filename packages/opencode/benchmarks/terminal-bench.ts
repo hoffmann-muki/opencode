@@ -11,6 +11,11 @@ import { constants as fsConstants, createWriteStream } from "node:fs"
 import { access, mkdir, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
+import {
+  BENCHMARK_COORDINATOR_AGENT,
+  TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+  terminalBenchmarkAgentConfig,
+} from "./opencode-benchmark-agents.ts"
 
 export const TERMINAL_BENCH_DATASET = "terminal-bench/terminal-bench-2-1"
 export const TERMINAL_BENCH_TASK_COUNT = 89
@@ -69,6 +74,8 @@ interface RunManifest {
   readonly harborVersion: string
   readonly model: string
   readonly agent: "opencode"
+  readonly primaryAgent: typeof BENCHMARK_COORDINATOR_AGENT
+  readonly agentTopology: typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY
   readonly opencodeVersion: string
   readonly environment: string
   readonly taskNames: readonly string[]
@@ -278,6 +285,7 @@ export function resolveDefaultModel(env: NodeJS.ProcessEnv = process.env): strin
 }
 
 export function buildHarborArgs(options: CliOptions, jobsDir: string): readonly string[] {
+  const opencodeConfig = JSON.stringify(terminalBenchmarkAgentConfig())
   const args = [
     "run",
     "--dataset",
@@ -288,6 +296,8 @@ export function buildHarborArgs(options: CliOptions, jobsDir: string): readonly 
     options.model,
     "--agent-kwarg",
     `version=${options.opencodeVersion}`,
+    "--agent-kwarg",
+    `opencode_config=${opencodeConfig}`,
     "--env",
     options.environment,
     "--n-attempts",
@@ -463,6 +473,8 @@ async function main(): Promise<void> {
     harborVersion,
     model: options.model,
     agent: "opencode",
+    primaryAgent: BENCHMARK_COORDINATOR_AGENT,
+    agentTopology: TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     opencodeVersion: options.opencodeVersion,
     environment: options.environment,
     taskNames: options.taskNames,
