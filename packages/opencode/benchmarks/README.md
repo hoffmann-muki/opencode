@@ -113,38 +113,53 @@ SWE-bench Pro uses Scale AI's official test split and its separate evaluator:
 Run one prediction instance:
 
 ```bash
-OPENROUTER_API_KEY=... bun run bench:swe-pro -- --max-instances 1
+OPENROUTER_API_KEY=... bun run bench:swe-pro:infer -- \
+  --run-id swe-pro-example \
+  --max-instances 1
 ```
 
-The runner gives opencode the public problem statement, requirements, and
-interface fields, but never the gold patch or hidden test patch. It writes the
-official JSON-array `predictions.json` with `instance_id`, `patch`, and `prefix`,
-plus a minimal `evaluation-instances.jsonl` containing the fields needed by the
-official evaluator. The default per-instance timeout is 30 minutes because Pro
-tasks are intended to exercise longer-horizon repository work.
+Inference runs opencode at `/app` inside the official
+`docker.io/jefzda/sweap-images:<dockerhub_tag>` image for each instance. The
+agent receives only the public problem statement, requirements, interface,
+repository metadata, and language. Gold patches, hidden test patches, and
+evaluator-only fields are neither retained nor used to filter the model's
+prediction.
 
-Clone and install the official evaluator separately, following its upstream
-README. Evaluation uses Modal by default:
+The local coordinator is resumable, supports bounded concurrency through
+`--inference-workers`, and retries only classified transient infrastructure
+failures that occur before meaningful agent work. Each retry starts a fresh
+official task container. The default is three infrastructure retries; there are
+no critic-selected or semantic retries. The default per-instance timeout remains
+30 minutes because Pro tasks exercise longer-horizon repository work.
+
+Inference writes the official JSON-array `predictions.json` with `instance_id`,
+`patch`, and `prefix`, plus a SHA-256-bound `prediction-manifest.json`. Evaluation
+will refuse incomplete or modified prediction artifacts. It separately fetches
+the selected official dataset rows only when evaluation starts.
+
+Run the official evaluator in a later process. The runner automatically caches
+the Scale harness at the pinned commit used by this integration; an explicit
+`--harness-dir` must point at the same commit. Modal remains the upstream default:
 
 ```bash
-SWE_BENCH_PRO_HARNESS_DIR=/path/to/SWE-bench_Pro-os \
-  bun run bench:swe-pro -- --run-id swe-pro-example --evaluate
+bun run bench:swe-pro:eval -- \
+  --run-id swe-pro-example \
+  --max-workers 1
 ```
 
-Evaluate an existing run without generating predictions again:
+Use local Docker on the evaluation machine with:
 
 ```bash
-SWE_BENCH_PRO_HARNESS_DIR=/path/to/SWE-bench_Pro-os \
-  bun run bench:swe-pro -- \
-    --run-id swe-pro-example \
-    --evaluate-only \
-    --max-workers 1
+bun run bench:swe-pro:eval -- \
+  --run-id swe-pro-example \
+  --use-local-docker \
+  --max-workers 1
 ```
 
-Use `--use-local-docker` for the evaluator's beta local-Docker mode. When
-evaluating an external prediction file, pass both `--predictions-path` and the
-matching `--evaluation-instances-path`; the latter can be reused from the run
-that generated those predictions.
+For artifacts outside the standard run directory, pass both `--predictions-path`
+and the matching `--manifest-path`. `--dry-run` verifies the frozen artifact,
+materializes evaluator rows, and records the pinned harness command without
+starting the official evaluation.
 
 ## Terminal-Bench 2.1
 

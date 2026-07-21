@@ -15,6 +15,8 @@
     "lint": "oxlint",
     "typecheck": "bun turbo typecheck",
     "bench:swe-pro": "bun run --cwd packages/opencode bench:swe-pro",
+    "bench:swe-pro:infer": "bun run --cwd packages/opencode bench:swe-pro:infer",
+    "bench:swe-pro:eval": "bun run --cwd packages/opencode bench:swe-pro:eval",
     "bench:swe-verified": "bun run --cwd packages/opencode bench:swe-verified",
     "bench:swe-verified:infer": "bun run --cwd packages/opencode bench:swe-verified:infer",
     "bench:swe-verified:eval": "bun run --cwd packages/opencode bench:swe-verified:eval",
