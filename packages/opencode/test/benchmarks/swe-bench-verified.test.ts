@@ -162,7 +162,7 @@ describe("SWE-bench Verified runner", () => {
     expect(inference.evaluateOnly).toBe(false)
     expect(inference.opencodeVersion).toBe("1.18.4")
     expect(inference.inferenceWorkers).toBe(1)
-    expect(inference.maxInfrastructureRetries).toBe(3)
+    expect(inference.maxInfrastructureRetries).toBe(0)
 
     const parallel = parseArgs(
       ["--inference-workers", "2", "--max-infrastructure-retries", "1", "--retry-base-delay-ms", "0"],

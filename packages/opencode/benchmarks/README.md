@@ -71,14 +71,16 @@ nonzero. The runner never reads hidden evaluator fields to filter or rewrite a
 prediction.
 
 The inference coordinator supports bounded local concurrency with
-`--inference-workers` and up to three infrastructure retries by default. Each
+`--inference-workers`. Each instance receives one agent execution by default;
+infrastructure retries are disabled unless explicitly requested. Each enabled
 retry receives a fresh official task container and uses exponential backoff.
 Retries are deliberately conservative: only pre-action transient provider,
 network, service, container, or setup failures qualify. A timeout, any emitted
 patch, or any agent tool call makes the attempt final. Incorrect patches and
 empty completed attempts are never retried semantically. Configure the policy
-with `--max-infrastructure-retries` and `--retry-base-delay-ms`; use zero retries
-to reproduce one-shot inference. The retry count is capped at ten and each
+with `--max-infrastructure-retries` and `--retry-base-delay-ms`; set retries
+above zero only when additional infrastructure recovery calls are acceptable.
+The retry count is capped at ten and each
 backoff delay is capped at one minute. This coordinator is reusable benchmark
 infrastructure, but it does not provide a remote/distributed runtime backend.
 
@@ -128,9 +130,10 @@ prediction.
 The local coordinator is resumable, supports bounded concurrency through
 `--inference-workers`, and retries only classified transient infrastructure
 failures that occur before meaningful agent work. Each retry starts a fresh
-official task container. The default is three infrastructure retries; there are
-no critic-selected or semantic retries. The default per-instance timeout remains
-30 minutes because Pro tasks exercise longer-horizon repository work.
+official task container. Each instance receives one agent execution by default,
+with zero infrastructure retries and no critic-selected or semantic retries.
+The default per-instance timeout remains 30 minutes because Pro tasks exercise
+longer-horizon repository work.
 
 Inference writes the official JSON-array `predictions.json` with `instance_id`,
 `patch`, and `prefix`, plus a SHA-256-bound `prediction-manifest.json`. Evaluation

@@ -89,7 +89,7 @@ describe("SWE-bench Pro runner", () => {
     const inference = parseArgs(["--run-id", "sample", "--opencode-version", "1.18.4"], "1.18.4")
     expect(inference.evaluateOnly).toBe(false)
     expect(inference.inferenceWorkers).toBe(1)
-    expect(inference.maxInfrastructureRetries).toBe(3)
+    expect(inference.maxInfrastructureRetries).toBe(0)
     expect(inference.opencodeVersion).toBe("1.18.4")
 
     const parallel = parseArgs(
