@@ -215,7 +215,7 @@ function usage(): string {
     "Inference:",
     "  bun run bench:swe-pro:infer -- [flags]",
     "",
-    "Official Docker/Modal evaluation:",
+    "Official local Docker/Modal evaluation:",
     "  bun run bench:swe-pro:eval -- --run-id ID [flags]",
     "",
     "Flags:",
@@ -233,7 +233,8 @@ function usage(): string {
     "  --inference-workers N      Concurrent local inference instances. Default: 1.",
     `  --max-infrastructure-retries N  Fresh retries for transient infrastructure failures. Default: ${DEFAULT_MAX_INFRASTRUCTURE_RETRIES}; max: ${MAX_INFRASTRUCTURE_RETRIES}.`,
     `  --retry-base-delay-ms N   Exponential retry base delay. Default: ${DEFAULT_RETRY_BASE_DELAY_MS}.`,
-    "  --use-local-docker         Use the evaluator's local Docker mode instead of Modal.",
+    "  --use-local-docker         Use the evaluator's local Docker mode. Default.",
+    "  --no-use-local-docker      Use the evaluator's Modal mode instead.",
     `  --docker-platform NAME     Inference/evaluator platform. Default: ${DEFAULT_DOCKER_PLATFORM}.`,
     `  --dockerhub-username ID    Official evaluator image owner. Default: ${DEFAULT_DOCKERHUB_USERNAME}.`,
     "  --image-prefix VALUE       Official inference image prefix override.",
@@ -277,7 +278,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   let retryBaseDelayMs = DEFAULT_RETRY_BASE_DELAY_MS
   let harnessDir = process.env.SWE_BENCH_PRO_HARNESS_DIR
   let evaluationInstancesPath: string | undefined
-  let useLocalDocker = false
+  let useLocalDocker = true
   let dockerPlatform = DEFAULT_DOCKER_PLATFORM
   let dockerhubUsername = DEFAULT_DOCKERHUB_USERNAME
   let imagePrefix = process.env.OPENCODE_SWEBENCH_PRO_IMAGE_PREFIX ?? DEFAULT_IMAGE_PREFIX
@@ -354,6 +355,8 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
       i += 1
     } else if (arg === "--use-local-docker") {
       useLocalDocker = true
+    } else if (arg === "--no-use-local-docker") {
+      useLocalDocker = false
     } else if (arg === "--docker-platform") {
       dockerPlatform = nextValue(i, arg)
       i += 1

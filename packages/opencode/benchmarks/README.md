@@ -142,7 +142,8 @@ the selected official dataset rows only when evaluation starts.
 
 Run the official evaluator in a later process. The runner automatically caches
 the Scale harness at the pinned commit used by this integration; an explicit
-`--harness-dir` must point at the same commit. Modal remains the upstream default:
+`--harness-dir` must point at the same commit. Local Docker is the runner default
+(the upstream evaluator itself defaults to Modal):
 
 ```bash
 bun run bench:swe-pro:eval -- \
@@ -150,12 +151,12 @@ bun run bench:swe-pro:eval -- \
   --max-workers 1
 ```
 
-Use local Docker on the evaluation machine with:
+Use Modal instead with:
 
 ```bash
 bun run bench:swe-pro:eval -- \
   --run-id swe-pro-example \
-  --use-local-docker \
+  --no-use-local-docker \
   --max-workers 1
 ```
 

@@ -105,6 +105,12 @@ describe("SWE-bench Pro runner", () => {
     expect(() => parseArgs(["--opencode-version", "1.2.3;rm"], "1.18.4")).toThrow("without shell metacharacters")
   })
 
+  test("defaults evaluation to local Docker with an explicit Modal opt-out", () => {
+    expect(parseArgs([], "1.18.4").useLocalDocker).toBe(true)
+    expect(parseArgs(["--use-local-docker"], "1.18.4").useLocalDocker).toBe(true)
+    expect(parseArgs(["--no-use-local-docker"], "1.18.4").useLocalDocker).toBe(false)
+  })
+
   test("classifies only pre-action transient infrastructure failures for retry", () => {
     expect(
       classifyInfrastructureFailure({
