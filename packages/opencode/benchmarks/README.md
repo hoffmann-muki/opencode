@@ -9,11 +9,10 @@ ignored by git.
 By default, each benchmark instance uses a primary `benchmark-coordinator` and
 foreground, ordered delegation through opencode's native task/subagent tool.
 The SWE runners install project-local navigator, patcher, and reviewer agents.
-Terminal-Bench passes an equivalent native coordinator configuration to the
-Harbor adapter and delegates to fresh built-in investigation, execution, and
-verification subagents. In both cases, one benchmark attempt remains one outer
-attempt; the subagent calls are the multi-agent work inside it. SWE runners
-still allow `--agent` to override the primary agent for experiments.
+Terminal-Bench passes the same fixed-budget team through the Harbor adapter. In
+both cases, one benchmark attempt remains one outer attempt; the subagent calls
+are the multi-agent work inside it. SWE runners still allow `--agent` to
+override the primary agent for experiments.
 
 ## SWE-bench Verified
 
@@ -185,7 +184,9 @@ framework. The wrapper does not recreate task setup or grading: Harbor downloads
 `terminal-bench/terminal-bench-2-1`, installs the pinned opencode version in each
 task environment, runs the dataset verifier, and preserves its native results,
 agent logs, and ATIF trajectories. Each trial uses a supervisor-led foreground
-sequence of investigation, execution, and independent verification.
+sequence of investigation, execution, and independent verification. The
+coordinator and three fresh phases have iteration caps of 24, 10, 18, and 12,
+with temperature `0.1` throughout.
 
 - Dataset: <https://hub.harborframework.com/datasets/terminal-bench/terminal-bench-2-1/6>
 - Harbor evaluation guide: <https://www.harborframework.com/docs/run-jobs/run-evals>

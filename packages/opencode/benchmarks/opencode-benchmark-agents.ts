@@ -121,8 +121,7 @@ export function benchmarkAgentWorkflowInstructions(): string {
 /**
  * Harbor installs opencode inside each Terminal-Bench environment, so the
  * project-local markdown agents used by the SWE runners are not available
- * there. Supply an equivalent coordinator through opencode's native config and
- * delegate to its built-in foreground subagents instead.
+ * there. Supply the complete fixed-budget team through opencode's native config.
  */
 export function terminalBenchmarkAgentConfig() {
   return {
@@ -140,11 +139,62 @@ export function terminalBenchmarkAgentConfig() {
           "You are the primary Terminal-Bench coordinator.",
           "",
           "Solve each task through blocking, foreground delegation while retaining responsibility for the final outcome:",
-          "1. Delegate investigation to the explore subagent. Ask it to inspect the environment, constraints, relevant files, and a practical verification strategy without changing state.",
-          "2. Delegate execution to a fresh general subagent. Give it the original task and investigation result, and require it to perform the concrete work in the shared environment.",
-          "3. Delegate independent verification to another fresh general subagent. Give it the original task and prior results, and require it to inspect the final state, run feasible checks, and correct small clear defects when necessary.",
+          `1. Delegate investigation to a fresh ${BENCHMARK_NAVIGATOR_AGENT} subagent. Ask it to inspect the environment, constraints, relevant files, and a practical verification strategy without changing state.`,
+          `2. Delegate execution to a fresh ${BENCHMARK_PATCHER_AGENT} subagent. Give it the original task and investigation result, and require it to perform the concrete work in the shared environment.`,
+          `3. Delegate independent verification to a fresh ${BENCHMARK_REVIEWER_AGENT} subagent. Give it the original task and prior results, and require it to inspect the final state, run feasible checks, and correct small clear defects when necessary.`,
           "",
           "Run these task calls sequentially in the stated order. Do not use background delegation. Integrate their results, inspect unresolved risks, and only then provide the final answer.",
+        ].join("\n"),
+      },
+      [BENCHMARK_NAVIGATOR_AGENT]: {
+        mode: "subagent",
+        description: "Read-only Terminal-Bench navigator for environment inspection and execution planning.",
+        temperature: 0.1,
+        steps: 10,
+        tools: {
+          "*": false,
+          read: true,
+          glob: true,
+          grep: true,
+          list: true,
+          bash: true,
+        },
+        prompt: [
+          "You are the Terminal-Bench navigator.",
+          "",
+          "Investigate the task without changing state. Identify relevant files, environment constraints, likely failure points, and feasible verification commands. Return a concise, evidence-backed handoff for the patcher.",
+        ].join("\n"),
+      },
+      [BENCHMARK_PATCHER_AGENT]: {
+        mode: "subagent",
+        description: "Executes the concrete Terminal-Bench task in the shared environment.",
+        temperature: 0.1,
+        steps: 18,
+        tools: {
+          "*": true,
+          task: false,
+          todowrite: false,
+        },
+        prompt: [
+          "You are the Terminal-Bench patcher.",
+          "",
+          "Use the original task and navigator handoff to perform the smallest complete set of changes in the shared environment. Run focused verification and report actions, commands, outcomes, and remaining risk. Do not delegate.",
+        ].join("\n"),
+      },
+      [BENCHMARK_REVIEWER_AGENT]: {
+        mode: "subagent",
+        description: "Independently verifies the Terminal-Bench result and makes small corrections.",
+        temperature: 0.1,
+        steps: 12,
+        tools: {
+          "*": true,
+          task: false,
+          todowrite: false,
+        },
+        prompt: [
+          "You are the Terminal-Bench reviewer.",
+          "",
+          "Inspect the original task, current environment, and prior handoffs. Run feasible checks and make only small, clearly necessary corrections. Report concrete findings and residual risk. Do not delegate.",
         ].join("\n"),
       },
     },

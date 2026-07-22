@@ -7,6 +7,9 @@ import {
 } from "../../benchmarks/terminal-bench"
 import {
   BENCHMARK_COORDINATOR_AGENT,
+  BENCHMARK_NAVIGATOR_AGENT,
+  BENCHMARK_PATCHER_AGENT,
+  BENCHMARK_REVIEWER_AGENT,
   TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
   terminalBenchmarkAgentConfig,
 } from "../../benchmarks/opencode-benchmark-agents"
@@ -98,8 +101,13 @@ describe("Terminal-Bench runner", () => {
     expect(TERMINAL_BENCHMARK_AGENT_TOPOLOGY).toBe("supervisor-delegation")
     expect(coordinator.mode).toBe("primary")
     expect(coordinator.permission.task).toBe("allow")
-    expect(coordinator.prompt).toContain("explore subagent")
-    expect(coordinator.prompt.match(/fresh general subagent/g)).toHaveLength(2)
+    expect(coordinator.prompt).toContain(BENCHMARK_NAVIGATOR_AGENT)
+    expect(coordinator.prompt).toContain(BENCHMARK_PATCHER_AGENT)
+    expect(coordinator.prompt).toContain(BENCHMARK_REVIEWER_AGENT)
+    expect(config.agent[BENCHMARK_NAVIGATOR_AGENT].steps).toBe(10)
+    expect(config.agent[BENCHMARK_PATCHER_AGENT].steps).toBe(18)
+    expect(config.agent[BENCHMARK_REVIEWER_AGENT].steps).toBe(12)
+    expect(coordinator.prompt.match(/fresh benchmark-/g)).toHaveLength(3)
     expect(coordinator.prompt).toContain("Do not use background delegation")
   })
 
