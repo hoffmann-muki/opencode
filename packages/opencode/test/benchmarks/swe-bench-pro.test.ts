@@ -88,6 +88,12 @@ describe("SWE-bench Pro runner", () => {
   test("keeps inference and official evaluation as separate modes", () => {
     const inference = parseArgs(["--run-id", "sample", "--opencode-version", "1.18.4"], "1.18.4")
     expect(inference.evaluateOnly).toBe(false)
+    expect(inference.instanceIds).toEqual([
+      "instance_qutebrowser__qutebrowser-5fdc83e5da6222fe61163395baaad7ae57fa2cb4-v363c8a7e5ccdf6968fc7ab84a2053ac78036691d",
+    ])
+    expect(inference.model).toBe("openrouter/qwen/qwen3-coder-next")
+    expect(inference.timeoutMs).toBe(30 * 60 * 1000)
+    expect(inference.maxWorkers).toBe(1)
     expect(inference.inferenceWorkers).toBe(1)
     expect(inference.maxInfrastructureRetries).toBe(0)
     expect(inference.opencodeVersion).toBe("1.18.4")
@@ -100,9 +106,19 @@ describe("SWE-bench Pro runner", () => {
     expect(parallel.maxInfrastructureRetries).toBe(1)
     expect(parallel.retryBaseDelayMs).toBe(0)
 
-    expect(parseArgs(["--run-id", "sample", "--evaluate-only"], "1.18.4").evaluateOnly).toBe(true)
+    const evaluation = parseArgs(["--run-id", "sample", "--evaluate-only"], "1.18.4")
+    expect(evaluation.evaluateOnly).toBe(true)
+    expect(evaluation.instanceIds).toEqual([])
     expect(() => parseArgs(["--evaluate"], "1.18.4")).toThrow("Unknown argument")
     expect(() => parseArgs(["--opencode-version", "1.2.3;rm"], "1.18.4")).toThrow("without shell metacharacters")
+  })
+
+  test("lets explicit selection flags replace the default smoke instance", () => {
+    expect(parseArgs(["--instance-id", "instance_owner__repo-1"], "1.18.4").instanceIds).toEqual([
+      "instance_owner__repo-1",
+    ])
+    expect(parseArgs(["--max-instances", "3"], "1.18.4").instanceIds).toEqual([])
+    expect(parseArgs(["--offset", "2"], "1.18.4").instanceIds).toEqual([])
   })
 
   test("defaults evaluation to local Docker with an explicit Modal opt-out", () => {

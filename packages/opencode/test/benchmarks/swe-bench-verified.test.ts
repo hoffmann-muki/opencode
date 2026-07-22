@@ -160,6 +160,10 @@ describe("SWE-bench Verified runner", () => {
   test("keeps inference and evaluation as separate CLI modes", () => {
     const inference = parseArgs(["--run-id", "sample", "--opencode-version", "1.18.4"], "1.18.4")
     expect(inference.evaluateOnly).toBe(false)
+    expect(inference.instanceIds).toEqual(["scikit-learn__scikit-learn-13439"])
+    expect(inference.model).toBe("openrouter/qwen/qwen3-coder-next")
+    expect(inference.timeoutMs).toBe(30 * 60 * 1000)
+    expect(inference.maxWorkers).toBe(1)
     expect(inference.opencodeVersion).toBe("1.18.4")
     expect(inference.inferenceWorkers).toBe(1)
     expect(inference.maxInfrastructureRetries).toBe(0)
@@ -174,8 +178,17 @@ describe("SWE-bench Verified runner", () => {
 
     const evaluation = parseArgs(["--run-id", "sample", "--evaluate-only"], "1.18.4")
     expect(evaluation.evaluateOnly).toBe(true)
+    expect(evaluation.instanceIds).toEqual([])
     expect(() => parseArgs(["--evaluate"], "1.18.4")).toThrow("Unknown argument")
     expect(() => parseArgs(["--opencode-version", "1.2.3;rm"], "1.18.4")).toThrow("without shell metacharacters")
+  })
+
+  test("lets explicit selection flags replace the default smoke instance", () => {
+    expect(parseArgs(["--instance-id", "astropy__astropy-12907"], "1.18.4").instanceIds).toEqual([
+      "astropy__astropy-12907",
+    ])
+    expect(parseArgs(["--max-instances", "3"], "1.18.4").instanceIds).toEqual([])
+    expect(parseArgs(["--offset", "2"], "1.18.4").instanceIds).toEqual([])
   })
 
   test("classifies only pre-action transient infrastructure failures for retry", () => {

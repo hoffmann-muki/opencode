@@ -30,6 +30,7 @@ const DATASET_CONFIG = "default"
 const DATASET_SPLIT = "test"
 const HUGGING_FACE_ROWS_URL = "https://datasets-server.huggingface.co/rows"
 const DEFAULT_RUN_ROOT = ".benchmark-runs/swe-bench-verified"
+const DEFAULT_SMOKE_INSTANCE_ID = "scikit-learn__scikit-learn-13439"
 const DEFAULT_MAX_INSTANCES = 1
 const DEFAULT_MAX_WORKERS = 1
 const DEFAULT_INFERENCE_WORKERS = 1
@@ -205,9 +206,9 @@ function usage(): string {
     "  bun run bench:swe-verified:eval -- --run-id ID [flags]",
     "",
     "Flags:",
-    "  --max-instances N          Number of instances to run. Default: 1.",
-    "  --offset N                 Dataset offset for fetched instances.",
-    "  --instance-id ID           Specific SWE-bench instance. Repeatable.",
+    `  --max-instances N          Dataset-window size; overrides the default smoke instance. Default: ${DEFAULT_MAX_INSTANCES}.`,
+    "  --offset N                 Dataset offset; overrides the default smoke instance.",
+    `  --instance-id ID           Specific instance; repeatable. Inference default: ${DEFAULT_SMOKE_INSTANCE_ID}.`,
     "  --run-id ID                Stable inference/evaluation run id.",
     "  --output-dir DIR           Output directory. Default: .benchmark-runs/swe-bench-verified.",
     "  --include-hints            Include public hints_text in the opencode prompt.",
@@ -249,6 +250,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   let maxInstances = DEFAULT_MAX_INSTANCES
   let offset = 0
   const instanceIds: string[] = []
+  let datasetSelectionWasSet = false
   let outputDir = DEFAULT_RUN_ROOT
   let runId = `swe-verified-${new Date().toISOString().replaceAll(/[:.]/g, "-")}`
   let includeHints = false
@@ -287,12 +289,15 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
       help = true
     } else if (arg === "--max-instances") {
       maxInstances = parsePositiveInt(nextValue(i, arg), arg)
+      datasetSelectionWasSet = true
       i += 1
     } else if (arg === "--offset") {
       offset = parseNonNegativeInt(nextValue(i, arg), arg)
+      datasetSelectionWasSet = true
       i += 1
     } else if (arg === "--instance-id") {
       instanceIds.push(nextValue(i, arg))
+      datasetSelectionWasSet = true
       i += 1
     } else if (arg === "--output-dir") {
       outputDir = nextValue(i, arg)
@@ -372,7 +377,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   return {
     maxInstances,
     offset,
-    instanceIds,
+    instanceIds: !evaluateOnly && !datasetSelectionWasSet ? [DEFAULT_SMOKE_INSTANCE_ID] : instanceIds,
     outputDir,
     runId,
     includeHints,

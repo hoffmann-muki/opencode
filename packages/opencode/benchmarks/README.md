@@ -34,9 +34,14 @@ repository and dependency environment. Run a smoke inference pass:
 
 ```bash
 OPENROUTER_API_KEY=... bun run bench:swe-verified:infer -- \
-  --run-id swe-verified-smoke \
-  --max-instances 1
+  --run-id swe-verified-smoke
 ```
+
+The safe defaults use `scikit-learn__scikit-learn-13439`,
+`openrouter/qwen/qwen3-coder-next`, one inference worker, one agent attempt, a
+30-minute agent timeout, and zero infrastructure retries. Passing
+`--max-instances` or `--offset` opts into dataset-window selection instead of
+the fixed smoke instance.
 
 Useful flags:
 
@@ -116,9 +121,14 @@ Run one prediction instance:
 
 ```bash
 OPENROUTER_API_KEY=... bun run bench:swe-pro:infer -- \
-  --run-id swe-pro-example \
-  --max-instances 1
+  --run-id swe-pro-example
 ```
+
+The safe defaults use
+`instance_qutebrowser__qutebrowser-5fdc83e5da6222fe61163395baaad7ae57fa2cb4-v363c8a7e5ccdf6968fc7ab84a2053ac78036691d`,
+`openrouter/qwen/qwen3-coder-next`, one inference worker, one agent attempt, a
+30-minute agent timeout, and zero infrastructure retries. Passing
+`--max-instances` or `--offset` opts into dataset-window selection instead.
 
 Inference runs opencode at `/app` inside the official
 `docker.io/jefzda/sweap-images:<dockerhub_tag>` image for each instance. The
