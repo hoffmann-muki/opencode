@@ -33,6 +33,7 @@ const DEFAULT_RUN_ROOT = ".benchmark-runs/swe-bench-verified"
 const DEFAULT_SMOKE_INSTANCE_ID = "scikit-learn__scikit-learn-13439"
 const DEFAULT_MAX_INSTANCES = 1
 const DEFAULT_MAX_WORKERS = 1
+const DEFAULT_EVALUATION_TIMEOUT_SECONDS = 60 * 60
 const DEFAULT_INFERENCE_WORKERS = 1
 const DEFAULT_MAX_INFRASTRUCTURE_RETRIES = 0
 const DEFAULT_RETRY_BASE_DELAY_MS = 2_000
@@ -87,6 +88,7 @@ interface CliOptions {
   readonly includeHints: boolean
   readonly evaluateOnly: boolean
   readonly maxWorkers: number
+  readonly evaluationTimeoutSeconds: number
   readonly inferenceWorkers: number
   readonly maxInfrastructureRetries: number
   readonly retryBaseDelayMs: number
@@ -190,6 +192,7 @@ export interface SweBenchEvaluationConfig {
   readonly datasetName: string
   readonly predictionsPath: string
   readonly maxWorkers: number
+  readonly timeoutSeconds: number
   readonly runId: string
   readonly instanceIds: readonly string[]
   readonly namespaceEmpty: boolean
@@ -216,6 +219,7 @@ function usage(): string {
     "  --predictions-path PATH    Existing predictions JSONL to evaluate.",
     "  --manifest-path PATH       Matching prediction manifest for external predictions.",
     "  --max-workers N            Official evaluation workers. Default: 1.",
+    `  --evaluation-timeout-seconds N  Official per-test timeout. Default: ${DEFAULT_EVALUATION_TIMEOUT_SECONDS}.`,
     "  --inference-workers N      Concurrent inference instances. Default: 1.",
     `  --max-infrastructure-retries N  Fresh retries for transient infrastructure failures. Default: ${DEFAULT_MAX_INFRASTRUCTURE_RETRIES}; max: ${MAX_INFRASTRUCTURE_RETRIES}.`,
     `  --retry-base-delay-ms N    Exponential retry base delay. Default: ${DEFAULT_RETRY_BASE_DELAY_MS}.`,
@@ -256,6 +260,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   let includeHints = false
   let evaluateOnly = false
   let maxWorkers = DEFAULT_MAX_WORKERS
+  let evaluationTimeoutSeconds = DEFAULT_EVALUATION_TIMEOUT_SECONDS
   let inferenceWorkers = DEFAULT_INFERENCE_WORKERS
   let maxInfrastructureRetries = DEFAULT_MAX_INFRASTRUCTURE_RETRIES
   let retryBaseDelayMs = DEFAULT_RETRY_BASE_DELAY_MS
@@ -317,6 +322,9 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
       i += 1
     } else if (arg === "--max-workers") {
       maxWorkers = parsePositiveInt(nextValue(i, arg), arg)
+      i += 1
+    } else if (arg === "--evaluation-timeout-seconds") {
+      evaluationTimeoutSeconds = parsePositiveInt(nextValue(i, arg), arg)
       i += 1
     } else if (arg === "--inference-workers") {
       inferenceWorkers = parsePositiveInt(nextValue(i, arg), arg)
@@ -383,6 +391,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     includeHints,
     evaluateOnly,
     maxWorkers,
+    evaluationTimeoutSeconds,
     inferenceWorkers,
     maxInfrastructureRetries,
     retryBaseDelayMs,
@@ -1337,6 +1346,8 @@ export function buildEvaluationArgs(config: SweBenchEvaluationConfig): readonly 
     config.predictionsPath,
     "--max_workers",
     String(config.maxWorkers),
+    "--timeout",
+    String(config.timeoutSeconds),
     "--run_id",
     config.runId,
   ]
@@ -1698,6 +1709,7 @@ async function runEvaluation(options: CliOptions, paths: BenchmarkPaths): Promis
     datasetName: DATASET_NAME,
     predictionsPath: paths.predictionsPath,
     maxWorkers: options.maxWorkers,
+    timeoutSeconds: options.evaluationTimeoutSeconds,
     runId: options.runId,
     instanceIds: requestedIds,
     namespaceEmpty: options.namespaceEmpty,
@@ -1711,6 +1723,7 @@ async function runEvaluation(options: CliOptions, paths: BenchmarkPaths): Promis
           manifestPath: paths.manifestPath,
           predictionsSha256: artifact.digest,
           instanceIds: requestedIds,
+          testTimeoutSeconds: options.evaluationTimeoutSeconds,
           command: [options.pythonExecutable, ...args],
         },
         null,
@@ -1739,6 +1752,7 @@ async function runEvaluation(options: CliOptions, paths: BenchmarkPaths): Promis
     predictionsSha256: artifact.digest,
     swebenchVersion: harnessVersion,
     instanceIds: requestedIds,
+    testTimeoutSeconds: options.evaluationTimeoutSeconds,
     command: [options.pythonExecutable, ...args],
     startedAt,
   })
@@ -1760,6 +1774,7 @@ async function runEvaluation(options: CliOptions, paths: BenchmarkPaths): Promis
     predictionsSha256: artifact.digest,
     swebenchVersion: harnessVersion,
     instanceIds: requestedIds,
+    testTimeoutSeconds: options.evaluationTimeoutSeconds,
     command: [options.pythonExecutable, ...args],
     startedAt,
     completedAt: new Date().toISOString(),

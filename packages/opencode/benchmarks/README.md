@@ -107,7 +107,10 @@ Evaluation verifies the prediction SHA-256 and run manifest before invoking
 `python -m swebench.harness.run_evaluation`. Use both `--predictions-path` and
 `--manifest-path` for an artifact outside the standard run directory. Harness
 stdout, stderr, version, command, prediction digest, and status are recorded in
-the run directory. `--dry-run` validates the artifact and prints the exact
+the run directory. Evaluation uses one worker and an explicit 3,600-second
+per-test timeout by default, matching the OpenHands and Hermes runners. Override
+the timeout with `--evaluation-timeout-seconds` only for an intentional scoring
+configuration change. `--dry-run` validates the artifact and prints the exact
 harness command without starting evaluation.
 
 ## SWE-bench Pro

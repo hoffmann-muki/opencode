@@ -67,6 +67,7 @@ describe("SWE-bench Verified runner", () => {
         datasetName: "princeton-nlp/SWE-bench_Verified",
         predictionsPath: "/run/predictions.jsonl",
         maxWorkers: 2,
+        timeoutSeconds: 3600,
         runId: "verified-run",
         instanceIds: ["owner__repo-1"],
         namespaceEmpty: true,
@@ -80,6 +81,8 @@ describe("SWE-bench Verified runner", () => {
       "/run/predictions.jsonl",
       "--max_workers",
       "2",
+      "--timeout",
+      "3600",
       "--run_id",
       "verified-run",
       "--instance_ids",
@@ -179,6 +182,10 @@ describe("SWE-bench Verified runner", () => {
     const evaluation = parseArgs(["--run-id", "sample", "--evaluate-only"], "1.18.4")
     expect(evaluation.evaluateOnly).toBe(true)
     expect(evaluation.instanceIds).toEqual([])
+    expect(evaluation.evaluationTimeoutSeconds).toBe(60 * 60)
+
+    const evaluationTimeout = parseArgs(["--evaluate-only", "--evaluation-timeout-seconds", "1800"], "1.18.4")
+    expect(evaluationTimeout.evaluationTimeoutSeconds).toBe(1800)
     expect(() => parseArgs(["--evaluate"], "1.18.4")).toThrow("Unknown argument")
     expect(() => parseArgs(["--opencode-version", "1.2.3;rm"], "1.18.4")).toThrow("without shell metacharacters")
   })
