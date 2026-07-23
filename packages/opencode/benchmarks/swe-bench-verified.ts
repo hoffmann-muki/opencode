@@ -24,6 +24,7 @@ import {
   type EvaluationCompletion,
   type InfrastructureRetry,
 } from "./evaluation-orchestrator.ts"
+import { benchmarkSourceIdentity, ensureBenchmarkRuntime, type BenchmarkRuntime } from "./opencode-runtime.ts"
 
 const DATASET_NAME = "princeton-nlp/SWE-bench_Verified"
 const DATASET_CONFIG = "default"
@@ -47,12 +48,10 @@ const DEFAULT_DOCKER_PLATFORM = "linux/amd64"
 const DEFAULT_IMAGE_TEMPLATE = "docker.io/swebench/sweb.eval.x86_64.{repo}_1776_{name}:latest"
 const RECOMMENDED_SWEBENCH_VERSION = "4.1.0"
 const CONTAINER_WORKDIR = "/testbed"
-const NVM_VERSION = "v0.40.2"
-const NODE_MAJOR_VERSION = 22
 const DATASET_PAGE_SIZE = 100
 const DATASET_FETCH_ATTEMPTS = 3
 const DATASET_FETCH_RETRY_MS = 1_000
-const MANIFEST_SCHEMA_VERSION = 2
+const MANIFEST_SCHEMA_VERSION = 3
 const OPENCODE_PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const REPO_ROOT = resolve(OPENCODE_PACKAGE_ROOT, "../..")
 const PACKAGE_JSON_PATH = join(OPENCODE_PACKAGE_ROOT, "package.json")
@@ -101,6 +100,7 @@ interface CliOptions {
   readonly timeoutMs: number
   readonly setupTimeoutMs: number
   readonly opencodeVersion: string
+  readonly runtime?: BenchmarkRuntime
   readonly dockerPlatform: string
   readonly imageTemplate: string
   readonly keepFailedContainers: boolean
@@ -161,6 +161,9 @@ export interface PredictionManifest {
   readonly model: string
   readonly agent: string
   readonly opencodeVersion: string
+  readonly opencodeCommit: string
+  readonly opencodeBinarySha256: string
+  readonly providerAttemptsPerTurn: number
   readonly inferenceRuntime: "official-swebench-instance-image"
   readonly imageTemplate: string
   readonly dockerPlatform: string
@@ -229,7 +232,7 @@ function usage(): string {
     `  --agent AGENT              Primary opencode agent. Default: ${DEFAULT_AGENT}.`,
     `  --timeout-ms N             Per-instance agent timeout. Default: ${DEFAULT_OPENCODE_TIMEOUT_MS}.`,
     `  --setup-timeout-ms N       Per-instance runtime setup timeout. Default: ${DEFAULT_SETUP_TIMEOUT_MS}.`,
-    "  --opencode-version VERSION Pinned opencode-ai npm version. Defaults to this checkout's version.",
+    "  The agent runtime is built from the exact clean opencode checkout and cached by commit.",
     `  --docker-platform VALUE    Inference image platform. Default: ${DEFAULT_DOCKER_PLATFORM}.`,
     "  --image-template VALUE     Official image template override.",
     "  --keep-failed-containers   Keep failed inference containers for debugging.",
@@ -272,7 +275,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   let agent = DEFAULT_AGENT
   let timeoutMs = DEFAULT_OPENCODE_TIMEOUT_MS
   let setupTimeoutMs = DEFAULT_SETUP_TIMEOUT_MS
-  let opencodeVersion = defaultOpencodeVersion
+  const opencodeVersion = defaultOpencodeVersion
   let dockerPlatform = DEFAULT_DOCKER_PLATFORM
   let imageTemplate = process.env.OPENCODE_SWEBENCH_IMAGE_TEMPLATE ?? DEFAULT_IMAGE_TEMPLATE
   let keepFailedContainers = false
@@ -354,9 +357,6 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     } else if (arg === "--setup-timeout-ms") {
       setupTimeoutMs = parsePositiveInt(nextValue(i, arg), arg)
       i += 1
-    } else if (arg === "--opencode-version") {
-      opencodeVersion = nextValue(i, arg)
-      i += 1
     } else if (arg === "--docker-platform") {
       dockerPlatform = nextValue(i, arg)
       i += 1
@@ -379,7 +379,6 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     }
   }
 
-  validateSafePackageVersion(opencodeVersion)
   officialSweBenchImage("owner__repo-1", imageTemplate)
 
   return {
@@ -425,12 +424,6 @@ function parseNonNegativeInt(value: string, flag: string): number {
   const parsed = Number(value)
   if (!Number.isInteger(parsed) || parsed < 0) throw new Error(`${flag} must be a non-negative integer.`)
   return parsed
-}
-
-function validateSafePackageVersion(version: string): void {
-  if (!/^[A-Za-z0-9][A-Za-z0-9._+-]*$/.test(version)) {
-    throw new Error("--opencode-version must be an npm version or dist-tag without shell metacharacters.")
-  }
 }
 
 function resolveDefaultModel(): string {
@@ -705,6 +698,8 @@ export function buildOpencodeExecArgs(
     "--env",
     "OPENCODE_PRINT_LOGS=0",
     "--env",
+    "OPENCODE_DISABLE_PROVIDER_RETRIES=1",
+    "--env",
     "BASH_ENV=/root/.bashrc",
     containerName,
     "opencode",
@@ -731,22 +726,14 @@ function containerName(runId: string, instanceId: string, attempt: number): stri
   return safe.slice(0, 120).replaceAll(/[-_.]+$/g, "") || "opencode-swe-instance"
 }
 
-function setupScript(opencodeVersion: string): string {
-  validateSafePackageVersion(opencodeVersion)
+function setupScript(): string {
   return [
     "set -euo pipefail",
     "export DEBIAN_FRONTEND=noninteractive",
     "apt-get update",
-    "apt-get install -y --no-install-recommends ca-certificates curl git",
+    "apt-get install -y --no-install-recommends ca-certificates git",
     "rm -rf /var/lib/apt/lists/*",
-    'export NVM_DIR="/root/.nvm"',
-    `curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash`,
-    '. "$NVM_DIR/nvm.sh"',
-    `nvm install ${NODE_MAJOR_VERSION}`,
-    `nvm alias default ${NODE_MAJOR_VERSION}`,
-    `npm install --global opencode-ai@${opencodeVersion}`,
-    'ln -sf "$(command -v node)" /usr/local/bin/node',
-    'ln -sf "$(command -v opencode)" /usr/local/bin/opencode',
+    "chmod 755 /usr/local/bin/opencode",
     "opencode --version",
   ].join(" && ")
 }
@@ -790,6 +777,7 @@ async function prepareContainer(
   image: string,
   name: string,
 ): Promise<JsonObject> {
+  const runtime = requireBenchmarkRuntime(options)
   const imageMetadata = await ensureOfficialImage(image, instanceRunDir, options.setupTimeoutMs)
   const staleCleanup = await runProcess("docker", ["rm", "--force", name], {
     cwd: REPO_ROOT,
@@ -809,13 +797,29 @@ async function prepareContainer(
   assertProcessSucceeded(started, `start inference container ${name}`)
 
   try {
-    const setup = await runProcess("docker", ["exec", name, "/bin/bash", "-lc", setupScript(options.opencodeVersion)], {
+    const runtimeDirectory = await runProcess("docker", ["exec", name, "mkdir", "-p", "/usr/local/bin"], {
+      cwd: REPO_ROOT,
+      timeoutMs: options.setupTimeoutMs,
+      env: hostEnv(process.env),
+    })
+    await writeProcessArtifacts(instanceRunDir, "runtime-directory", runtimeDirectory)
+    assertProcessSucceeded(runtimeDirectory, "create opencode runtime directory")
+
+    const runtimeCopy = await runProcess("docker", ["cp", runtime.binaryPath, `${name}:/usr/local/bin/opencode`], {
+      cwd: REPO_ROOT,
+      timeoutMs: options.setupTimeoutMs,
+      env: hostEnv(process.env),
+    })
+    await writeProcessArtifacts(instanceRunDir, "runtime-copy", runtimeCopy)
+    assertProcessSucceeded(runtimeCopy, `copy opencode runtime ${runtime.commit}`)
+
+    const setup = await runProcess("docker", ["exec", name, "/bin/bash", "-lc", setupScript()], {
       cwd: REPO_ROOT,
       timeoutMs: options.setupTimeoutMs,
       env: hostEnv(process.env),
     })
     await writeProcessArtifacts(instanceRunDir, "runtime-setup", setup)
-    assertProcessSucceeded(setup, "install pinned opencode runtime")
+    assertProcessSucceeded(setup, "verify exact opencode runtime")
 
     const reset = await runProcess(
       "docker",
@@ -910,6 +914,11 @@ async function captureContainerPatch(name: string): Promise<CapturedPatch> {
   }
 }
 
+function requireBenchmarkRuntime(options: CliOptions): BenchmarkRuntime {
+  if (!options.runtime) throw new Error("The exact opencode benchmark runtime has not been prepared.")
+  return options.runtime
+}
+
 async function stopTimedOutWork(name: string, instanceRunDir: string): Promise<void> {
   const stopped = await runProcess("docker", ["stop", "--time", "1", name], {
     cwd: REPO_ROOT,
@@ -967,6 +976,7 @@ async function runInstanceAttempt(
   paths: BenchmarkPaths,
   context: { readonly attempt: number; readonly maxAttempts: number },
 ): Promise<EvaluationAttempt<InstanceOutcome>> {
+  const runtime = requireBenchmarkRuntime(options)
   const instanceRunDir = join(paths.runs, row.instance_id)
   const attemptRunDir = join(instanceRunDir, "attempts", `attempt-${context.attempt}`)
   await rm(attemptRunDir, { recursive: true, force: true })
@@ -1061,7 +1071,7 @@ async function runInstanceAttempt(
   }
   const prediction: SweBenchPrediction = {
     instance_id: row.instance_id,
-    model_name_or_path: `opencode@${options.opencodeVersion}:${options.model}`,
+    model_name_or_path: `opencode@${runtime.commit}:${options.model}`,
     model_patch: captured.patch,
   }
   const summary: JsonObject = {
@@ -1075,6 +1085,9 @@ async function runInstanceAttempt(
     model: options.model,
     agent: options.agent,
     opencodeVersion: options.opencodeVersion,
+    opencodeCommit: runtime.commit,
+    opencodeBinarySha256: runtime.binarySha256,
+    providerAttemptsPerTurn: 1,
     inferenceRuntime: "official-swebench-instance-image",
     containerName: name,
     containerWorkdir: CONTAINER_WORKDIR,
@@ -1362,6 +1375,7 @@ function buildPredictionManifest(
   predictions: readonly SweBenchPrediction[],
   complete: boolean,
 ): PredictionManifest {
+  const runtime = requireBenchmarkRuntime(options)
   const content = encodeJsonl(predictions)
   return {
     schemaVersion: MANIFEST_SCHEMA_VERSION,
@@ -1373,6 +1387,9 @@ function buildPredictionManifest(
     model: options.model,
     agent: options.agent,
     opencodeVersion: options.opencodeVersion,
+    opencodeCommit: runtime.commit,
+    opencodeBinarySha256: runtime.binarySha256,
+    providerAttemptsPerTurn: 1,
     inferenceRuntime: "official-swebench-instance-image",
     imageTemplate: options.imageTemplate,
     dockerPlatform: options.dockerPlatform,
@@ -1419,6 +1436,9 @@ async function writeRunProgress(
     model: options.model,
     agent: options.agent,
     opencodeVersion: options.opencodeVersion,
+    opencodeCommit: manifest.opencodeCommit,
+    opencodeBinarySha256: manifest.opencodeBinarySha256,
+    providerAttemptsPerTurn: manifest.providerAttemptsPerTurn,
     inferenceRuntime: "official-swebench-instance-image",
     inferenceWorkers: options.inferenceWorkers,
     maxInfrastructureRetries: options.maxInfrastructureRetries,
@@ -1531,12 +1551,24 @@ function parsePredictionManifest(value: unknown): PredictionManifest {
   const model = requireStringField(value, "model", "Prediction manifest")
   const agent = requireStringField(value, "agent", "Prediction manifest")
   const opencodeVersion = requireStringField(value, "opencodeVersion", "Prediction manifest")
+  const opencodeCommit =
+    value.schemaVersion === MANIFEST_SCHEMA_VERSION
+      ? requireStringField(value, "opencodeCommit", "Prediction manifest")
+      : "legacy-unrecorded"
+  const opencodeBinarySha256 =
+    value.schemaVersion === MANIFEST_SCHEMA_VERSION
+      ? requireStringField(value, "opencodeBinarySha256", "Prediction manifest")
+      : "legacy-unrecorded"
+  const providerAttemptsPerTurn =
+    value.schemaVersion === MANIFEST_SCHEMA_VERSION && typeof value.providerAttemptsPerTurn === "number"
+      ? value.providerAttemptsPerTurn
+      : 0
   const inferenceRuntime = requireStringField(value, "inferenceRuntime", "Prediction manifest")
   const imageTemplate = requireStringField(value, "imageTemplate", "Prediction manifest")
   const dockerPlatform = requireStringField(value, "dockerPlatform", "Prediction manifest")
   const predictionsSha256 = requireStringField(value, "predictionsSha256", "Prediction manifest")
   const generatedAt = requireStringField(value, "generatedAt", "Prediction manifest")
-  if (value.schemaVersion !== 1 && value.schemaVersion !== MANIFEST_SCHEMA_VERSION) {
+  if (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== MANIFEST_SCHEMA_VERSION) {
     throw new Error(`Unsupported prediction manifest schema: ${String(value.schemaVersion)}`)
   }
   if (benchmark !== "swe-bench-verified" || dataset !== DATASET_NAME) {
@@ -1584,6 +1616,14 @@ function parsePredictionManifest(value: unknown): PredictionManifest {
   if (!/^[a-f0-9]{64}$/.test(predictionsSha256)) {
     throw new Error("Prediction manifest has an invalid SHA-256 digest.")
   }
+  if (
+    value.schemaVersion === MANIFEST_SCHEMA_VERSION &&
+    (!/^[a-f0-9]{40}$/.test(opencodeCommit) ||
+      !/^[a-f0-9]{64}$/.test(opencodeBinarySha256) ||
+      providerAttemptsPerTurn !== 1)
+  ) {
+    throw new Error("Prediction manifest has invalid agent provenance or provider-attempt metadata.")
+  }
   const selectedInstances = value.selectedInstances.map((candidate, index) => {
     const description = `Prediction manifest instance ${index + 1}`
     if (!isObject(candidate)) throw new Error(`${description} must be an object.`)
@@ -1610,6 +1650,9 @@ function parsePredictionManifest(value: unknown): PredictionManifest {
     model,
     agent,
     opencodeVersion,
+    opencodeCommit,
+    opencodeBinarySha256,
+    providerAttemptsPerTurn,
     inferenceRuntime: "official-swebench-instance-image",
     imageTemplate,
     dockerPlatform,
@@ -1639,6 +1682,11 @@ function assertManifestMatchesRun(
     manifest.model !== options.model ? "model" : undefined,
     manifest.agent !== options.agent ? "agent" : undefined,
     manifest.opencodeVersion !== options.opencodeVersion ? "opencode version" : undefined,
+    options.runtime && manifest.opencodeCommit !== options.runtime.commit ? "opencode commit" : undefined,
+    options.runtime && manifest.opencodeBinarySha256 !== options.runtime.binarySha256
+      ? "opencode binary digest"
+      : undefined,
+    options.runtime && manifest.providerAttemptsPerTurn !== 1 ? "provider attempt policy" : undefined,
     manifest.imageTemplate !== options.imageTemplate ? "image template" : undefined,
     manifest.dockerPlatform !== options.dockerPlatform ? "Docker platform" : undefined,
     manifest.includeHints !== options.includeHints ? "hint policy" : undefined,
@@ -2066,7 +2114,14 @@ async function main(): Promise<void> {
     await runEvaluation(options, paths)
     return
   }
-  await runInference(options, paths)
+  const identity = await benchmarkSourceIdentity()
+  if (options.dryRun || options.listInstances) {
+    console.log(`Exact opencode source revision: ${identity.commit}`)
+    await runInference({ ...options, opencodeVersion: identity.version }, paths)
+    return
+  }
+  const runtime = await ensureBenchmarkRuntime(identity)
+  await runInference({ ...options, opencodeVersion: runtime.version, runtime }, paths)
 }
 
 if (import.meta.main) {

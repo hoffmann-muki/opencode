@@ -81,12 +81,13 @@ describe("SWE-bench Pro runner", () => {
     expect(args).toContain("/app")
     expect(args).toContain("--pure")
     expect(args).toContain("OPENROUTER_API_KEY")
+    expect(args).toContain("OPENCODE_DISABLE_PROVIDER_RETRIES=1")
     expect(args).toContain("BASH_ENV=/root/.bashrc")
     expect(args.join(" ")).not.toContain("secret-value")
   })
 
   test("keeps inference and official evaluation as separate modes", () => {
-    const inference = parseArgs(["--run-id", "sample", "--opencode-version", "1.18.4"], "1.18.4")
+    const inference = parseArgs(["--run-id", "sample"], "1.18.4")
     expect(inference.evaluateOnly).toBe(false)
     expect(inference.instanceIds).toEqual([
       "instance_qutebrowser__qutebrowser-5fdc83e5da6222fe61163395baaad7ae57fa2cb4-v363c8a7e5ccdf6968fc7ab84a2053ac78036691d",
@@ -110,7 +111,7 @@ describe("SWE-bench Pro runner", () => {
     expect(evaluation.evaluateOnly).toBe(true)
     expect(evaluation.instanceIds).toEqual([])
     expect(() => parseArgs(["--evaluate"], "1.18.4")).toThrow("Unknown argument")
-    expect(() => parseArgs(["--opencode-version", "1.2.3;rm"], "1.18.4")).toThrow("without shell metacharacters")
+    expect(() => parseArgs(["--opencode-version", "1.18.4"], "1.18.4")).toThrow("Unknown argument")
   })
 
   test("lets explicit selection flags replace the default smoke instance", () => {

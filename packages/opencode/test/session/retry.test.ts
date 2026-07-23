@@ -115,6 +115,28 @@ describe("session.retry.delay", () => {
       })
     }),
   )
+
+  test("policy can disable retries after the first provider attempt", async () => {
+    let updates = 0
+    const step = await Effect.runPromise(
+      Schedule.toStepWithMetadata(
+        SessionRetry.policy({
+          provider: "test",
+          maxRetries: 0,
+          parse: Schema.decodeUnknownSync(SessionV1.APIError.Schema),
+          set: () =>
+            Effect.sync(() => {
+              updates += 1
+            }),
+        }),
+      ),
+    )
+
+    const exit = await Effect.runPromise(Effect.exit(step(apiError())))
+
+    expect(updates).toBe(0)
+    expect(exit._tag).toBe("Failure")
+  })
 })
 
 describe("session.retry.retryable", () => {

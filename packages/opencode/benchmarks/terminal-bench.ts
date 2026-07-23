@@ -16,6 +16,7 @@ import {
   TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
   terminalBenchmarkAgentConfig,
 } from "./opencode-benchmark-agents.ts"
+import { benchmarkSourceIdentity, ensureBenchmarkRuntime, type BenchmarkRuntime } from "./opencode-runtime.ts"
 
 export const TERMINAL_BENCH_DATASET = "terminal-bench/terminal-bench-2-1"
 export const TERMINAL_BENCH_TASK_COUNT = 89
@@ -31,6 +32,7 @@ const OPENCODE_PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "
 const REPO_ROOT = resolve(OPENCODE_PACKAGE_ROOT, "../..")
 const OPENCODE_PACKAGE_JSON = join(OPENCODE_PACKAGE_ROOT, "package.json")
 const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
+const HARBOR_AGENT = "packages.opencode.benchmarks.opencode_harbor:BenchmarkOpenCode"
 
 interface CliOptions {
   readonly taskNames: readonly string[]
@@ -40,6 +42,7 @@ interface CliOptions {
   readonly maxRetries: number
   readonly model: string
   readonly opencodeVersion: string
+  readonly runtime?: BenchmarkRuntime
   readonly environment: string
   readonly outputDir: string
   readonly runId: string
@@ -66,7 +69,7 @@ interface ProcessResult {
 }
 
 interface RunManifest {
-  readonly schemaVersion: 1
+  readonly schemaVersion: 2
   readonly benchmark: "terminal-bench"
   readonly dataset: string
   readonly officialTaskCount: number
@@ -74,9 +77,13 @@ interface RunManifest {
   readonly harborVersion: string
   readonly model: string
   readonly agent: "opencode"
+  readonly agentAdapter: typeof HARBOR_AGENT
   readonly primaryAgent: typeof BENCHMARK_COORDINATOR_AGENT
   readonly agentTopology: typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY
   readonly opencodeVersion: string
+  readonly opencodeCommit: string
+  readonly opencodeBinarySha256: string
+  readonly providerAttemptsPerTurn: 1
   readonly environment: string
   readonly taskNames: readonly string[]
   readonly maxTasks?: number
@@ -112,7 +119,7 @@ export function usage(): string {
     `  --concurrency N        Concurrent Harbor trials. Default: ${DEFAULT_CONCURRENCY}.`,
     `  --max-retries N        Infrastructure retries per trial. Default: ${DEFAULT_MAX_RETRIES}.`,
     "  --model MODEL          Agent model in provider/model format.",
-    "  --opencode-version V   opencode-ai package version installed by Harbor.",
+    "  The agent runtime is built from the exact clean opencode checkout and cached by commit.",
     `  --environment NAME     Harbor environment. Default: ${DEFAULT_ENVIRONMENT}.`,
     `  --output-dir DIR       Output root. Default: ${DEFAULT_RUN_ROOT}.`,
     "  --run-id ID            Stable Harbor job and local run identifier.",
@@ -144,7 +151,7 @@ export function parseArgs(
   let concurrency = DEFAULT_CONCURRENCY
   let maxRetries = DEFAULT_MAX_RETRIES
   let model = defaults.model
-  let opencodeVersion = defaults.opencodeVersion
+  const opencodeVersion = defaults.opencodeVersion
   let environment = DEFAULT_ENVIRONMENT
   let outputDir = DEFAULT_RUN_ROOT
   const now = defaults.now ?? new Date()
@@ -187,9 +194,6 @@ export function parseArgs(
       i += 1
     } else if (arg === "--model") {
       model = nextValue(i, arg)
-      i += 1
-    } else if (arg === "--opencode-version") {
-      opencodeVersion = nextValue(i, arg)
       i += 1
     } else if (arg === "--environment") {
       environment = nextValue(i, arg)
@@ -285,17 +289,24 @@ export function resolveDefaultModel(env: NodeJS.ProcessEnv = process.env): strin
 }
 
 export function buildHarborArgs(options: CliOptions, jobsDir: string): readonly string[] {
+  if (!options.runtime) throw new Error("The exact opencode benchmark runtime has not been prepared.")
   const opencodeConfig = JSON.stringify(terminalBenchmarkAgentConfig())
   const args = [
     "run",
     "--dataset",
     TERMINAL_BENCH_DATASET,
     "--agent",
-    "opencode",
+    HARBOR_AGENT,
     "--model",
     options.model,
     "--agent-kwarg",
     `version=${options.opencodeVersion}`,
+    "--agent-kwarg",
+    `binary_path=${options.runtime.binaryPath}`,
+    "--agent-kwarg",
+    `source_commit=${options.runtime.commit}`,
+    "--agent-kwarg",
+    `binary_sha256=${options.runtime.binarySha256}`,
     "--agent-kwarg",
     `opencode_config=${opencodeConfig}`,
     "--env",
@@ -450,42 +461,48 @@ async function main(): Promise<void> {
     return
   }
 
-  const paths = buildPaths(options)
-  const harborArgs = buildHarborArgs(options, paths.jobsDir)
-  const renderedCommand = [options.harborBin, ...harborArgs]
+  const runtime = await ensureBenchmarkRuntime(await benchmarkSourceIdentity())
+  const resolvedOptions = { ...options, opencodeVersion: runtime.version, runtime }
+  const paths = buildPaths(resolvedOptions)
+  const harborArgs = buildHarborArgs(resolvedOptions, paths.jobsDir)
+  const renderedCommand = [resolvedOptions.harborBin, ...harborArgs]
 
-  if (options.dryRun) {
+  if (resolvedOptions.dryRun) {
     console.log(JSON.stringify(renderedCommand))
     return
   }
 
-  const harborVersion = await preflight(options)
+  const harborVersion = await preflight(resolvedOptions)
   await mkdir(paths.runDir, { recursive: true })
   await mkdir(paths.jobsDir, { recursive: true })
 
   const startedAt = new Date().toISOString()
   const manifest: RunManifest = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     benchmark: "terminal-bench",
     dataset: TERMINAL_BENCH_DATASET,
     officialTaskCount: TERMINAL_BENCH_TASK_COUNT,
     officialRunner: "harbor",
     harborVersion,
-    model: options.model,
+    model: resolvedOptions.model,
     agent: "opencode",
+    agentAdapter: HARBOR_AGENT,
     primaryAgent: BENCHMARK_COORDINATOR_AGENT,
     agentTopology: TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
-    opencodeVersion: options.opencodeVersion,
-    environment: options.environment,
-    taskNames: options.taskNames,
-    ...(options.maxTasks !== undefined ? { maxTasks: options.maxTasks } : {}),
-    attempts: options.attempts,
-    concurrency: options.concurrency,
-    maxRetries: options.maxRetries,
-    upload: options.upload,
-    public: options.public,
-    leaderboard: options.leaderboard,
-    allTasks: options.maxTasks === undefined,
+    opencodeVersion: resolvedOptions.opencodeVersion,
+    opencodeCommit: runtime.commit,
+    opencodeBinarySha256: runtime.binarySha256,
+    providerAttemptsPerTurn: 1,
+    environment: resolvedOptions.environment,
+    taskNames: resolvedOptions.taskNames,
+    ...(resolvedOptions.maxTasks !== undefined ? { maxTasks: resolvedOptions.maxTasks } : {}),
+    attempts: resolvedOptions.attempts,
+    concurrency: resolvedOptions.concurrency,
+    maxRetries: resolvedOptions.maxRetries,
+    upload: resolvedOptions.upload,
+    public: resolvedOptions.public,
+    leaderboard: resolvedOptions.leaderboard,
+    allTasks: resolvedOptions.maxTasks === undefined,
     command: renderedCommand,
     jobsDir: paths.jobsDir,
     stdoutPath: paths.stdoutPath,
@@ -497,9 +514,10 @@ async function main(): Promise<void> {
 
   let exitCode: number
   try {
-    exitCode = await runStreaming(options.harborBin, harborArgs, paths, {
+    exitCode = await runStreaming(resolvedOptions.harborBin, harborArgs, paths, {
       ...process.env,
       HARBOR_TELEMETRY: process.env.HARBOR_TELEMETRY ?? "off",
+      PYTHONPATH: [REPO_ROOT, process.env.PYTHONPATH].filter(Boolean).join(":"),
     })
   } catch (error) {
     await writeManifest(paths.manifestPath, {

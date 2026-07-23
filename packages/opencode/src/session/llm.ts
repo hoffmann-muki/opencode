@@ -24,6 +24,7 @@ import { SessionID } from "@/session/schema"
 import { Auth } from "@/auth"
 import { EffectBridge } from "@/effect/bridge"
 import { RuntimeFlags } from "@/effect/runtime-flags"
+import { Flag } from "@opencode-ai/core/flag/flag"
 import * as Option from "effect/Option"
 import * as OtelTracer from "@effect/opentelemetry/Tracer"
 import { LLMAISDK } from "./llm/ai-sdk"
@@ -320,7 +321,7 @@ const live: Layer.Layer<
           maxOutputTokens: prepared.params.maxOutputTokens,
           abortSignal: input.abort,
           headers: prepared.headers,
-          maxRetries: input.retries ?? 0,
+          maxRetries: Flag.OPENCODE_DISABLE_PROVIDER_RETRIES ? 0 : (input.retries ?? 0),
           messages: prepared.messages,
           model: wrapLanguageModel({
             model: language,

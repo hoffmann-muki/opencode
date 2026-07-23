@@ -134,6 +134,7 @@ describe("SWE-bench Verified runner", () => {
     expect(args).toContain("--pure")
     expect(args).toContain("benchmark-coordinator")
     expect(args).toContain("OPENROUTER_API_KEY")
+    expect(args).toContain("OPENCODE_DISABLE_PROVIDER_RETRIES=1")
     expect(args).toContain("BASH_ENV=/root/.bashrc")
     expect(args.join(" ")).not.toContain("secret-value")
   })
@@ -161,7 +162,7 @@ describe("SWE-bench Verified runner", () => {
   })
 
   test("keeps inference and evaluation as separate CLI modes", () => {
-    const inference = parseArgs(["--run-id", "sample", "--opencode-version", "1.18.4"], "1.18.4")
+    const inference = parseArgs(["--run-id", "sample"], "1.18.4")
     expect(inference.evaluateOnly).toBe(false)
     expect(inference.instanceIds).toEqual(["scikit-learn__scikit-learn-13439"])
     expect(inference.model).toBe("openrouter/qwen/qwen3-coder-next")
@@ -187,7 +188,7 @@ describe("SWE-bench Verified runner", () => {
     const evaluationTimeout = parseArgs(["--evaluate-only", "--evaluation-timeout-seconds", "1800"], "1.18.4")
     expect(evaluationTimeout.evaluationTimeoutSeconds).toBe(1800)
     expect(() => parseArgs(["--evaluate"], "1.18.4")).toThrow("Unknown argument")
-    expect(() => parseArgs(["--opencode-version", "1.2.3;rm"], "1.18.4")).toThrow("without shell metacharacters")
+    expect(() => parseArgs(["--opencode-version", "1.18.4"], "1.18.4")).toThrow("Unknown argument")
   })
 
   test("lets explicit selection flags replace the default smoke instance", () => {

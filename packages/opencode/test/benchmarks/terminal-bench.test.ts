@@ -19,6 +19,12 @@ const defaults = {
   opencodeVersion: "1.18.4",
   now: new Date("2026-07-20T12:34:56.789Z"),
 }
+const runtime = {
+  version: "1.18.4",
+  commit: "a".repeat(40),
+  binaryPath: "/cache/opencode",
+  binarySha256: "b".repeat(64),
+}
 
 describe("Terminal-Bench runner", () => {
   test("uses a reproducible one-task smoke configuration by default", () => {
@@ -39,37 +45,46 @@ describe("Terminal-Bench runner", () => {
     })
   })
 
-  test("builds the official Harbor invocation with filters and a pinned opencode version", () => {
-    const options = parseArgs(
-      [
-        "--task-name",
-        "git-*",
-        "--task-name",
-        "compression",
-        "--max-tasks",
-        "2",
-        "--attempts",
-        "3",
-        "--concurrency",
-        "2",
-        "--max-retries",
-        "1",
-        "--run-id",
-        "terminal-smoke",
-      ],
-      defaults,
-    )
+  test("builds the official Harbor invocation with an immutable local runtime", () => {
+    const options = {
+      ...parseArgs(
+        [
+          "--task-name",
+          "git-*",
+          "--task-name",
+          "compression",
+          "--max-tasks",
+          "2",
+          "--attempts",
+          "3",
+          "--concurrency",
+          "2",
+          "--max-retries",
+          "1",
+          "--run-id",
+          "terminal-smoke",
+        ],
+        defaults,
+      ),
+      runtime,
+    }
 
     expect(buildHarborArgs(options, "/runs/harbor-jobs")).toEqual([
       "run",
       "--dataset",
       TERMINAL_BENCH_DATASET,
       "--agent",
-      "opencode",
+      "packages.opencode.benchmarks.opencode_harbor:BenchmarkOpenCode",
       "--model",
       defaults.model,
       "--agent-kwarg",
       "version=1.18.4",
+      "--agent-kwarg",
+      "binary_path=/cache/opencode",
+      "--agent-kwarg",
+      `source_commit=${"a".repeat(40)}`,
+      "--agent-kwarg",
+      `binary_sha256=${"b".repeat(64)}`,
       "--agent-kwarg",
       `opencode_config=${JSON.stringify(terminalBenchmarkAgentConfig())}`,
       "--env",
@@ -113,7 +128,7 @@ describe("Terminal-Bench runner", () => {
 
   test("leaderboard mode enforces the complete public five-attempt protocol", () => {
     const options = parseArgs(["--leaderboard", "--concurrency", "4"], defaults)
-    const args = buildHarborArgs(options, "/runs/harbor-jobs")
+    const args = buildHarborArgs({ ...options, runtime }, "/runs/harbor-jobs")
 
     expect(options.maxTasks).toBeUndefined()
     expect(options.attempts).toBe(5)
@@ -126,7 +141,7 @@ describe("Terminal-Bench runner", () => {
 
   test("all-tasks mode removes only the safe smoke limit", () => {
     const options = parseArgs(["--all-tasks"], defaults)
-    const args = buildHarborArgs(options, "/runs/harbor-jobs")
+    const args = buildHarborArgs({ ...options, runtime }, "/runs/harbor-jobs")
 
     expect(options.maxTasks).toBeUndefined()
     expect(options.attempts).toBe(1)

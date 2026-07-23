@@ -22,11 +22,11 @@ prediction schema, and Docker evaluation harness:
 - Dataset: <https://huggingface.co/datasets/princeton-nlp/SWE-bench_Verified>
 - Evaluation guide: <https://www.swebench.com/SWE-bench/guides/evaluation/>
 
-Inference and evaluation are deliberately separate. Inference runs a pinned
-`opencode-ai` release inside the official SWE-bench image for each instance; it
-does not clone an approximate host-side worktree. The model receives the public
-problem statement and optional public hints, never the gold patch or hidden test
-patch.
+Inference and evaluation are deliberately separate. Inference builds the exact
+clean opencode checkout once, caches the Linux binary by full Git commit, and
+copies it into the official SWE-bench image for each instance. The model
+receives the concise public problem statement and optional public hints, never
+the gold patch or hidden test patch.
 
 Docker is required for inference because the official task image defines the
 repository and dependency environment. Run a smoke inference pass:
@@ -62,8 +62,9 @@ The runner writes:
 - Final per-instance `run.json`, `prediction.json`, `patch.diff`, and
   `final-attempt.json` files referencing the selected attempt.
 - `predictions.jsonl` in SWE-bench harness format.
-- `prediction-manifest.json` with the selected instances, model, pinned
-  opencode version, official images, and SHA-256 of `predictions.jsonl`.
+- `prediction-manifest.json` with the selected instances, model, full opencode
+  commit, binary SHA-256, official images, provider-attempt policy, and SHA-256
+  of `predictions.jsonl`.
 - `summary.json` for the benchmark run.
 
 Predictions, manifest, and summary are atomically checkpointed after every
@@ -87,6 +88,9 @@ above zero only when additional infrastructure recovery calls are acceptable.
 The retry count is capped at ten and each
 backoff delay is capped at one minute. This coordinator is reusable benchmark
 infrastructure, but it does not provide a remote/distributed runtime backend.
+Within every benchmark agent turn, opencode makes one provider request attempt:
+its normal interactive provider-retry policy is disabled only for these
+benchmark-launched processes.
 
 Runner summaries distinguish agent completion, prediction production, and
 generation success. They do not claim that a task is resolved; resolution is
@@ -134,10 +138,12 @@ The safe defaults use
 
 Inference runs opencode at `/app` inside the official
 `docker.io/jefzda/sweap-images:<dockerhub_tag>` image for each instance. The
-agent receives only the public problem statement, requirements, interface,
+exact clean checkout is built and cached by commit before the run. The agent
+receives only the concise public problem statement, requirements, interface,
 repository metadata, and language. Gold patches, hidden test patches, and
 evaluator-only fields are neither retained nor used to filter the model's
-prediction.
+prediction. Provider retries are disabled for the benchmark process, yielding
+one provider request attempt per turn.
 
 The local coordinator is resumable, supports bounded concurrency through
 `--inference-workers`, and retries only classified transient infrastructure
@@ -181,9 +187,11 @@ starting the official evaluation.
 
 Terminal-Bench 2.1 is run through Harbor, the benchmark's official evaluation
 framework. The wrapper does not recreate task setup or grading: Harbor downloads
-`terminal-bench/terminal-bench-2-1`, installs the pinned opencode version in each
-task environment, runs the dataset verifier, and preserves its native results,
-agent logs, and ATIF trajectories. Each trial uses a supervisor-led foreground
+`terminal-bench/terminal-bench-2-1`, installs the cached binary for the exact
+clean opencode commit in each task environment, runs the dataset verifier, and
+preserves its native results, agent logs, and ATIF trajectories. The
+benchmark-only wrapper also enforces one provider request attempt per turn.
+Each trial uses a supervisor-led foreground
 sequence of investigation, execution, and independent verification. The
 coordinator and three fresh phases have iteration caps of 24, 10, 18, and 12,
 with temperature `0.1` throughout.
@@ -231,8 +239,9 @@ OPENROUTER_API_KEY=... bun run bench:terminal -- \
 
 Generated data is stored under
 `.benchmark-runs/terminal-bench-2.1/runs/<run-id>/`. `manifest.json` records the
-resolved dataset, model, opencode and Harbor versions, execution settings, and
-exit status. Harbor's complete official job directory is retained under
+resolved dataset, model, full opencode commit and binary digest, Harbor version,
+provider-attempt policy, execution settings, and exit status. Harbor's complete
+official job directory is retained under
 `harbor-jobs/`, alongside streamed stdout and stderr logs. Credentials are
 inherited through the environment and are never written to the command or
 manifest. A completed wrapper run means Harbor finished successfully; per-task
