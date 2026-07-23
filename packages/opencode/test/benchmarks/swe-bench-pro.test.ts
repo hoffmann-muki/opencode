@@ -120,6 +120,12 @@ describe("SWE-bench Pro runner", () => {
     ])
     expect(parseArgs(["--max-instances", "3"], "1.18.4").instanceIds).toEqual([])
     expect(parseArgs(["--offset", "2"], "1.18.4").instanceIds).toEqual([])
+    expect(() =>
+      parseArgs(
+        ["--instance-id", "instance_owner__repo-1", "--instance-id", "instance_owner__repo-1"],
+        "1.18.4",
+      ),
+    ).toThrow("Duplicate --instance-id values are not allowed")
   })
 
   test("defaults evaluation to local Docker with an explicit Modal opt-out", () => {

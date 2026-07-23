@@ -40,7 +40,9 @@ The safe defaults use `scikit-learn__scikit-learn-13439`,
 `openrouter/qwen/qwen3-coder-next`, one inference worker, one agent attempt, a
 30-minute agent timeout, and zero infrastructure retries. Passing
 `--max-instances` or `--offset` opts into dataset-window selection instead of
-the fixed smoke instance.
+the fixed smoke instance. Implicit windows preserve dataset order. Explicit
+`--instance-id` values preserve command order, reject duplicates, and take
+precedence over the window size.
 
 Useful flags:
 
@@ -135,6 +137,9 @@ The safe defaults use
 `openrouter/qwen/qwen3-coder-next`, one inference worker, one agent attempt, a
 30-minute agent timeout, and zero infrastructure retries. Passing
 `--max-instances` or `--offset` opts into dataset-window selection instead.
+Implicit windows preserve dataset order. Explicit `--instance-id` values
+preserve command order, reject duplicates, and take precedence over the window
+size.
 
 Inference runs opencode at `/app` inside the official
 `docker.io/jefzda/sweap-images:<dockerhub_tag>` image for each instance. The

@@ -379,6 +379,9 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     }
   }
 
+  if (new Set(instanceIds).size !== instanceIds.length) {
+    throw new Error("Duplicate --instance-id values are not allowed.")
+  }
   officialSweBenchImage("owner__repo-1", imageTemplate)
 
   return {

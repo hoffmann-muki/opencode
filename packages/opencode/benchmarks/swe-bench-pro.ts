@@ -409,6 +409,9 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     }
   }
 
+  if (new Set(instanceIds).size !== instanceIds.length) {
+    throw new Error("Duplicate --instance-id values are not allowed.")
+  }
   officialSweBenchProImage("sample-tag", imagePrefix)
 
   return {

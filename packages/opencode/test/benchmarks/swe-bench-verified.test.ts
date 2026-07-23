@@ -197,6 +197,12 @@ describe("SWE-bench Verified runner", () => {
     ])
     expect(parseArgs(["--max-instances", "3"], "1.18.4").instanceIds).toEqual([])
     expect(parseArgs(["--offset", "2"], "1.18.4").instanceIds).toEqual([])
+    expect(() =>
+      parseArgs(
+        ["--instance-id", "astropy__astropy-12907", "--instance-id", "astropy__astropy-12907"],
+        "1.18.4",
+      ),
+    ).toThrow("Duplicate --instance-id values are not allowed")
   })
 
   test("classifies only pre-action transient infrastructure failures for retry", () => {
