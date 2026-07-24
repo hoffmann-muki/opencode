@@ -157,6 +157,7 @@ describe("benchmark tracing recorder", () => {
       .map((path) => readFileSync(join(trace.attemptDir, path), "utf8"))
       .join("\n")
     expect(retained).not.toContain("synthetic000000000000000000000")
+    expect(retained).not.toContain('"tokens"')
     expect(readFileSync(join(trace.attemptDir, "events.jsonl"), "utf8")).not.toContain('"tokens"')
     expect(
       readFileSync(join(trace.attemptDir, "native", "index.jsonl"), "utf8")
@@ -323,6 +324,23 @@ describe("benchmark tracing recorder", () => {
       fidelity: "native_wall",
       duration_ms: 25,
     })
+  })
+
+  test("records opt-in Harbor and container lifecycle without enabling evaluator claims", () => {
+    const root = temporaryRoot()
+    const trace = createAdapter(root, "terminal-task")
+
+    trace.adapter.startHarness({ name: "harbor", revision: "0.20.0" }, 1_000)
+    trace.adapter.containerObserved({ image: "example/task:latest" }, 1_010)
+    trace.adapter.finish("completed", undefined, 1_100)
+
+    const capabilities = JSON.parse(readFileSync(join(trace.attemptDir, "capabilities.json"), "utf8")) as {
+      capabilities: Array<{ category: string; state: string }>
+    }
+    const states = Object.fromEntries(capabilities.capabilities.map((item) => [item.category, item.state]))
+    expect(states["harness.lifecycle"]).toBe("derived")
+    expect(states["container.lifecycle"]).toBe("captured")
+    expect(states["evaluator.lifecycle"]).toBe("not_exposed")
   })
 })
 

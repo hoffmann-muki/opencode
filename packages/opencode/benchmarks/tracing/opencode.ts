@@ -77,15 +77,19 @@ export class OpenCodeTraceAdapter {
   private readonly compactions = new Map<string, PendingSpan>()
   private readonly seenNative = new Set<string>()
   private highestNativeSequence = 0
-  private readonly attemptStartedAt = Date.now()
+  private readonly attemptStartedAt: number
   private readonly instanceSpan: string
   private readonly attemptSpan: string
+  private readonly harnessSpan: string
+  private harnessStartedAt?: number
   private finished?: TraceFinalization
 
-  constructor(recorder: TraceRecorder) {
+  constructor(recorder: TraceRecorder, options?: { readonly startedAt?: number }) {
     this.recorder = recorder
+    this.attemptStartedAt = options?.startedAt ?? Date.now()
     this.instanceSpan = `instance-${recorder.identity.traceId}`
     this.attemptSpan = `attempt-${recorder.identity.traceId}`
+    this.harnessSpan = `opencode-harness-${recorder.identity.traceId}`
     this.record({
       eventType: "instance.start",
       eventFamily: "instance",
@@ -158,9 +162,40 @@ export class OpenCodeTraceAdapter {
     }
   }
 
-  finish(status: TraceStatus, errorMessage?: string): TraceFinalization {
+  startHarness(metadata: JsonObject, occurredAt = this.attemptStartedAt): void {
+    if (this.harnessStartedAt !== undefined) return
+    this.harnessStartedAt = occurredAt
+    this.record({
+      eventType: "harness.start",
+      eventFamily: "harness",
+      phase: "start",
+      status: "started",
+      spanId: this.harnessSpan,
+      parentSpanId: this.attemptSpan,
+      occurredAt: iso(occurredAt),
+      origin: harnessOrigin(),
+      timing: { fidelity: "derived" },
+      payload: metadata,
+    })
+  }
+
+  containerObserved(metadata: JsonObject, occurredAt = this.attemptStartedAt): void {
+    this.record({
+      eventType: "container.observed",
+      eventFamily: "container",
+      phase: "instant",
+      status: "completed",
+      spanId: `opencode-container-${this.recorder.identity.traceId}`,
+      parentSpanId: this.harnessStartedAt !== undefined ? this.harnessSpan : this.attemptSpan,
+      occurredAt: iso(occurredAt),
+      origin: harnessOrigin(),
+      timing: { fidelity: "derived" },
+      payload: metadata,
+    })
+  }
+
+  finish(status: TraceStatus, errorMessage?: string, endedAt = Date.now()): TraceFinalization {
     if (this.finished) return this.finished
-    const endedAt = Date.now()
     this.closeIncompleteSpans(endedAt)
     const openSessions = [...this.sessions.values()].filter((session) => !session.ended)
     if (openSessions.length > 0) {
@@ -179,6 +214,21 @@ export class OpenCodeTraceAdapter {
             code: "agent.session_failed",
             message: errorMessage || "OpenCode session did not complete",
           }
+    if (this.harnessStartedAt !== undefined) {
+      this.record({
+        eventType: "harness.end",
+        eventFamily: "harness",
+        phase: "end",
+        status,
+        spanId: this.harnessSpan,
+        parentSpanId: this.attemptSpan,
+        occurredAt: iso(endedAt),
+        origin: harnessOrigin(),
+        timing: wallDuration(this.harnessStartedAt, endedAt),
+        payload: {},
+        ...(error ? { error } : {}),
+      })
+    }
     this.record({
       eventType: "attempt.end",
       eventFamily: "attempt",
@@ -582,8 +632,8 @@ export class OpenCodeTraceAdapter {
     }
     const spanId = `opencode-session-${sessionId}`
     const parentSpanId = parentSessionId
-      ? (this.sessions.get(parentSessionId)?.spanId ?? this.attemptSpan)
-      : this.attemptSpan
+      ? (this.sessions.get(parentSessionId)?.spanId ?? this.rootParentSpan)
+      : this.rootParentSpan
     const eventId = this.record({
       eventType: "agent.session_start",
       eventFamily: "agent",
@@ -625,8 +675,8 @@ export class OpenCodeTraceAdapter {
       status,
       spanId: session.spanId,
       parentSpanId: session.parentSessionId
-        ? (this.sessions.get(session.parentSessionId)?.spanId ?? this.attemptSpan)
-        : this.attemptSpan,
+        ? (this.sessions.get(session.parentSessionId)?.spanId ?? this.rootParentSpan)
+        : this.rootParentSpan,
       sessionId: session.sessionId,
       agentId: session.agentId,
       occurredAt: iso(endedAt),
@@ -738,6 +788,9 @@ export class OpenCodeTraceAdapter {
       this.observe(family, eventType)
     }
     if (family === "context") this.observe("context.compaction", eventType)
+    if (family === "harness") this.observe("harness.lifecycle", eventType)
+    if (family === "container") this.observe("container.lifecycle", eventType)
+    if (family === "evaluator") this.observe("evaluator.lifecycle", eventType)
     if (family === "patch") this.observe("patch", eventType)
     if (eventType === "file.patch") this.observe("patch", eventType)
   }
@@ -747,18 +800,19 @@ export class OpenCodeTraceAdapter {
     events.add(eventType)
     this.observed.set(category, events)
   }
+
+  private get rootParentSpan(): string {
+    if (this.harnessStartedAt !== undefined) return this.harnessSpan
+    return this.attemptSpan
+  }
 }
 
 export function opencodeCapabilities(
   observed: ReadonlyMap<CapabilityCategory, Set<string>>,
 ): readonly TraceCapability[] {
-  const unavailable = new Set<CapabilityCategory>([
-    "provider.exchange",
-    "memory",
-    "harness.lifecycle",
-    "container.lifecycle",
-    "evaluator.lifecycle",
-  ])
+  const unavailable = new Set<CapabilityCategory>(["provider.exchange", "memory", "evaluator.lifecycle"])
+  if (!observed.has("harness.lifecycle")) unavailable.add("harness.lifecycle")
+  if (!observed.has("container.lifecycle")) unavailable.add("container.lifecycle")
   const characteristics: Partial<
     Record<
       CapabilityCategory,
@@ -776,6 +830,8 @@ export function opencodeCapabilities(
     browser: ["captured", "full", "native_wall"],
     delegation: ["captured", "full", "native_wall"],
     "context.compaction": ["captured", "full", "native_wall"],
+    "harness.lifecycle": ["derived", "full", "derived"],
+    "container.lifecycle": ["captured", "metadata_only", "derived"],
     patch: ["captured", "full", "native_wall"],
     "native.evidence": ["captured", "full", "native_wall"],
   }

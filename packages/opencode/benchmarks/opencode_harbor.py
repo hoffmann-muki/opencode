@@ -1,17 +1,29 @@
 """Harbor adapter for an exact locally built OpenCode revision."""
 
+import asyncio
 import hashlib
+import json
+import os
 import re
 import subprocess
+import tomllib
+from contextlib import contextmanager
+from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any, Iterator, override
 
 from harbor.agents.installed.opencode import OpenCode
 from harbor.environments.base import BaseEnvironment
+from harbor.models.agent.context import AgentContext
+from harbor.models.task.id import PackageTaskId
 
 
 FULL_GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 FULL_SHA256 = re.compile(r"^[0-9a-f]{64}$")
 REPO_ROOT = Path(__file__).resolve().parents[3]
+TRACE_METADATA_FILENAME = "benchmark-trace.json"
+TRACE_ALLOCATION_FILENAME = ".harbor-attempts.json"
+TRACE_LOCK_FILENAME = ".harbor-attempts.lock"
 
 
 class BenchmarkOpenCode(OpenCode):
@@ -20,9 +32,16 @@ class BenchmarkOpenCode(OpenCode):
     def __init__(
         self,
         *args,
+        logs_dir: Path,
         binary_path: str,
         source_commit: str,
         binary_sha256: str,
+        trace_root: str | None = None,
+        trace_run_id: str | None = None,
+        trace_created_at: str | None = None,
+        evaluation_workers: int = 1,
+        benchmark_retries: int = 0,
+        harbor_version: str = "unknown",
         **kwargs,
     ) -> None:
         path = Path(binary_path)
@@ -63,9 +82,43 @@ class BenchmarkOpenCode(OpenCode):
 
         self._benchmark_binary = path
         self._source_commit = source_commit
-        super().__init__(*args, **kwargs)
+        trace_values = (trace_root, trace_run_id, trace_created_at)
+        if any(value is not None for value in trace_values) and not all(
+            value is not None for value in trace_values
+        ):
+            raise ValueError("OpenCode Harbor tracing requires complete metadata")
+        if evaluation_workers < 1 or benchmark_retries < 0:
+            raise ValueError("OpenCode Harbor trace execution metadata is invalid")
+        self._trace_root = Path(trace_root).resolve() if trace_root else None
+        self._trace_run_id = trace_run_id
+        self._trace_created_at = trace_created_at
+        self._evaluation_workers = evaluation_workers
+        self._benchmark_retries = benchmark_retries
+        self._harbor_version = harbor_version
+        self._trace_instance_id: str | None = None
+        self._trace_attempt: int | None = None
+        self._trace_agent_timeout: float | None = None
+        self._trace_image: str | None = None
+        super().__init__(*args, logs_dir=logs_dir, **kwargs)
 
+    @override
+    def build_cli_flags(self) -> str:
+        flags = super().build_cli_flags()
+        if self._trace_root is None:
+            return flags
+        return " ".join(value for value in (flags, "--benchmark-trace") if value)
+
+    @override
     async def install(self, environment: BaseEnvironment) -> None:
+        if self._trace_root is not None:
+            trial = _trial_metadata(self.logs_dir)
+            self._trace_instance_id = trial["instance_id"]
+            self._trace_agent_timeout = trial["agent_timeout_seconds"]
+            self._trace_image = trial["image"]
+            self._trace_attempt = _allocate_attempt(
+                self._trace_root,
+                self._trace_instance_id,
+            )
         await environment.upload_file(
             source_path=self._benchmark_binary,
             target_path="/installed-agent/opencode-benchmark",
@@ -93,3 +146,154 @@ class BenchmarkOpenCode(OpenCode):
                 "opencode --version"
             ),
         )
+
+    @override
+    async def run(
+        self,
+        instruction: str,
+        environment: BaseEnvironment,
+        context: AgentContext,
+    ) -> None:
+        if self._trace_root is None:
+            await super().run(instruction, environment, context)
+            return
+        if (
+            self._trace_instance_id is None
+            or self._trace_attempt is None
+            or self._trace_agent_timeout is None
+            or self._trace_image is None
+            or self.session_id is None
+        ):
+            raise ValueError("Harbor did not initialize OpenCode trace identity")
+
+        started_at = datetime.now(timezone.utc)
+        metadata: dict[str, Any] = {
+            "schemaVersion": 1,
+            "runId": self._trace_run_id,
+            "benchmark": "terminal-bench-2.1",
+            "instanceId": self._trace_instance_id,
+            "attempt": self._trace_attempt,
+            "traceRoot": str(self._trace_root),
+            "createdAt": self._trace_created_at,
+            "frameworkRevision": self._source_commit,
+            "model": self.model_name,
+            "evaluationWorkers": self._evaluation_workers,
+            "inferenceTimeoutSeconds": self._trace_agent_timeout,
+            "benchmarkRetries": self._benchmark_retries,
+            "harborVersion": self._harbor_version,
+            "image": self._trace_image,
+            "sessionId": self.session_id,
+            "startedAt": started_at.isoformat(),
+            "status": "running",
+        }
+        _atomic_write_json(self.logs_dir / TRACE_METADATA_FILENAME, metadata)
+        try:
+            await super().run(instruction, environment, context)
+        except BaseException as error:
+            _atomic_write_json(
+                self.logs_dir / TRACE_METADATA_FILENAME,
+                {
+                    **metadata,
+                    "finishedAt": datetime.now(timezone.utc).isoformat(),
+                    "status": (
+                        "timeout"
+                        if isinstance(error, asyncio.CancelledError)
+                        else "failed"
+                    ),
+                    "error": type(error).__name__,
+                },
+            )
+            raise
+        _atomic_write_json(
+            self.logs_dir / TRACE_METADATA_FILENAME,
+            {
+                **metadata,
+                "finishedAt": datetime.now(timezone.utc).isoformat(),
+                "status": "completed",
+            },
+        )
+
+
+def _trial_metadata(logs_dir: Path) -> dict[str, Any]:
+    config = json.loads((logs_dir.parent / "config.json").read_text())
+    task = config.get("task")
+    if not isinstance(task, dict):
+        raise ValueError("Harbor trial config has no task object")
+    name = task.get("name")
+    reference = task.get("ref")
+    if (
+        not isinstance(name, str)
+        or "/" not in name
+        or not isinstance(reference, str)
+        or not reference.startswith("sha256:")
+    ):
+        raise ValueError("Harbor package task is not pinned to a digest")
+    organization, task_name = name.split("/", 1)
+    task_path = PackageTaskId(
+        org=organization,
+        name=task_name,
+        ref=reference,
+    ).get_local_path()
+    with (task_path / "task.toml").open("rb") as file:
+        document = tomllib.load(file)
+    task_agent = document.get("agent")
+    environment = document.get("environment")
+    timeout = task_agent.get("timeout_sec") if isinstance(task_agent, dict) else None
+    image = (
+        environment.get("docker_image") if isinstance(environment, dict) else None
+    )
+    if not isinstance(timeout, int | float) or timeout <= 0:
+        raise ValueError("Harbor task has no positive agent timeout")
+    if not isinstance(image, str) or not image:
+        raise ValueError("Harbor task has no Docker image")
+    multiplier = config.get("agent_timeout_multiplier")
+    if multiplier is None:
+        multiplier = config.get("timeout_multiplier", 1)
+    if not isinstance(multiplier, int | float) or multiplier <= 0:
+        raise ValueError("Harbor trial timeout multiplier must be positive")
+    return {
+        "instance_id": task_name,
+        "agent_timeout_seconds": float(timeout) * float(multiplier),
+        "image": image,
+    }
+
+
+def _allocate_attempt(root: Path, instance_id: str) -> int:
+    if not root.is_dir() or root.is_symlink():
+        raise ValueError(f"Harbor trace root must be a real directory: {root}")
+    with _allocation_lock(root):
+        path = root / TRACE_ALLOCATION_FILENAME
+        allocations = (
+            json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+        )
+        if not isinstance(allocations, dict) or not all(
+            isinstance(key, str) and isinstance(value, int) and value >= 0
+            for key, value in allocations.items()
+        ):
+            raise ValueError("Harbor trace attempt allocation state is invalid")
+        attempt = allocations.get(instance_id, 0) + 1
+        allocations[instance_id] = attempt
+        _atomic_write_json(path, allocations)
+        return attempt
+
+
+@contextmanager
+def _allocation_lock(root: Path) -> Iterator[None]:
+    import fcntl
+
+    with (root / TRACE_LOCK_FILENAME).open("a+", encoding="utf-8") as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+
+
+def _atomic_write_json(path: Path, value: dict[str, Any]) -> None:
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    temporary.write_text(
+        json.dumps(value, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    temporary.chmod(0o600)
+    temporary.replace(path)

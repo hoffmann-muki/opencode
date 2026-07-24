@@ -54,6 +54,8 @@ export function createOpenCodeAttemptTrace(input: {
   readonly evaluationTimeoutSeconds?: number
   readonly benchmarkRetries: number
   readonly image: string
+  readonly harnessRevision?: string
+  readonly startedAt?: number
 }): OpenCodeTraceAdapter {
   const attemptDir = traceAttemptDirectory(input.run.root, input.instanceId, input.attempt)
   assertTraceInsideRoot(input.run.root, attemptDir)
@@ -85,6 +87,14 @@ export function createOpenCodeAttemptTrace(input: {
           name: "opencode.benchmarks.tracing.opencode",
           revision: input.frameworkRevision,
         },
+        ...(input.harnessRevision
+          ? {
+              harness: {
+                name: "Harbor",
+                revision: input.harnessRevision,
+              },
+            }
+          : {}),
         agent_image: input.image,
       },
       execution: {
@@ -99,6 +109,7 @@ export function createOpenCodeAttemptTrace(input: {
       },
       capabilities: opencodeCapabilities(new Map()),
     }),
+    input.startedAt !== undefined ? { startedAt: input.startedAt } : {},
   )
 }
 

@@ -1,10 +1,16 @@
 import { describe, expect, test } from "bun:test"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 import {
   TERMINAL_BENCH_DATASET,
   buildHarborArgs,
+  collectTerminalBenchTraces,
   parseArgs,
   resolveDefaultModel,
+  stripTerminalBenchmarkTraceFrames,
 } from "../../benchmarks/terminal-bench"
+import { createOpenCodeTraceRun } from "../../benchmarks/tracing/integration"
 import {
   BENCHMARK_COORDINATOR_AGENT,
   BENCHMARK_NAVIGATOR_AGENT,
@@ -171,5 +177,116 @@ describe("Terminal-Bench runner", () => {
   test("normalizes model environment defaults without embedding credentials", () => {
     expect(resolveDefaultModel({ OPENROUTER_MODEL: "qwen/qwen3-coder-next" })).toBe("openrouter/qwen/qwen3-coder-next")
     expect(resolveDefaultModel({ OPENCODE_BENCH_MODEL: "anthropic/claude-sonnet-4" })).toBe("anthropic/claude-sonnet-4")
+  })
+
+  test("wires opt-in tracing into the custom Harbor adapter", () => {
+    const options = {
+      ...parseArgs(["--trace-dir", "/traces"], defaults),
+      runtime,
+      harborVersion: "0.20.0",
+      traceRun: {
+        id: "trace-run-test",
+        root: "/traces/trace-run-test",
+        createdAt: "2026-07-20T12:34:56.789Z",
+        benchmark: "terminal-bench-2.1",
+      },
+    }
+    const args = buildHarborArgs(options, "/runs/harbor-jobs")
+    const kwargs = args.flatMap((value, index) => (value === "--agent-kwarg" ? [args[index + 1]] : []))
+
+    expect(options.traceDir).toBe("/traces")
+    expect(kwargs).toContain("trace_root=/traces/trace-run-test")
+    expect(kwargs).toContain("trace_run_id=trace-run-test")
+    expect(kwargs).toContain("trace_created_at=2026-07-20T12:34:56.789Z")
+    expect(kwargs).toContain("evaluation_workers=1")
+    expect(kwargs).toContain("benchmark_retries=0")
+    expect(kwargs).toContain("harbor_version=0.20.0")
+  })
+
+  test("strips internal trace frames without changing ordinary Harbor output", () => {
+    const retained = JSON.stringify({ type: "tool_use", part: { tool: "bash" } })
+    const native = JSON.stringify({ type: "benchmark_trace.native", sequence: 1, event: {} })
+
+    expect(stripTerminalBenchmarkTraceFrames(`${retained}\n\n${native}\nplain stderr\n`)).toBe(
+      `${retained}\n\nplain stderr\n`,
+    )
+  })
+
+  test("promotes a Harbor native stream into a valid run index", async () => {
+    const root = mkdtempSync(join(tmpdir(), "opencode-terminal-trace-"))
+    try {
+      const run = createOpenCodeTraceRun(join(root, "traces"), "terminal-bench-2.1")
+      const agentDir = join(root, "jobs", "job", "task-a__trial", "agent")
+      mkdirSync(agentDir, { recursive: true })
+      const frame = (sequence: number, timestamp: number, event: object) =>
+        JSON.stringify({
+          type: "benchmark_trace.native",
+          sequence,
+          timestamp,
+          sessionID: "session-root",
+          event,
+        })
+      writeFileSync(
+        join(agentDir, "opencode.txt"),
+        [
+          frame(1, 1_000, {
+            type: "session.created",
+            properties: { info: { id: "session-root", agent: "benchmark" } },
+          }),
+          frame(2, 1_100, {
+            type: "session.status",
+            properties: {
+              sessionID: "session-root",
+              status: { type: "idle" },
+            },
+          }),
+        ].join("\n") + "\n",
+      )
+      writeFileSync(
+        join(agentDir, "benchmark-trace.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          runId: run.id,
+          benchmark: "terminal-bench-2.1",
+          instanceId: "task-a",
+          attempt: 1,
+          traceRoot: run.root,
+          createdAt: run.createdAt,
+          frameworkRevision: "a".repeat(40),
+          model: defaults.model,
+          evaluationWorkers: 1,
+          inferenceTimeoutSeconds: 900,
+          benchmarkRetries: 0,
+          harborVersion: "0.20.0",
+          image: "example/task:latest",
+          sessionId: "task-a__trial__agent",
+          startedAt: new Date(1_000).toISOString(),
+          finishedAt: new Date(1_100).toISOString(),
+          status: "completed",
+        }),
+      )
+      writeFileSync(
+        join(root, "jobs", "job", "lock.json"),
+        JSON.stringify({
+          trials: [{ task: { name: "terminal-bench/task-a" } }, { task: { name: "terminal-bench/task-a" } }],
+        }),
+      )
+
+      const warning = await collectTerminalBenchTraces({
+        run,
+        jobsDir: join(root, "jobs"),
+        harborJobName: "job",
+        sourceCommit: "a".repeat(40),
+        taskNames: [],
+        maxTasks: 1,
+        attempts: 1,
+      })
+
+      expect(warning).toBeUndefined()
+      expect(Bun.file(join(run.root, "run.json")).size).toBeGreaterThan(0)
+      expect(readFileSync(join(agentDir, "opencode.txt"), "utf8")).not.toContain("benchmark_trace.native")
+    } finally {
+      rmSync(root, { recursive: true, force: true })
+    }
   })
 })

@@ -229,11 +229,12 @@ manifest, and run-level index. A tracing failure after agent execution starts
 does not alter the benchmark outcome or trigger a retry. Trace health is
 reported separately in the attempt summary.
 
-This phase does not add Terminal-Bench tracing. Harbor remains the outer
-Terminal-Bench execution harness rather than a fourth agent adapter; later
-Terminal-Bench wiring will place generic harness/container/evaluator lifecycle
-around the OpenCode-native trace while preserving Harbor's own logs and ATIF
-trajectory.
+Terminal-Bench uses the same OpenCode-native adapter with Harbor as an outer
+execution boundary, not a fourth agent adapter. The trace adds the observable
+Harbor agent phase and resolved task-container identity. Harbor's verifier runs
+outside the installed-agent boundary, so evaluator lifecycle remains explicitly
+`not_exposed`; Harbor's logs, results, and ATIF trajectory remain authoritative
+auxiliary artifacts.
 
 ## Terminal-Bench 2.1
 
@@ -274,6 +275,10 @@ bun run bench:terminal -- --task-name task-name --attempts 1
 bun run bench:terminal -- --max-tasks 5 --concurrency 2
 bun run bench:terminal -- --all-tasks
 bun run bench:terminal -- --dry-run
+
+OPENROUTER_API_KEY=... bun run bench:terminal -- \
+  --run-id traced-terminal-smoke \
+  --trace-dir /path/to/traces
 ```
 
 `--all-tasks` runs the complete dataset locally with the configured attempt
@@ -299,3 +304,19 @@ inherited through the environment and are never written to the command or
 manifest. A completed wrapper run means Harbor finished successfully; per-task
 resolution is determined only by the official verifier rewards in Harbor's
 `result.json` and trial artifacts.
+
+Tracing is disabled when `--trace-dir` is absent. When enabled, the host creates
+a private trace run after preflight, while the installed adapter records
+non-secret attempt timing and provenance before the provider can run. The
+OpenCode process emits native timestamped frames for sessions, model turns,
+tools, shell/file/search/browser activity, delegation, and compaction. After
+applying credential redaction and removing accounting fields at the emission
+boundary, those frames pass through the JSONL stream. After Harbor returns, the
+wrapper normalizes them, strips only its internal transport frames from
+`opencode.txt`, and retains all ordinary Harbor output.
+
+The trace uses Harbor's pinned task identity, effective agent timeout, and
+container image. Concurrent trials receive locked per-instance attempt
+ordinals, and `run.json` is written only for complete requested coverage.
+Post-start tracing failures never change the Harbor result or trigger a retry;
+token usage and cost are deliberately excluded.

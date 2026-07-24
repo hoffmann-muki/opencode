@@ -24,6 +24,7 @@ import { EOL } from "os"
 import { Filesystem } from "@/util/filesystem"
 import { createOpencodeClient, type OpencodeClient, type ToolPart } from "@opencode-ai/sdk/v2"
 import { FormatError, FormatUnknownError } from "../error"
+import { sanitizeBenchmarkTrace } from "../benchmark-trace"
 import { INTERACTIVE_INPUT_ERROR, resolveInteractiveStdin } from "./run/runtime.stdin"
 
 type ModelInput = Parameters<OpencodeClient["session"]["prompt"]>[0]["model"]
@@ -698,15 +699,19 @@ export const RunCommand = effectCmd({
 
         function emitNative(event: unknown) {
           if (!args["benchmark-trace"] || args.format !== "json") return
-          process.stdout.write(
-            JSON.stringify({
-              type: "benchmark_trace.native",
-              sequence: (benchmarkTraceSequence += 1),
-              timestamp: Date.now(),
-              sessionID,
-              event,
-            }) + EOL,
-          )
+          try {
+            process.stdout.write(
+              JSON.stringify({
+                type: "benchmark_trace.native",
+                sequence: (benchmarkTraceSequence += 1),
+                timestamp: Date.now(),
+                sessionID,
+                event: sanitizeBenchmarkTrace(event),
+              }) + EOL,
+            )
+          } catch {
+            return
+          }
         }
 
         // Consume one subscribed event stream for the active session and mirror it
