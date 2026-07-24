@@ -1,13 +1,15 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { gunzipSync } from "node:zlib"
 import { createTraceRun, finalizeTraceRun, type TraceHarnessAdapter } from "../../benchmarks/tracing/coordination.ts"
 import { createOpenCodeAttemptTrace } from "../../benchmarks/tracing/integration.ts"
 import { OpenCodeTraceAdapter, opencodeCapabilities } from "../../benchmarks/tracing/opencode.ts"
 import { HarborTraceHarness } from "../../benchmarks/tracing/harbor.ts"
 import {
   TRACE_CAPABILITY_CATEGORIES,
+  TRACE_NATIVE_CHUNK_MEDIA_TYPE,
   TRACE_SCHEMA_DIGEST,
   TraceRecorder,
   createTraceIdentity,
@@ -202,11 +204,23 @@ describe("benchmark tracing recorder", () => {
     expect(retained).not.toContain("synthetic000000000000000000000")
     expect(retained).not.toContain('"tokens"')
     expect(readFileSync(join(trace.attemptDir, "events.jsonl"), "utf8")).not.toContain('"tokens"')
+    const native = nativeIndex(join(trace.attemptDir, "native", "index.jsonl"))
+    expect(native).toHaveLength(5)
+    expect(new Set(native.map((record) => record.artifact.path))).toHaveLength(1)
+    expect(native[0]?.artifact.media_type).toBe(TRACE_NATIVE_CHUNK_MEDIA_TYPE)
+    const firstNative = native[0]
+    if (!firstNative) throw new Error("Native trace index is empty")
+    const members = nativeMembers(join(trace.attemptDir, firstNative.artifact.path))
+    expect(members).toHaveLength(5)
+    expect(new Set(members.map((member) => member.native_record_id))).toHaveLength(5)
     expect(
-      readFileSync(join(trace.attemptDir, "native", "index.jsonl"), "utf8")
-        .trim()
-        .split("\n"),
-    ).toHaveLength(5)
+      members.map((member) => Buffer.from(member.content_base64, "base64").toString("utf8")).join("\n"),
+    ).not.toContain("synthetic000000000000000000000")
+    if (process.platform !== "win32") {
+      expect(statSync(join(trace.attemptDir, "events.jsonl")).ino).toBe(
+        statSync(join(trace.attemptDir, "journal.jsonl")).ino,
+      )
+    }
 
     const capabilities = JSON.parse(readFileSync(join(trace.attemptDir, "capabilities.json"), "utf8")) as {
       schema_digest: string
@@ -517,4 +531,46 @@ function jsonl(path: string): Array<Record<string, unknown>> {
     .trim()
     .split("\n")
     .map((line) => JSON.parse(line) as Record<string, unknown>)
+}
+
+function nativeIndex(path: string) {
+  return jsonl(path).map((record) => {
+    const artifact = record.artifact
+    if (!artifact || typeof artifact !== "object" || Array.isArray(artifact)) {
+      throw new Error("Native trace artifact reference is malformed")
+    }
+    const artifactPath = Reflect.get(artifact, "path")
+    const mediaType = Reflect.get(artifact, "media_type")
+    if (typeof artifactPath !== "string" || typeof mediaType !== "string") {
+      throw new Error("Native trace artifact reference is incomplete")
+    }
+    return {
+      artifact: {
+        path: artifactPath,
+        media_type: mediaType,
+      },
+    }
+  })
+}
+
+function nativeMembers(path: string) {
+  return gunzipSync(readFileSync(path))
+    .toString("utf8")
+    .trim()
+    .split("\n")
+    .map((line) => {
+      const value: unknown = JSON.parse(line)
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        throw new Error("Native trace chunk member is malformed")
+      }
+      const nativeRecordID = Reflect.get(value, "native_record_id")
+      const contentBase64 = Reflect.get(value, "content_base64")
+      if (typeof nativeRecordID !== "string" || typeof contentBase64 !== "string") {
+        throw new Error("Native trace chunk member is incomplete")
+      }
+      return {
+        native_record_id: nativeRecordID,
+        content_base64: contentBase64,
+      }
+    })
 }

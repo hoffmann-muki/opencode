@@ -234,6 +234,15 @@ values are stored as pre-persistence-sanitized, content-addressed artifacts.
 Credential fields and recognizable credential text are removed or replaced;
 token usage and cost accounting are deliberately excluded.
 
+High-frequency native frames are sanitized into one durable journal while the
+agent runs, then finalized into size-bounded gzip chunks. Every frame retains
+its native sequence, timestamp, source, identity, and canonical-event links;
+chunking does not sample or coalesce streaming deltas. Many
+`native/index.jsonl` rows can therefore reference one immutable chunk instead
+of creating one artifact file per frame. Finalized `journal.jsonl` and
+`events.jsonl` share the same inode when hard links are supported, with an
+atomic-copy fallback.
+
 Exact provider payloads are not exposed by this OpenCode event mode, and nested
 operating-system activity below an OpenCode tool call remains outside the
 observable boundary. These limitations are explicit in each attempt's

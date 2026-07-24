@@ -4,19 +4,26 @@ import {
   closeSync,
   existsSync,
   fsyncSync,
+  linkSync,
   lstatSync,
   mkdirSync,
   openSync,
   readFileSync,
   renameSync,
+  rmSync,
   writeFileSync,
   writeSync,
 } from "node:fs"
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
+import { gzipSync } from "node:zlib"
 
 export const TRACE_SCHEMA_VERSION = "benchmark-trace/v1"
 export const TRACE_CONTRACT_VERSION = "1.0.0"
 export const TRACE_SCHEMA_DIGEST = "ac1a30ab8981f4dd0f0260bedc48fde8b8bd3d6627c167e7ab29331fac897cb7"
+export const TRACE_NATIVE_CHUNK_MEDIA_TYPE = "application/vnd.benchmark-trace.native-records+jsonl+gzip"
+
+const NATIVE_JOURNAL_FORMAT = "benchmark-trace/native-journal-v1"
+const NATIVE_CHUNK_TARGET_BYTES = 1024 * 1024
 
 export const TRACE_CAPABILITY_CATEGORIES = [
   "agent.session",
@@ -111,6 +118,33 @@ export interface ArtifactReference extends JsonObject {
     readonly matches: number
     readonly rules: readonly string[]
   }
+}
+
+interface NativeChunkMember extends JsonObject {
+  readonly native_record_id: string
+  readonly content_sha256: string
+  readonly size_bytes: number
+  readonly media_type: string
+  readonly encoding: "utf-8" | "binary"
+  readonly role: string
+  readonly redaction: {
+    readonly status: "applied" | "not_required"
+    readonly matches: number
+    readonly rules: readonly string[]
+  }
+  readonly content_base64: string
+}
+
+interface NativeJournalRecord extends JsonObject {
+  readonly format: typeof NATIVE_JOURNAL_FORMAT
+  readonly native_record_id: string
+  readonly sequence: number
+  readonly trace_id: string
+  readonly framework: string
+  readonly recorded_at: string
+  readonly source: string
+  readonly event_ids: readonly string[]
+  readonly member: NativeChunkMember
 }
 
 export interface TraceTiming {
@@ -558,26 +592,46 @@ export class TraceRecorder {
     try {
       const nativeRecordId = input.nativeRecordId ?? `native-${String(this.nativeSequence + 1).padStart(8, "0")}`
       const source = sanitizeTraceText(input.source)
-      if (sanitizeTraceJson([nativeRecordId, ...input.eventIds]).matches > 0) {
-        throw new Error("Native trace identity is sensitive")
+      if (
+        !source.value ||
+        source.value.length > 256 ||
+        !nativeRecordId ||
+        nativeRecordId.length > 512 ||
+        input.eventIds.some((eventId) => !eventId || eventId.length > 512) ||
+        sanitizeTraceJson([nativeRecordId, ...input.eventIds]).matches > 0
+      ) {
+        throw new Error("Native trace identity is invalid or sensitive")
       }
-      const artifact = this.storeJsonArtifact(input.content, "native.opencode.event")
-      if (!artifact) return undefined
-      const entry: JsonObject = {
-        schema_version: TRACE_SCHEMA_VERSION,
-        schema_digest: TRACE_SCHEMA_DIGEST,
+      const content = sanitizeTraceJson(input.content)
+      const retained = new TextEncoder().encode(canonicalJson(content.value))
+      const member = {
+        native_record_id: nativeRecordId,
+        content_sha256: createHash("sha256").update(retained).digest("hex"),
+        size_bytes: retained.byteLength,
+        media_type: "application/json",
+        encoding: "utf-8",
+        role: "native.opencode.event",
+        redaction: {
+          status: content.matches > 0 ? "applied" : "not_required",
+          matches: content.matches,
+          rules: content.rules,
+        },
+        content_base64: Buffer.from(retained).toString("base64"),
+      } satisfies NativeChunkMember
+      const entry = {
+        format: NATIVE_JOURNAL_FORMAT,
         native_record_id: nativeRecordId,
         sequence: this.nativeSequence + 1,
         trace_id: this.identity.traceId,
         framework: this.identity.framework,
         recorded_at: input.recordedAt ?? now(),
         source: source.value,
-        artifact,
         event_ids: [...new Set(input.eventIds)],
-      }
+        member,
+      } satisfies NativeJournalRecord
       appendDurable(this.nativeIndexFd, `${JSON.stringify(entry)}\n`)
       this.nativeSequence += 1
-      this.counters.redactionsApplied += source.matches
+      this.counters.redactionsApplied += source.matches + content.matches
       return nativeRecordId
     } catch {
       this.reportIssue("trace.native_write_failed", "Native OpenCode evidence could not be persisted", "error")
@@ -634,9 +688,15 @@ export class TraceRecorder {
 
     const finalizedAt = now()
     const journal = readFileSync(this.journalPath, "utf8")
+    const native = this.packNativeJournal(readNativeJournal(this.nativeIndexPath))
     const health = this.healthStatus()
     const complete = health === "healthy"
     atomicWrite(join(this.attemptDir, "events.jsonl"), journal)
+    replaceWithHardLink(join(this.attemptDir, "events.jsonl"), this.journalPath)
+    atomicWrite(
+      this.nativeIndexPath,
+      native.length > 0 ? `${native.map((record) => JSON.stringify(record)).join("\n")}\n` : "",
+    )
     atomicWrite(
       join(this.attemptDir, "capabilities.json"),
       `${JSON.stringify(
@@ -734,6 +794,18 @@ export class TraceRecorder {
     matches: number,
     rules: readonly string[],
   ): ArtifactReference {
+    this.counters.redactionsApplied += matches
+    return this.persistRetainedArtifact(content, role, mediaType, encoding, matches, rules)
+  }
+
+  private persistRetainedArtifact(
+    content: Uint8Array,
+    role: string,
+    mediaType: string,
+    encoding: "utf-8" | "binary",
+    matches: number,
+    rules: readonly string[],
+  ): ArtifactReference {
     const digest = createHash("sha256").update(content).digest("hex")
     const relativePath = `artifacts/sha256/${digest.slice(0, 2)}/${digest}`
     const path = join(this.attemptDir, relativePath)
@@ -752,7 +824,6 @@ export class TraceRecorder {
       this.counters.artifactsWritten += 1
       this.counters.artifactBytesWritten += content.byteLength
     }
-    this.counters.redactionsApplied += matches
     const reference = {
       sha256: digest,
       path: relativePath,
@@ -768,6 +839,49 @@ export class TraceRecorder {
     } satisfies ArtifactReference
     this.artifacts.set(relativePath, reference)
     return reference
+  }
+
+  private packNativeJournal(records: readonly NativeJournalRecord[]): readonly JsonObject[] {
+    const chunks = records.reduce<Array<{ records: NativeJournalRecord[]; bytes: number }>>((result, record) => {
+      requireNativeJournalRecord(record)
+      const size = new TextEncoder().encode(`${canonicalJson(record.member)}\n`).byteLength
+      const current = result.at(-1)
+      if (!current || (current.records.length > 0 && current.bytes + size > NATIVE_CHUNK_TARGET_BYTES)) {
+        result.push({ records: [record], bytes: size })
+        return result
+      }
+      current.records.push(record)
+      current.bytes += size
+      return result
+    }, [])
+
+    return chunks.flatMap((chunk) => {
+      const content = gzipSync(chunk.records.map((record) => `${canonicalJson(record.member)}\n`).join(""), {
+        level: 6,
+      })
+      const rules = [...new Set(chunk.records.flatMap((record) => record.member.redaction.rules))]
+      const matches = chunk.records.reduce((total, record) => total + record.member.redaction.matches, 0)
+      const artifact = this.persistRetainedArtifact(
+        content,
+        "native.chunk",
+        TRACE_NATIVE_CHUNK_MEDIA_TYPE,
+        "binary",
+        matches,
+        rules,
+      )
+      return chunk.records.map((record) => ({
+        schema_version: TRACE_SCHEMA_VERSION,
+        schema_digest: TRACE_SCHEMA_DIGEST,
+        native_record_id: record.native_record_id,
+        sequence: record.sequence,
+        trace_id: record.trace_id,
+        framework: record.framework,
+        recorded_at: record.recorded_at,
+        source: record.source,
+        artifact,
+        event_ids: [...record.event_ids],
+      }))
+    })
   }
 
   private healthStatus(): "healthy" | "degraded" | "failed" {
@@ -997,6 +1111,145 @@ function atomicWriteBytes(path: string, value: Uint8Array): void {
     fsyncSync(directory)
   } finally {
     closeSync(directory)
+  }
+}
+
+function replaceWithHardLink(source: string, target: string): void {
+  const info = lstatSync(source)
+  if (info.isSymbolicLink() || !info.isFile()) {
+    throw new Error(`Trace link source must be a regular file: ${source}`)
+  }
+  const temporary = `${target}.${process.pid}.${randomUUID()}.link`
+  try {
+    linkSync(source, temporary)
+    chmodSync(temporary, 0o600)
+    renameSync(temporary, target)
+    chmodSync(target, 0o600)
+    const directory = openSync(dirname(target), "r")
+    try {
+      fsyncSync(directory)
+    } finally {
+      closeSync(directory)
+    }
+  } catch {
+    rmSync(temporary, { force: true })
+    atomicWriteBytes(target, readFileSync(source))
+  }
+}
+
+function readNativeJournal(path: string): NativeJournalRecord[] {
+  const content = readFileSync(path, "utf8")
+  if (!content) return []
+  if (!content.endsWith("\n")) throw new Error(`Native trace journal has a torn final line: ${path}`)
+  return content
+    .trimEnd()
+    .split("\n")
+    .map((line) => requireNativeJournalRecord(JSON.parse(line)))
+}
+
+function requireNativeJournalRecord(value: unknown): NativeJournalRecord {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Native trace journal record must be an object.")
+  }
+  const format = Reflect.get(value, "format")
+  const nativeRecordID = Reflect.get(value, "native_record_id")
+  const sequence = Reflect.get(value, "sequence")
+  const traceID = Reflect.get(value, "trace_id")
+  const framework = Reflect.get(value, "framework")
+  const recordedAt = Reflect.get(value, "recorded_at")
+  const source = Reflect.get(value, "source")
+  const eventIDs = Reflect.get(value, "event_ids")
+  const member = Reflect.get(value, "member")
+  if (!member || typeof member !== "object" || Array.isArray(member)) {
+    throw new Error("Native trace journal member must be an object.")
+  }
+  const memberRecordID = Reflect.get(member, "native_record_id")
+  const contentSha256 = Reflect.get(member, "content_sha256")
+  const sizeBytes = Reflect.get(member, "size_bytes")
+  const mediaType = Reflect.get(member, "media_type")
+  const encoding = Reflect.get(member, "encoding")
+  const role = Reflect.get(member, "role")
+  const contentBase64 = Reflect.get(member, "content_base64")
+  const redaction = Reflect.get(member, "redaction")
+  if (!redaction || typeof redaction !== "object" || Array.isArray(redaction)) {
+    throw new Error("Native trace journal redaction metadata must be an object.")
+  }
+  const status = Reflect.get(redaction, "status")
+  const matches = Reflect.get(redaction, "matches")
+  const rules = Reflect.get(redaction, "rules")
+  if (
+    format !== NATIVE_JOURNAL_FORMAT ||
+    typeof nativeRecordID !== "string" ||
+    !nativeRecordID ||
+    nativeRecordID.length > 512 ||
+    !Number.isInteger(sequence) ||
+    Number(sequence) < 1 ||
+    typeof traceID !== "string" ||
+    !traceID ||
+    traceID.length > 512 ||
+    typeof framework !== "string" ||
+    !/^[a-z][a-z0-9._-]*$/.test(framework) ||
+    typeof recordedAt !== "string" ||
+    !recordedAt ||
+    typeof source !== "string" ||
+    !source ||
+    source.length > 256 ||
+    !Array.isArray(eventIDs) ||
+    eventIDs.some((item) => typeof item !== "string" || !item || item.length > 512) ||
+    memberRecordID !== nativeRecordID ||
+    typeof contentSha256 !== "string" ||
+    !/^[0-9a-f]{64}$/.test(contentSha256) ||
+    !Number.isInteger(sizeBytes) ||
+    Number(sizeBytes) < 0 ||
+    typeof mediaType !== "string" ||
+    !mediaType ||
+    mediaType.length > 128 ||
+    (encoding !== "utf-8" && encoding !== "binary") ||
+    typeof role !== "string" ||
+    !/^[a-z][a-z0-9._-]*$/.test(role) ||
+    role.length > 128 ||
+    (status !== "applied" && status !== "not_required") ||
+    !Number.isInteger(matches) ||
+    Number(matches) < 0 ||
+    !Array.isArray(rules) ||
+    rules.some((item) => typeof item !== "string") ||
+    (status === "applied") !== Number(matches) > 0 ||
+    Number(matches) > 0 !== rules.length > 0 ||
+    typeof contentBase64 !== "string"
+  ) {
+    throw new Error("Native trace journal record is malformed.")
+  }
+  const bytes = Buffer.from(contentBase64, "base64")
+  if (
+    bytes.toString("base64") !== contentBase64 ||
+    bytes.byteLength !== sizeBytes ||
+    createHash("sha256").update(bytes).digest("hex") !== contentSha256
+  ) {
+    throw new Error("Native trace journal content is corrupt.")
+  }
+  return {
+    format: NATIVE_JOURNAL_FORMAT,
+    native_record_id: nativeRecordID,
+    sequence: Number(sequence),
+    trace_id: traceID,
+    framework,
+    recorded_at: recordedAt,
+    source,
+    event_ids: eventIDs.map(String),
+    member: {
+      native_record_id: nativeRecordID,
+      content_sha256: contentSha256,
+      size_bytes: Number(sizeBytes),
+      media_type: mediaType,
+      encoding,
+      role,
+      redaction: {
+        status,
+        matches: Number(matches),
+        rules: rules.map(String),
+      },
+      content_base64: contentBase64,
+    },
   }
 }
 
