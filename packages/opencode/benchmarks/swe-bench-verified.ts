@@ -12,6 +12,7 @@ import { createHash, randomUUID } from "node:crypto"
 import { mkdir, mkdtemp, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { dirname, isAbsolute, join, resolve } from "node:path"
+import { StringDecoder } from "node:string_decoder"
 import { fileURLToPath } from "node:url"
 import {
   BENCHMARK_COORDINATOR_AGENT,
@@ -25,6 +26,14 @@ import {
   type InfrastructureRetry,
 } from "./evaluation-orchestrator.ts"
 import { benchmarkSourceIdentity, ensureBenchmarkRuntime, type BenchmarkRuntime } from "./opencode-runtime.ts"
+import {
+  createOpenCodeAttemptTrace,
+  createOpenCodeTraceRun,
+  finalizeOpenCodeTraceRun,
+  finishOpenCodeTrace,
+  traceStatus,
+  type OpenCodeTraceRun,
+} from "./tracing/integration.ts"
 
 const DATASET_NAME = "princeton-nlp/SWE-bench_Verified"
 const DATASET_CONFIG = "default"
@@ -107,6 +116,8 @@ interface CliOptions {
   readonly restart: boolean
   readonly pure: boolean
   readonly pythonExecutable: string
+  readonly traceDir?: string
+  readonly traceRun?: OpenCodeTraceRun
   readonly dryRun: boolean
   readonly help: boolean
 }
@@ -239,6 +250,7 @@ function usage(): string {
     "  --restart                  Replace existing artifacts for this run id.",
     "  --no-pure                  Allow external opencode plugins.",
     "  --python PATH              Python executable for official evaluation. Default: python.",
+    "  --trace-dir DIR           Opt-in benchmark-trace/v1 output base; each invocation creates a private trace run.",
     "  --dry-run                  Validate and print planned work without running Docker/harness.",
     "  --help                     Print this message.",
     "",
@@ -282,6 +294,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   let restart = false
   let pure = true
   let pythonExecutable = "python"
+  let traceDir: string | undefined
   let dryRun = false
   let help = false
 
@@ -372,6 +385,9 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     } else if (arg === "--python") {
       pythonExecutable = nextValue(i, arg)
       i += 1
+    } else if (arg === "--trace-dir") {
+      traceDir = nextValue(i, arg)
+      i += 1
     } else if (arg === "--dry-run") {
       dryRun = true
     } else {
@@ -382,6 +398,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   if (new Set(instanceIds).size !== instanceIds.length) {
     throw new Error("Duplicate --instance-id values are not allowed.")
   }
+  if (evaluateOnly && traceDir) throw new Error("--trace-dir is available only during inference.")
   officialSweBenchImage("owner__repo-1", imageTemplate)
 
   return {
@@ -412,6 +429,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     restart,
     pure,
     pythonExecutable,
+    ...(traceDir !== undefined ? { traceDir } : {}),
     dryRun,
     help,
   }
@@ -687,7 +705,7 @@ export function buildDockerRunArgs(
 export function buildOpencodeExecArgs(
   containerName: string,
   row: Pick<SweBenchRow, "instance_id">,
-  options: Pick<CliOptions, "agent" | "model" | "pure">,
+  options: Pick<CliOptions, "agent" | "model" | "pure" | "traceRun">,
   env: Record<string, string | undefined>,
 ): readonly string[] {
   const args = ["exec", "-i", "--workdir", CONTAINER_WORKDIR]
@@ -710,6 +728,7 @@ export function buildOpencodeExecArgs(
     "run",
     "--format",
     "json",
+    ...(options.traceRun ? ["--benchmark-trace"] : []),
     "--dir",
     CONTAINER_WORKDIR,
     "--agent",
@@ -1002,6 +1021,20 @@ async function runInstanceAttempt(
   let sessionId: string | undefined
   let sessionExported = false
   let failureStage: InfrastructureStage = "setup"
+  const trace = options.traceRun
+    ? createOpenCodeAttemptTrace({
+        run: options.traceRun,
+        instanceId: row.instance_id,
+        attempt: context.attempt,
+        frameworkRevision: runtime.commit,
+        model: options.model,
+        evaluationWorkers: options.maxWorkers,
+        inferenceTimeoutMs: options.timeoutMs,
+        evaluationTimeoutSeconds: options.evaluationTimeoutSeconds,
+        benchmarkRetries: options.maxInfrastructureRetries,
+        image,
+      })
+    : undefined
 
   await writeFileAtomic(join(attemptRunDir, "prompt.txt"), prompt)
   await writeJsonAtomic(join(attemptRunDir, "instance.json"), {
@@ -1025,10 +1058,19 @@ async function runInstanceAttempt(
       timeoutMs: options.timeoutMs,
       env: dockerClientEnv(process.env),
       stdin: prompt,
+      onStdoutLine: (line) => {
+        if (!trace) return
+        const parsed = parseJsonLine(line)
+        if (parsed) trace.consume(parsed)
+      },
     })
-    await writeProcessArtifacts(attemptRunDir, "opencode", agentResult, "jsonl")
+    const retainedAgentResult = {
+      ...agentResult,
+      stdout: stripBenchmarkTraceFrames(agentResult.stdout),
+    }
+    await writeProcessArtifacts(attemptRunDir, "opencode", retainedAgentResult, "jsonl")
     if (agentResult.timedOut) await stopTimedOutWork(name, attemptRunDir)
-    events = parseJsonl(agentResult.stdout)
+    events = parseJsonl(retainedAgentResult.stdout)
     sessionId = rootSessionId(events)
     if (sessionId) sessionExported = await exportRootSession(name, sessionId, options.pure, attemptRunDir)
   } catch (error) {
@@ -1072,6 +1114,15 @@ async function runInstanceAttempt(
     agentCompleted,
     generationSucceeded: agentCompleted && assessed.predictionProduced && captureError === undefined,
   }
+  const traceResult = finishOpenCodeTrace(
+    trace,
+    traceStatus({
+      completed: agentCompleted && captureError === undefined,
+      timedOut: agentResult?.timedOut ?? false,
+      infrastructureError: infrastructureError ?? captureError,
+    }),
+    infrastructureError ?? captureError,
+  )
   const prediction: SweBenchPrediction = {
     instance_id: row.instance_id,
     model_name_or_path: `opencode@${runtime.commit}:${options.model}`,
@@ -1105,6 +1156,7 @@ async function runInstanceAttempt(
     toolUseEventCount,
     sessionId: sessionId ?? null,
     sessionExported,
+    ...(traceResult ?? {}),
     ...(infrastructureError !== undefined ? { infrastructureError } : {}),
     ...(captureError !== undefined ? { captureError } : {}),
     ...(infrastructureRetry !== undefined ? { infrastructureRetry } : {}),
@@ -1278,6 +1330,22 @@ function parseJsonl(text: string): readonly JsonObject[] {
     }
   }
   return rows
+}
+
+function parseJsonLine(line: string): JsonObject | undefined {
+  try {
+    const parsed: unknown = JSON.parse(line)
+    return isObject(parsed) ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+export function stripBenchmarkTraceFrames(output: string): string {
+  return output
+    .split(/\r?\n/)
+    .filter((line) => parseJsonLine(line)?.type !== "benchmark_trace.native")
+    .join("\n")
 }
 
 function isObject(value: unknown): value is JsonObject {
@@ -1856,7 +1924,13 @@ async function runHostCommand(
 function runProcess(
   command: string,
   args: readonly string[],
-  options: { cwd: string; timeoutMs: number; env: Record<string, string | undefined>; stdin?: string },
+  options: {
+    cwd: string
+    timeoutMs: number
+    env: Record<string, string | undefined>
+    stdin?: string
+    onStdoutLine?: (line: string) => void
+  },
 ): Promise<ProcessResult> {
   return new Promise((resolveProcess) => {
     const child = spawn(command, args, {
@@ -1869,11 +1943,15 @@ function runProcess(
     const stderr: Buffer[] = []
     let settled = false
     let timedOut = false
+    let pendingStdout = ""
+    const stdoutDecoder = options.onStdoutLine ? new StringDecoder("utf8") : undefined
 
     const finish = (exitCode: number): void => {
       if (settled) return
       settled = true
       if (timer) clearTimeout(timer)
+      pendingStdout += stdoutDecoder?.end() ?? ""
+      if (pendingStdout) options.onStdoutLine?.(pendingStdout)
       resolveProcess({
         stdout: Buffer.concat(stdout).toString("utf8"),
         stderr: Buffer.concat(stderr).toString("utf8"),
@@ -1890,7 +1968,16 @@ function runProcess(
           }, options.timeoutMs)
         : undefined
 
-    child.stdout?.on("data", (chunk: Buffer) => stdout.push(chunk))
+    child.stdout?.on("data", (chunk: Buffer) => {
+      stdout.push(chunk)
+      if (!options.onStdoutLine) return
+      pendingStdout += stdoutDecoder?.write(chunk) ?? ""
+      const lines = pendingStdout.split(/\r?\n/)
+      pendingStdout = lines.pop() ?? ""
+      for (const line of lines) {
+        if (line) options.onStdoutLine(line)
+      }
+    })
     child.stderr?.on("data", (chunk: Buffer) => stderr.push(chunk))
     child.stdin?.on("error", () => {
       // The child may exit before consuming stdin.
@@ -2036,6 +2123,11 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
   await mkdir(paths.runs, { recursive: true })
 
   const progress = await loadExistingProgress(options, paths, rows)
+  if (options.traceDir && progress.summaries.length > 0) {
+    throw new Error("Tracing requires a fresh benchmark run; use --restart or a new --run-id instead of resuming.")
+  }
+  const traceRun = options.traceDir ? createOpenCodeTraceRun(options.traceDir, "swe-bench-verified") : undefined
+  const effectiveOptions = traceRun ? { ...options, traceRun } : options
   await writeJsonlAtomic(paths.datasetPath, rows.map(datasetArtifactRow))
   const summariesById = new Map<string, JsonObject>()
   for (const summary of progress.summaries) {
@@ -2054,7 +2146,7 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
     }),
   })
   let ordered = orderedProgress()
-  await writeRunProgress(options, paths, rows, ordered.summaries, ordered.predictions, false)
+  await writeRunProgress(effectiveOptions, paths, rows, ordered.summaries, ordered.predictions, false)
 
   const work = rows
     .filter((row) => !predictionsById.has(row.instance_id))
@@ -2070,7 +2162,7 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
     retryBaseDelayMs: options.retryBaseDelayMs,
     runAttempt: async (row, context) => {
       console.log(`\n=== ${row.instance_id} (${row.repo}) ===`)
-      return runInstanceAttempt(row, options, paths, context)
+      return runInstanceAttempt(row, effectiveOptions, paths, context)
     },
     onRetry: async (row, retry, context, nextDelayMs) => {
       console.warn(
@@ -2092,12 +2184,19 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
       predictionsById.set(row.instance_id, finalized.prediction)
       await rm(join(paths.runs, row.instance_id, "retry-state.json"), { force: true })
       ordered = orderedProgress()
-      await writeRunProgress(options, paths, rows, ordered.summaries, ordered.predictions, false)
+      await writeRunProgress(effectiveOptions, paths, rows, ordered.summaries, ordered.predictions, false)
     },
   })
 
   ordered = orderedProgress()
-  await writeRunProgress(options, paths, rows, ordered.summaries, ordered.predictions, true)
+  await writeRunProgress(effectiveOptions, paths, rows, ordered.summaries, ordered.predictions, true)
+  const traceFinalizationError = finalizeOpenCodeTraceRun({
+    run: traceRun,
+    instanceIds: rows.map((row) => row.instance_id),
+    selectionStrategy: effectiveOptions.instanceIds.length > 0 ? "explicit_ids" : "ordered_window",
+  })
+  if (traceFinalizationError) console.warn(traceFinalizationError)
+  if (traceRun) console.log(`Wrote benchmark traces: ${traceRun.root}`)
   console.log(`\nWrote predictions: ${paths.predictionsPath}`)
   console.log(`Wrote immutable prediction manifest: ${paths.manifestPath}`)
   console.log(`Wrote summary: ${paths.summaryPath}`)

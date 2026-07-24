@@ -177,6 +177,11 @@ export const RunCommand = effectCmd({
         default: "default",
         describe: "format: default (formatted) or json (raw JSON events)",
       })
+      .option("benchmark-trace", {
+        type: "boolean",
+        default: false,
+        hidden: true,
+      })
       .option("file", {
         alias: ["f"],
         type: "string",
@@ -674,6 +679,7 @@ export const RunCommand = effectCmd({
           process.exit(1)
         }
         const sessionID = sess.id
+        let benchmarkTraceSequence = 0
 
         function emit(type: string, data: Record<string, unknown>) {
           if (args.format === "json") {
@@ -690,6 +696,19 @@ export const RunCommand = effectCmd({
           return false
         }
 
+        function emitNative(event: unknown) {
+          if (!args["benchmark-trace"] || args.format !== "json") return
+          process.stdout.write(
+            JSON.stringify({
+              type: "benchmark_trace.native",
+              sequence: (benchmarkTraceSequence += 1),
+              timestamp: Date.now(),
+              sessionID,
+              event,
+            }) + EOL,
+          )
+        }
+
         // Consume one subscribed event stream for the active session and mirror it
         // to stdout/UI. `client` is passed explicitly because attach mode may
         // rebind the SDK to the session's directory after the subscription is
@@ -699,6 +718,7 @@ export const RunCommand = effectCmd({
           let error: string | undefined
 
           for await (const event of events.stream) {
+            emitNative(event)
             if (
               event.type === "message.updated" &&
               event.properties.sessionID === sessionID &&
@@ -988,6 +1008,8 @@ export async function runMini(input: MiniCommandInput) {
     model: input.model,
     agent: input.agent,
     format: "default",
+    "benchmark-trace": false,
+    benchmarkTrace: false,
     file: undefined,
     title: undefined,
     attach: input.attach,

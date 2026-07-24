@@ -188,6 +188,53 @@ and the matching `--manifest-path`. `--dry-run` verifies the frozen artifact,
 materializes evaluator rows, and records the pinned harness command without
 starting the official evaluation.
 
+## Research tracing
+
+SWE-bench Verified and SWE-bench Pro inference support an opt-in,
+framework-native `benchmark-trace/v1` adapter. Pass a base directory and the
+runner creates a private `trace-run-<uuid>` beneath it:
+
+```bash
+OPENROUTER_API_KEY=... bun run bench:swe-verified:infer -- \
+  --run-id traced-verified \
+  --trace-dir /path/to/traces
+
+OPENROUTER_API_KEY=... bun run bench:swe-pro:infer -- \
+  --run-id traced-pro \
+  --trace-dir /path/to/traces
+```
+
+Tracing is disabled when `--trace-dir` is absent. Initialization occurs before
+container setup or any provider request. A traced invocation must be fresh; use
+`--restart` or a new benchmark run id instead of attaching tracing partway
+through a checkpointed run.
+
+The benchmark-launched OpenCode process publishes its native event stream only
+in this opt-in mode. The adapter records root and child sessions without
+changing native task delegation, model-message boundaries, pending/running/final
+tool state, complete tool input and output, shell/file/search/browser activity,
+delegation and child-session identity, compaction boundaries, errors, and native
+wall-clock durations. This includes the command, arguments, retained output,
+exit code when exposed, and timing for shell actions. Native records and large
+values are stored as pre-persistence-sanitized, content-addressed artifacts.
+Credential fields and recognizable credential text are removed or replaced;
+token usage and cost accounting are deliberately excluded.
+
+Exact provider payloads are not exposed by this OpenCode event mode, and nested
+operating-system activity below an OpenCode tool call remains outside the
+observable boundary. These limitations are explicit in each attempt's
+`capabilities.json`. A trace contains a durable `journal.jsonl`, finalized
+`events.jsonl`, native evidence index, health report, capability matrix,
+manifest, and run-level index. A tracing failure after agent execution starts
+does not alter the benchmark outcome or trigger a retry. Trace health is
+reported separately in the attempt summary.
+
+This phase does not add Terminal-Bench tracing. Harbor remains the outer
+Terminal-Bench execution harness rather than a fourth agent adapter; later
+Terminal-Bench wiring will place generic harness/container/evaluator lifecycle
+around the OpenCode-native trace while preserving Harbor's own logs and ATIF
+trajectory.
+
 ## Terminal-Bench 2.1
 
 Terminal-Bench 2.1 is run through Harbor, the benchmark's official evaluation

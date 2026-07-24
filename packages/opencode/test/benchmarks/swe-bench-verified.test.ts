@@ -14,6 +14,7 @@ import {
   parseArgs,
   parseSweBenchPredictions,
   parseSweBenchRow,
+  stripBenchmarkTraceFrames,
   verifyPredictionArtifact,
 } from "../../benchmarks/swe-bench-verified"
 
@@ -137,6 +138,25 @@ describe("SWE-bench Verified runner", () => {
     expect(args).toContain("OPENCODE_DISABLE_PROVIDER_RETRIES=1")
     expect(args).toContain("BASH_ENV=/root/.bashrc")
     expect(args.join(" ")).not.toContain("secret-value")
+    expect(args).not.toContain("--benchmark-trace")
+    expect(
+      buildOpencodeExecArgs(
+        "run-instance",
+        { instance_id: "owner__repo-1" },
+        {
+          agent: "benchmark-coordinator",
+          model: "openrouter/model",
+          pure: true,
+          traceRun: {
+            id: "trace-run-test",
+            root: "/tmp/traces/trace-run-test",
+            createdAt: new Date(0).toISOString(),
+            benchmark: "swe-bench-verified",
+          },
+        },
+        {},
+      ),
+    ).toContain("--benchmark-trace")
   })
 
   test("parses only public inference fields and ignores hidden evaluator fields", () => {
@@ -171,6 +191,10 @@ describe("SWE-bench Verified runner", () => {
     expect(inference.opencodeVersion).toBe("1.18.4")
     expect(inference.inferenceWorkers).toBe(1)
     expect(inference.maxInfrastructureRetries).toBe(0)
+    expect(parseArgs(["--trace-dir", "/tmp/traces"], "1.18.4").traceDir).toBe("/tmp/traces")
+    expect(() => parseArgs(["--evaluate-only", "--trace-dir", "/tmp/traces"], "1.18.4")).toThrow(
+      "available only during inference",
+    )
 
     const parallel = parseArgs(
       ["--inference-workers", "2", "--max-infrastructure-retries", "1", "--retry-base-delay-ms", "0"],
@@ -191,6 +215,18 @@ describe("SWE-bench Verified runner", () => {
     expect(() => parseArgs(["--opencode-version", "1.18.4"], "1.18.4")).toThrow("Unknown argument")
   })
 
+  test("keeps private native trace frames out of legacy run artifacts", () => {
+    expect(
+      stripBenchmarkTraceFrames(
+        [
+          '{"type":"text","sessionID":"root"}',
+          '{"type":"benchmark_trace.native","event":{"type":"message.updated"}}',
+          "unparsed output",
+        ].join("\n"),
+      ),
+    ).toBe('{"type":"text","sessionID":"root"}\nunparsed output')
+  })
+
   test("lets explicit selection flags replace the default smoke instance", () => {
     expect(parseArgs(["--instance-id", "astropy__astropy-12907"], "1.18.4").instanceIds).toEqual([
       "astropy__astropy-12907",
@@ -198,10 +234,7 @@ describe("SWE-bench Verified runner", () => {
     expect(parseArgs(["--max-instances", "3"], "1.18.4").instanceIds).toEqual([])
     expect(parseArgs(["--offset", "2"], "1.18.4").instanceIds).toEqual([])
     expect(() =>
-      parseArgs(
-        ["--instance-id", "astropy__astropy-12907", "--instance-id", "astropy__astropy-12907"],
-        "1.18.4",
-      ),
+      parseArgs(["--instance-id", "astropy__astropy-12907", "--instance-id", "astropy__astropy-12907"], "1.18.4"),
     ).toThrow("Duplicate --instance-id values are not allowed")
   })
 
