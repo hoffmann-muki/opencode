@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test"
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import {
   TERMINAL_BENCH_DATASET,
   buildHarborArgs,
@@ -48,7 +48,10 @@ describe("Terminal-Bench runner", () => {
       upload: false,
       public: false,
       leaderboard: false,
+      traceDir: resolve(import.meta.dir, "../../../..", ".benchmark-traces"),
     })
+    expect(parseArgs(["--no-trace"], defaults).traceDir).toBeUndefined()
+    expect(() => parseArgs(["--trace-dir", "/traces", "--no-trace"], defaults)).toThrow("cannot be combined")
   })
 
   test("builds the official Harbor invocation with an immutable local runtime", () => {
@@ -118,6 +121,7 @@ describe("Terminal-Bench runner", () => {
     expect(parseArgs(["--recover-traces-from", "/runs/manifest.json"], defaults).recoverTracesFrom).toBe(
       "/runs/manifest.json",
     )
+    expect(parseArgs(["--recover-traces-from", "/runs/manifest.json"], defaults).traceDir).toBeUndefined()
     expect(() =>
       parseArgs(["--recover-traces-from", "/runs/manifest.json", "--trace-dir", "/traces"], defaults),
     ).toThrow("--recover-traces-from cannot be combined with --trace-dir")
@@ -188,7 +192,7 @@ describe("Terminal-Bench runner", () => {
     expect(resolveDefaultModel({ OPENCODE_BENCH_MODEL: "anthropic/claude-sonnet-4" })).toBe("anthropic/claude-sonnet-4")
   })
 
-  test("wires opt-in tracing into the custom Harbor adapter", () => {
+  test("wires a trace override into the custom Harbor adapter", () => {
     const options = {
       ...parseArgs(["--trace-dir", "/traces"], defaults),
       runtime,

@@ -60,6 +60,7 @@ const DATASET_FETCH_RETRY_MS = 1_000
 const MANIFEST_SCHEMA_VERSION = 2
 const OPENCODE_PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const REPO_ROOT = resolve(OPENCODE_PACKAGE_ROOT, "../..")
+const DEFAULT_TRACE_ROOT = resolve(REPO_ROOT, ".benchmark-traces")
 const PACKAGE_JSON_PATH = join(OPENCODE_PACKAGE_ROOT, "package.json")
 const PROVIDER_ENV_KEYS = [
   "OPENROUTER_API_KEY",
@@ -261,7 +262,8 @@ function usage(): string {
     "  --restart                  Replace existing artifacts for this run id.",
     "  --no-pure                  Allow external opencode plugins.",
     "  --python PATH              Python executable for official evaluation. Default: python.",
-    "  --trace-dir DIR           Opt-in benchmark-trace/v1 output base; each invocation creates a private trace run.",
+    `  --trace-dir DIR           Override trace output base. Default: ${DEFAULT_TRACE_ROOT}.`,
+    "  --no-trace                Disable benchmark tracing for this inference run.",
     "  --dry-run                  Validate and print planned work without running Docker/harness.",
     "  --help                     Print this message.",
     "",
@@ -309,7 +311,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   let restart = false
   let pure = true
   let pythonExecutable = "python"
-  let traceDir: string | undefined
+  let traceDir: string | undefined = DEFAULT_TRACE_ROOT
   let dryRun = false
   let help = false
 
@@ -413,6 +415,8 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     } else if (arg === "--trace-dir") {
       traceDir = nextValue(i, arg)
       i += 1
+    } else if (arg === "--no-trace") {
+      traceDir = undefined
     } else if (arg === "--dry-run") {
       dryRun = true
     } else {
@@ -423,7 +427,13 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   if (new Set(instanceIds).size !== instanceIds.length) {
     throw new Error("Duplicate --instance-id values are not allowed.")
   }
-  if (evaluateOnly && traceDir) throw new Error("--trace-dir is available only during inference.")
+  if (argv.includes("--trace-dir") && argv.includes("--no-trace")) {
+    throw new Error("--trace-dir cannot be combined with --no-trace.")
+  }
+  if (evaluateOnly && argv.includes("--trace-dir")) {
+    throw new Error("--trace-dir is available only during inference.")
+  }
+  const effectiveTraceDir = evaluateOnly ? undefined : traceDir
   officialSweBenchProImage("sample-tag", imagePrefix)
 
   return {
@@ -457,7 +467,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     restart,
     pure,
     pythonExecutable,
-    ...(traceDir !== undefined ? { traceDir } : {}),
+    ...(effectiveTraceDir !== undefined ? { traceDir: effectiveTraceDir } : {}),
     dryRun,
     help,
   }

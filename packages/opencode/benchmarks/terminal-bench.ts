@@ -32,6 +32,7 @@ const DEFAULT_MODEL = "openrouter/qwen/qwen3-coder-next"
 const DEFAULT_ENVIRONMENT = "docker"
 const OPENCODE_PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const REPO_ROOT = resolve(OPENCODE_PACKAGE_ROOT, "../..")
+const DEFAULT_TRACE_ROOT = resolve(REPO_ROOT, ".benchmark-traces")
 const OPENCODE_PACKAGE_JSON = join(OPENCODE_PACKAGE_ROOT, "package.json")
 const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 const HARBOR_AGENT = "packages.opencode.benchmarks.opencode_harbor:BenchmarkOpenCode"
@@ -133,7 +134,8 @@ export function usage(): string {
     "  The agent runtime is built from the exact clean opencode checkout and cached by commit.",
     `  --environment NAME     Harbor environment. Default: ${DEFAULT_ENVIRONMENT}.`,
     `  --output-dir DIR       Output root. Default: ${DEFAULT_RUN_ROOT}.`,
-    "  --trace-dir DIR        Opt-in benchmark-trace/v1 output base; each invocation creates a private trace run.",
+    `  --trace-dir DIR        Override trace output base. Default: ${DEFAULT_TRACE_ROOT}.`,
+    "  --no-trace             Disable benchmark tracing for this run.",
     "  --recover-traces-from MANIFEST",
     "                         Finalize staged traces from an interrupted run without launching Harbor.",
     "  --run-id ID            Stable Harbor job and local run identifier.",
@@ -168,7 +170,7 @@ export function parseArgs(
   const opencodeVersion = defaults.opencodeVersion
   let environment = DEFAULT_ENVIRONMENT
   let outputDir = DEFAULT_RUN_ROOT
-  let traceDir: string | undefined
+  let traceDir: string | undefined = DEFAULT_TRACE_ROOT
   let recoverTracesFrom: string | undefined
   const now = defaults.now ?? new Date()
   let runId = `terminal-bench-2.1-${now.toISOString().replaceAll(/[:.]/g, "-")}`
@@ -220,6 +222,8 @@ export function parseArgs(
     } else if (arg === "--trace-dir") {
       traceDir = nextValue(i, arg)
       i += 1
+    } else if (arg === "--no-trace") {
+      traceDir = undefined
     } else if (arg === "--recover-traces-from") {
       recoverTracesFrom = nextValue(i, arg)
       i += 1
@@ -259,9 +263,13 @@ export function parseArgs(
   }
 
   if (publicJob && !upload) throw new Error("--public requires --upload.")
-  if (recoverTracesFrom !== undefined && traceDir !== undefined) {
+  if (argv.includes("--trace-dir") && argv.includes("--no-trace")) {
+    throw new Error("--trace-dir cannot be combined with --no-trace.")
+  }
+  if (recoverTracesFrom !== undefined && argv.includes("--trace-dir")) {
     throw new Error("--recover-traces-from cannot be combined with --trace-dir.")
   }
+  const effectiveTraceDir = recoverTracesFrom === undefined ? traceDir : undefined
   if (!model.includes("/") || model.startsWith("/") || model.endsWith("/")) {
     throw new Error("--model must use provider/model format.")
   }
@@ -282,7 +290,7 @@ export function parseArgs(
     opencodeVersion,
     environment,
     outputDir,
-    ...(traceDir !== undefined ? { traceDir } : {}),
+    ...(effectiveTraceDir !== undefined ? { traceDir: effectiveTraceDir } : {}),
     ...(recoverTracesFrom !== undefined ? { recoverTracesFrom } : {}),
     runId,
     harborBin,

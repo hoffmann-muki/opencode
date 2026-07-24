@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 import { createHash } from "node:crypto"
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
-import { join } from "node:path"
+import { join, resolve } from "node:path"
 import {
   assessPrediction,
   buildDockerRunArgs,
@@ -192,7 +192,10 @@ describe("SWE-bench Verified runner", () => {
     expect(inference.opencodeVersion).toBe("1.18.4")
     expect(inference.inferenceWorkers).toBe(1)
     expect(inference.maxInfrastructureRetries).toBe(0)
+    expect(inference.traceDir).toBe(resolve(import.meta.dir, "../../../..", ".benchmark-traces"))
     expect(parseArgs(["--trace-dir", "/tmp/traces"], "1.18.4").traceDir).toBe("/tmp/traces")
+    expect(parseArgs(["--no-trace"], "1.18.4").traceDir).toBeUndefined()
+    expect(() => parseArgs(["--trace-dir", "/tmp/traces", "--no-trace"], "1.18.4")).toThrow("cannot be combined")
     expect(() => parseArgs(["--evaluate-only", "--trace-dir", "/tmp/traces"], "1.18.4")).toThrow(
       "available only during inference",
     )
@@ -208,6 +211,7 @@ describe("SWE-bench Verified runner", () => {
     const evaluation = parseArgs(["--run-id", "sample", "--evaluate-only"], "1.18.4")
     expect(evaluation.evaluateOnly).toBe(true)
     expect(evaluation.instanceIds).toEqual([])
+    expect(evaluation.traceDir).toBeUndefined()
     expect(evaluation.evaluationTimeoutSeconds).toBe(60 * 60)
 
     const evaluationTimeout = parseArgs(["--evaluate-only", "--evaluation-timeout-seconds", "1800"], "1.18.4")

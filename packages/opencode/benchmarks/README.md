@@ -190,9 +190,9 @@ starting the official evaluation.
 
 ## Research tracing
 
-SWE-bench Verified and SWE-bench Pro inference support an opt-in,
-framework-native `benchmark-trace/v1` adapter. Pass a base directory and the
-runner creates a private `trace-run-<uuid>` beneath it:
+SWE-bench Verified and SWE-bench Pro inference enable the framework-native
+`benchmark-trace/v1` adapter by default. Each runner creates a private
+`trace-run-<uuid>` beneath the repository-local `.benchmark-traces/` base:
 
 The tracing integration is benchmark-agnostic. A shared run coordinator owns
 run identity, instance selection, attempt coverage, and final indexing; the
@@ -204,28 +204,27 @@ trace extractor.
 
 ```bash
 OPENROUTER_API_KEY=... bun run bench:swe-verified:infer -- \
-  --run-id traced-verified \
-  --trace-dir /path/to/traces
+  --run-id traced-verified
 
 OPENROUTER_API_KEY=... bun run bench:swe-pro:infer -- \
-  --run-id traced-pro \
-  --trace-dir /path/to/traces
+  --run-id traced-pro
 ```
 
-Tracing is disabled when `--trace-dir` is absent. Initialization occurs before
-container setup or any provider request. A traced invocation must be fresh; use
-`--restart` or a new benchmark run id instead of attaching tracing partway
-through a checkpointed run.
+Use `--trace-dir <base-directory>` to override the repository-local base, or
+`--no-trace` for an intentional untraced inference run. Evaluation-only modes
+never create traces. Initialization occurs before container setup or any
+provider request. A traced invocation must be fresh; use `--restart` or a new
+benchmark run id instead of attaching tracing partway through a checkpointed
+run.
 
-The flag configures capture inside the benchmark process; it is not a request
-to reconstruct activity from logs. The live OpenCode event stream is recorded
-as each agent action occurs, and the runner prints the exact private trace path
-when it finishes. No separate collector command needs to run before, during, or
-after inference. The stable base passed to `--trace-dir` can also be used to
-discover its finalized `trace-run-<uuid>` children.
+Capture occurs inside the benchmark process; it is not reconstructed from logs.
+The live OpenCode event stream is recorded as each agent action occurs, and the
+runner prints the exact private trace path when it finishes. No separate
+collector command needs to run before, during, or after inference. The stable
+base can also be used to discover its finalized `trace-run-<uuid>` children.
 
-The benchmark-launched OpenCode process publishes its native event stream only
-in this opt-in mode. The adapter records root and child sessions without
+The trace-enabled OpenCode process publishes its native event stream to the
+adapter, which records root and child sessions without
 changing native task delegation, model-message boundaries, pending/running/final
 tool state, complete tool input and output, shell/file/search/browser activity,
 delegation and child-session identity, compaction boundaries, errors, and native
@@ -299,8 +298,7 @@ bun run bench:terminal -- --all-tasks
 bun run bench:terminal -- --dry-run
 
 OPENROUTER_API_KEY=... bun run bench:terminal -- \
-  --run-id traced-terminal-smoke \
-  --trace-dir /path/to/traces
+  --run-id traced-terminal-smoke
 ```
 
 `--all-tasks` runs the complete dataset locally with the configured attempt
@@ -327,15 +325,16 @@ manifest. A completed wrapper run means Harbor finished successfully; per-task
 resolution is determined only by the official verifier rewards in Harbor's
 `result.json` and trial artifacts.
 
-Tracing is disabled when `--trace-dir` is absent. When enabled, the host creates
-a private trace run after preflight, while the installed adapter records
-non-secret attempt timing and provenance before the provider can run. The
-OpenCode process emits native timestamped frames for sessions, model turns,
-tools, shell/file/search/browser activity, delegation, and compaction. After
-applying credential redaction and removing accounting fields at the emission
-boundary, those frames pass through the JSONL stream. After Harbor returns, the
-wrapper normalizes them, strips only its internal transport frames from
-`opencode.txt`, and retains all ordinary Harbor output.
+Tracing defaults to the repository-local `.benchmark-traces/` base. Use
+`--trace-dir <base-directory>` to override it or `--no-trace` to disable tracing
+for a run. After preflight, the host creates a private trace run while the
+installed adapter records non-secret attempt timing and provenance before the
+provider can run. The OpenCode process emits native timestamped frames for
+sessions, model turns, tools, shell/file/search/browser activity, delegation,
+and compaction. After applying credential redaction and removing accounting
+fields at the emission boundary, those frames pass through the JSONL stream.
+After Harbor returns, the wrapper normalizes them, strips only its internal
+transport frames from `opencode.txt`, and retains all ordinary Harbor output.
 
 Canonicalization is staged per attempt and promoted atomically, so a host
 interruption cannot expose a half-built attempt. The run manifest checkpoints
