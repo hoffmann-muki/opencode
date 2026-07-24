@@ -241,7 +241,9 @@ chunking does not sample or coalesce streaming deltas. Many
 `native/index.jsonl` rows can therefore reference one immutable chunk instead
 of creating one artifact file per frame. Finalized `journal.jsonl` and
 `events.jsonl` share the same inode when hard links are supported, with an
-atomic-copy fallback.
+atomic-copy fallback. Chunk artifacts are the only valid native-evidence
+representation; loose per-frame artifacts are not emitted or accepted by the
+shared trace contract.
 
 Exact provider payloads are not exposed by this OpenCode event mode, and nested
 operating-system activity below an OpenCode tool call remains outside the
