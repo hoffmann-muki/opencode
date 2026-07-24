@@ -32,6 +32,7 @@ export function createOpenCodeAttemptTrace(input: {
   readonly inferenceTimeoutMs: number
   readonly evaluationTimeoutSeconds?: number
   readonly benchmarkRetries: number
+  readonly delegationEnabled: boolean
   readonly image: string
   readonly harnessRevision?: string
   readonly startedAt?: number
@@ -91,7 +92,10 @@ export function createOpenCodeAttemptTrace(input: {
       },
       capabilities: opencodeCapabilities(new Map()),
     }),
-    input.startedAt !== undefined ? { startedAt: input.startedAt } : {},
+    {
+      delegationEnabled: input.delegationEnabled,
+      ...(input.startedAt !== undefined ? { startedAt: input.startedAt } : {}),
+    },
   )
 }
 

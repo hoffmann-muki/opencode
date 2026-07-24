@@ -45,6 +45,7 @@ const MAX_INFRASTRUCTURE_RETRIES = 10
 const DEFAULT_MODEL = "openrouter/qwen/qwen3-coder-next"
 const DEFAULT_AGENT = BENCHMARK_COORDINATOR_AGENT
 const DEFAULT_OPENCODE_TIMEOUT_MS = 30 * 60 * 1000
+const DEFAULT_EVALUATION_TIMEOUT_SECONDS = 60 * 60
 const DEFAULT_SETUP_TIMEOUT_MS = 10 * 60 * 1000
 const DEFAULT_DOCKER_COMMAND_TIMEOUT_MS = 60_000
 const DEFAULT_DOCKER_PLATFORM = "linux/amd64"
@@ -1075,7 +1076,9 @@ async function runInstanceAttempt(
         model: options.model,
         evaluationWorkers: options.maxWorkers,
         inferenceTimeoutMs: options.timeoutMs,
+        evaluationTimeoutSeconds: DEFAULT_EVALUATION_TIMEOUT_SECONDS,
         benchmarkRetries: options.maxInfrastructureRetries,
+        delegationEnabled: true,
         image,
       })
     : undefined

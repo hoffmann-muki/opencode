@@ -1026,6 +1026,7 @@ async function runInstanceAttempt(
         inferenceTimeoutMs: options.timeoutMs,
         evaluationTimeoutSeconds: options.evaluationTimeoutSeconds,
         benchmarkRetries: options.maxInfrastructureRetries,
+        delegationEnabled: true,
         image,
       })
     : undefined

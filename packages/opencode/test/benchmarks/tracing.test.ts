@@ -36,6 +36,38 @@ describe("benchmark tracing recorder", () => {
     })
   })
 
+  test("redacts provider-prefixed secret names and accounting fields", () => {
+    const result = sanitizeTraceJson({
+      OPENROUTER_API_KEY: "synthetic-secret-value",
+      aws_secret_access_key: "synthetic-cloud-secret",
+      provider_usage: { input_tokens: 99 },
+      output: "export OPENROUTER_API_KEY=synthetic-secret-value --custom-access-token synthetic-token-value",
+      duration_ms: 25,
+    })
+
+    expect(result.matches).toBe(5)
+    expect(result.value).toEqual({
+      output: "export OPENROUTER_API_KEY=<redacted:assignment> --custom-access-token=<redacted:assignment>",
+      duration_ms: 25,
+    })
+  })
+
+  test("marks error-level observability defects as failed and partial", () => {
+    const trace = createAdapter(temporaryRoot(), "owner/project__health")
+    trace.recorder.reportIssue("trace.synthetic_failure", "synthetic failure", "error")
+
+    const finalized = trace.adapter.finish("completed")
+    const health = JSON.parse(readFileSync(join(trace.attemptDir, "health.json"), "utf8")) as {
+      status: string
+      finalization: string
+    }
+
+    expect(finalized.health).toBe("failed")
+    expect(finalized.complete).toBe(false)
+    expect(health.status).toBe("failed")
+    expect(health.finalization).toBe("partial")
+  })
+
   test("normalizes native tools, timing, model turns, and session lifecycle", () => {
     const root = temporaryRoot()
     const trace = createAdapter(root, "owner/project__issue-1")
@@ -151,6 +183,14 @@ describe("benchmark tracing recorder", () => {
       "attempt.end",
       "instance.end",
     ])
+    expect(events.find((event) => event.event_type === "attempt.start")?.payload).toEqual({
+      agent_configuration: {
+        delegation_enabled: true,
+        coordination_mode: "framework_native",
+        delegation_sequence: ["navigator", "patcher", "reviewer"],
+        sequence_enforcement: "prompt_guided",
+      },
+    })
     expect(events.find((event) => event.event_type === "shell.end")?.timing).toEqual({
       fidelity: "native_wall",
       duration_ms: 25,
@@ -358,6 +398,7 @@ describe("benchmark tracing recorder", () => {
       evaluationWorkers: 1,
       inferenceTimeoutMs: 1_000,
       benchmarkRetries: 0,
+      delegationEnabled: true,
       image: "custom/image:latest",
     }).finish("completed")
     let prepared = false
@@ -435,29 +476,29 @@ function createAdapter(root: string, instanceId: string) {
     instanceId,
     attempt: 1,
   })
+  const recorder = new TraceRecorder({
+    attemptDir,
+    identity,
+    producer: { name: "test-recorder", version: "1.0.0" },
+    provenance: {
+      benchmark: { name: "test", revision: "a".repeat(40) },
+      framework: { name: "OpenCode", revision: "a".repeat(40) },
+      adapter: { name: "test", revision: "a".repeat(40) },
+    },
+    execution: {
+      model: "test/model",
+      evaluation_workers: 1,
+      inference_timeout_seconds: 1800,
+      benchmark_retries: 0,
+      provider_attempts: 1,
+    },
+    capabilities: opencodeCapabilities(new Map()),
+  })
   return {
     attemptDir,
     identity,
-    adapter: new OpenCodeTraceAdapter(
-      new TraceRecorder({
-        attemptDir,
-        identity,
-        producer: { name: "test-recorder", version: "1.0.0" },
-        provenance: {
-          benchmark: { name: "test", revision: "a".repeat(40) },
-          framework: { name: "OpenCode", revision: "a".repeat(40) },
-          adapter: { name: "test", revision: "a".repeat(40) },
-        },
-        execution: {
-          model: "test/model",
-          evaluation_workers: 1,
-          inference_timeout_seconds: 1800,
-          benchmark_retries: 0,
-          provider_attempts: 1,
-        },
-        capabilities: opencodeCapabilities(new Map()),
-      }),
-    ),
+    recorder,
+    adapter: new OpenCodeTraceAdapter(recorder, { delegationEnabled: true }),
   }
 }
 

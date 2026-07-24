@@ -84,7 +84,7 @@ export class OpenCodeTraceAdapter {
   private harnessStartedAt?: number
   private finished?: TraceFinalization
 
-  constructor(recorder: TraceRecorder, options?: { readonly startedAt?: number }) {
+  constructor(recorder: TraceRecorder, options: { readonly delegationEnabled: boolean; readonly startedAt?: number }) {
     this.recorder = recorder
     this.attemptStartedAt = options?.startedAt ?? Date.now()
     this.instanceSpan = `instance-${recorder.identity.traceId}`
@@ -111,7 +111,14 @@ export class OpenCodeTraceAdapter {
       occurredAt: iso(this.attemptStartedAt),
       origin: harnessOrigin(),
       timing: wallStart(),
-      payload: {},
+      payload: {
+        agent_configuration: {
+          delegation_enabled: options.delegationEnabled,
+          coordination_mode: "framework_native",
+          delegation_sequence: options.delegationEnabled ? ["navigator", "patcher", "reviewer"] : [],
+          sequence_enforcement: "prompt_guided",
+        },
+      },
     })
   }
 

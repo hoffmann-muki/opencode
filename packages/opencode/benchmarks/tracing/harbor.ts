@@ -1,6 +1,7 @@
-import { readFileSync, rmSync } from "node:fs"
+import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs"
 import { writeFile } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
+import { encodedInstanceId, traceAttemptDirectory } from "./recorder.ts"
 import {
   finalizeTraceRun,
   type TraceHarnessAdapter,
@@ -47,6 +48,7 @@ export class HarborTraceHarness implements TraceHarnessAdapter {
   prepareFinalization(run: TraceRun): void {
     rmSync(join(run.root, ".harbor-attempts.json"), { force: true })
     rmSync(join(run.root, ".harbor-attempts.lock"), { force: true })
+    rmSync(join(run.root, ".harbor-staging"), { force: true, recursive: true })
   }
 
   resolveSelection(_run: TraceRun, _observedInstanceIds: readonly string[]): TraceSelection {
@@ -105,8 +107,27 @@ export async function collectOpenCodeHarborTraces(input: {
       if (!Number.isFinite(startedAt) || !Number.isFinite(finishedAt)) {
         throw new Error(`Invalid OpenCode Harbor trace timestamps: ${metadataPath}`)
       }
+      const attemptDir = traceAttemptDirectory(input.run.root, metadata.instanceId, metadata.attempt)
+      if (existsSync(join(attemptDir, "manifest.json"))) {
+        assertExistingAttempt(attemptDir, metadata)
+        await writeFile(stdoutPath, stripHarborTraceFrames(stdout), "utf8")
+        continue
+      }
+      if (existsSync(attemptDir)) {
+        throw new Error(
+          `Interrupted OpenCode trace attempt must be recovered before Harbor collection resumes: ${attemptDir}`,
+        )
+      }
+      const stagingRoot = join(
+        input.run.root,
+        ".harbor-staging",
+        encodedInstanceId(metadata.instanceId),
+        `attempt-${metadata.attempt}`,
+      )
+      rmSync(stagingRoot, { force: true, recursive: true })
+      const stagingRun = { ...input.run, root: stagingRoot }
       const adapter = createOpenCodeAttemptTrace({
-        run: input.run,
+        run: stagingRun,
         instanceId: metadata.instanceId,
         attempt: metadata.attempt,
         frameworkRevision: metadata.frameworkRevision,
@@ -114,6 +135,7 @@ export async function collectOpenCodeHarborTraces(input: {
         evaluationWorkers: metadata.evaluationWorkers,
         inferenceTimeoutMs: metadata.inferenceTimeoutSeconds * 1_000,
         benchmarkRetries: metadata.benchmarkRetries,
+        delegationEnabled: true,
         image: metadata.image,
         harnessRevision: metadata.harborVersion,
         startedAt,
@@ -143,11 +165,14 @@ export async function collectOpenCodeHarborTraces(input: {
         }
         adapter.consume(value)
       }
-      adapter.finish(
+      const finalized = adapter.finish(
         metadata.status === "completed" ? "completed" : metadata.status === "timeout" ? "timeout" : "failed",
         metadata.error,
         finishedAt,
       )
+      mkdirSync(dirname(attemptDir), { recursive: true, mode: 0o700 })
+      renameSync(finalized.attemptDir, attemptDir)
+      rmSync(stagingRoot, { force: true, recursive: true })
       await writeFile(stdoutPath, stripHarborTraceFrames(stdout), "utf8")
     }
 
@@ -172,6 +197,26 @@ export async function collectOpenCodeHarborTraces(input: {
     return undefined
   } catch {
     return "OpenCode Harbor trace run could not be finalized; benchmark outputs remain valid."
+  }
+}
+
+function assertExistingAttempt(attemptDir: string, metadata: HarborTraceMetadata): void {
+  const value: unknown = JSON.parse(readFileSync(join(attemptDir, "manifest.json"), "utf8"))
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("run_id" in value) ||
+    value.run_id !== metadata.runId ||
+    !("benchmark" in value) ||
+    value.benchmark !== metadata.benchmark ||
+    !("framework" in value) ||
+    value.framework !== "opencode" ||
+    !("instance_id" in value) ||
+    value.instance_id !== metadata.instanceId ||
+    !("attempt" in value) ||
+    value.attempt !== metadata.attempt
+  ) {
+    throw new Error(`Existing OpenCode trace attempt conflicts with Harbor metadata: ${attemptDir}`)
   }
 }
 

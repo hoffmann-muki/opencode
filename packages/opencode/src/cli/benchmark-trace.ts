@@ -15,6 +15,25 @@ const CREDENTIAL_FIELDS = new Set([
   "secretkey",
   "signedcredential",
 ])
+const CREDENTIAL_FIELD_SUFFIXES = [
+  "apikey",
+  "accesskey",
+  "accesstoken",
+  "authorization",
+  "authorizationheader",
+  "authtoken",
+  "clientsecret",
+  "cookie",
+  "credentials",
+  "githubtoken",
+  "password",
+  "privatekey",
+  "refreshtoken",
+  "secret",
+  "secretaccesskey",
+  "secretkey",
+  "signedcredential",
+] as const
 
 const ACCOUNTING_FIELDS = new Set([
   "accumulatedcost",
@@ -42,6 +61,7 @@ const ACCOUNTING_FIELDS = new Set([
   "usagesummary",
   "usagetometrics",
 ])
+const ACCOUNTING_FIELD_SUFFIXES = [...ACCOUNTING_FIELDS]
 
 export function sanitizeBenchmarkTrace(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(sanitizeBenchmarkTrace)
@@ -49,7 +69,11 @@ export function sanitizeBenchmarkTrace(value: unknown): unknown {
     return Object.fromEntries(
       Object.entries(value).flatMap(([key, item]) => {
         const normalized = key.toLowerCase().replaceAll(/[^a-z0-9]/g, "")
-        if (CREDENTIAL_FIELDS.has(normalized) || ACCOUNTING_FIELDS.has(normalized)) return []
+        if (
+          matchesField(normalized, CREDENTIAL_FIELDS, CREDENTIAL_FIELD_SUFFIXES) ||
+          matchesField(normalized, ACCOUNTING_FIELDS, ACCOUNTING_FIELD_SUFFIXES)
+        )
+          return []
         return [[key, sanitizeBenchmarkTrace(item)]]
       }),
     )
@@ -71,7 +95,11 @@ function sanitizeText(value: string): string {
     .replace(/(?<![A-Z0-9])(?:AKIA|ASIA)[A-Z0-9]{16}(?![A-Z0-9])/g, "<redacted:cloud_access_key>")
     .replace(/([a-z][a-z0-9+.-]*:\/\/)([^:/@\s]+):([^/@\s]+)@/gi, "$1$2:<redacted:uri_password>@")
     .replace(
-      /\b(api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|github[_-]?token|password|private[_-]?key|refresh[_-]?token|secret[_-]?key)\s*=\s*(?!<redacted:)(['"]?)([^\s'"]{4,})\2/gi,
-      "$1=<redacted:assignment>",
+      /(?<![A-Za-z0-9_])(--?)?((?:[A-Za-z_][A-Za-z0-9_-]*?)?(?:api[_-]?key|access[_-]?key|access[_-]?token|auth[_-]?token|authorization(?:[_-]?header)?|client[_-]?secret|cookie|credentials|github[_-]?token|password|private[_-]?key|refresh[_-]?token|secret(?:[_-]?access)?[_-]?key|secret|signed[_-]?credential))\s*(?:=|\s)\s*(?!<redacted:)(['"]?)([^\s'"]{4,})\3/gi,
+      "$1$2=<redacted:assignment>",
     )
+}
+
+function matchesField(normalized: string, exact: ReadonlySet<string>, suffixes: readonly string[]): boolean {
+  return exact.has(normalized) || suffixes.some((suffix) => normalized !== suffix && normalized.endsWith(suffix))
 }

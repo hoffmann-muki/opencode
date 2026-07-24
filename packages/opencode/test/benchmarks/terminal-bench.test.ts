@@ -5,8 +5,8 @@ import { join } from "node:path"
 import {
   TERMINAL_BENCH_DATASET,
   buildHarborArgs,
-  collectTerminalBenchTraces,
   parseArgs,
+  recoverTerminalBenchTraces,
   resolveDefaultModel,
   stripTerminalBenchmarkTraceFrames,
 } from "../../benchmarks/terminal-bench"
@@ -112,6 +112,15 @@ describe("Terminal-Bench runner", () => {
       "--n-tasks",
       "2",
     ])
+  })
+
+  test("accepts trace-only recovery without a provider run", () => {
+    expect(parseArgs(["--recover-traces-from", "/runs/manifest.json"], defaults).recoverTracesFrom).toBe(
+      "/runs/manifest.json",
+    )
+    expect(() =>
+      parseArgs(["--recover-traces-from", "/runs/manifest.json", "--trace-dir", "/traces"], defaults),
+    ).toThrow("--recover-traces-from cannot be combined with --trace-dir")
   })
 
   test("configures a coordinator with blocking native subagent delegation", () => {
@@ -274,19 +283,31 @@ describe("Terminal-Bench runner", () => {
         }),
       )
 
-      const warning = await collectTerminalBenchTraces({
-        run,
-        jobsDir: join(root, "jobs"),
-        harborJobName: "job",
-        sourceCommit: "a".repeat(40),
-        taskNames: [],
-        maxTasks: 1,
-        attempts: 1,
-      })
+      const recoveryManifest = join(root, "manifest.json")
+      writeFileSync(
+        recoveryManifest,
+        JSON.stringify({
+          schemaVersion: 2,
+          benchmark: "terminal-bench",
+          agent: "opencode",
+          runId: "job",
+          traceDir: run.root,
+          traceRunId: run.id,
+          traceCreatedAt: run.createdAt,
+          traceBenchmark: run.benchmark,
+          jobsDir: join(root, "jobs"),
+          opencodeCommit: "a".repeat(40),
+          taskNames: [],
+          maxTasks: 1,
+          attempts: 1,
+        }),
+      )
 
-      expect(warning).toBeUndefined()
+      expect(await recoverTerminalBenchTraces(recoveryManifest)).toBe(run.root)
+      expect(await recoverTerminalBenchTraces(recoveryManifest)).toBe(run.root)
       expect(Bun.file(join(run.root, "run.json")).size).toBeGreaterThan(0)
       expect(readFileSync(join(agentDir, "opencode.txt"), "utf8")).not.toContain("benchmark_trace.native")
+      expect(await Bun.file(join(run.root, ".harbor-staging")).exists()).toBe(false)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

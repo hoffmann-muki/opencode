@@ -16,7 +16,9 @@ describe("benchmark trace transport sanitization", () => {
           tokens: { input: 42, output: 10 },
           duration_ms: 25,
         },
-        output: `OPENROUTER_API_KEY=${secret}`,
+        OPENROUTER_API_KEY: "synthetic-secret-value",
+        provider_usage: { input_tokens: 42 },
+        output: "OPENROUTER_API_KEY=synthetic-secret-value --custom-access-token synthetic-token-value",
         nested: [{ authorization: `Bearer ${"a".repeat(24)}` }],
       },
     })
@@ -28,6 +30,9 @@ describe("benchmark trace transport sanitization", () => {
     expect(retained).not.toContain("total_tokens")
     expect(retained).not.toContain('"cost"')
     expect(retained).not.toContain('"tokens"')
+    expect(retained).not.toContain("synthetic-secret-value")
+    expect(retained).not.toContain("synthetic-token-value")
+    expect(retained).not.toContain("provider_usage")
     expect(retained).toContain('"duration_ms":25')
   })
 })

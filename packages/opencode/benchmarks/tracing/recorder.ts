@@ -164,9 +164,9 @@ interface TraceCounters {
 }
 
 interface TraceIssue {
-  readonly severity: "warning" | "error"
+  severity: "warning" | "error"
   readonly code: string
-  readonly message: string
+  message: string
   readonly firstSeenAt: string
   lastSeenAt: string
   count: number
@@ -189,6 +189,25 @@ const CREDENTIAL_FIELDS = new Set([
   "secretkey",
   "signedcredential",
 ])
+const CREDENTIAL_FIELD_SUFFIXES = [
+  "apikey",
+  "accesskey",
+  "accesstoken",
+  "authorization",
+  "authorizationheader",
+  "authtoken",
+  "clientsecret",
+  "cookie",
+  "credentials",
+  "githubtoken",
+  "password",
+  "privatekey",
+  "refreshtoken",
+  "secret",
+  "secretaccesskey",
+  "secretkey",
+  "signedcredential",
+] as const
 
 const ACCOUNTING_FIELDS = new Set([
   "accumulatedcost",
@@ -216,6 +235,7 @@ const ACCOUNTING_FIELDS = new Set([
   "usagesummary",
   "usagetometrics",
 ])
+const ACCOUNTING_FIELD_SUFFIXES = [...ACCOUNTING_FIELDS]
 
 const TEXT_RULES = [
   {
@@ -308,10 +328,10 @@ export function sanitizeTraceText(value: string): RedactionResult<string> {
   }
 
   const assignment =
-    /\b(api[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|github[_-]?token|password|private[_-]?key|refresh[_-]?token|secret[_-]?key)\s*=\s*(?!<redacted:)(['"]?)([^\s'"]{4,})\2/gi
+    /(?<![A-Za-z0-9_])(--?)?((?:[A-Za-z_][A-Za-z0-9_-]*?)?(?:api[_-]?key|access[_-]?key|access[_-]?token|auth[_-]?token|authorization(?:[_-]?header)?|client[_-]?secret|cookie|credentials|github[_-]?token|password|private[_-]?key|refresh[_-]?token|secret(?:[_-]?access)?[_-]?key|secret|signed[_-]?credential))\s*(?:=|\s)\s*(?!<redacted:)(['"]?)([^\s'"]{4,})\3/gi
   const assignmentMatches = sanitized.match(assignment)?.length ?? 0
   if (assignmentMatches > 0) {
-    sanitized = sanitized.replace(assignment, "$1=<redacted:assignment>")
+    sanitized = sanitized.replace(assignment, "$1$2=<redacted:assignment>")
     matches += assignmentMatches
     rules.push("credential.assignment")
   }
@@ -341,12 +361,12 @@ export function sanitizeTraceJson(value: JsonValue): RedactionResult<JsonValue> 
     const sanitized: JsonObject = {}
     for (const [key, item] of Object.entries(value)) {
       const normalized = key.toLowerCase().replaceAll(/[^a-z0-9]/g, "")
-      if (CREDENTIAL_FIELDS.has(normalized)) {
+      if (matchesTraceField(normalized, CREDENTIAL_FIELDS, CREDENTIAL_FIELD_SUFFIXES)) {
         matches += 1
         if (!rules.includes("field.credential")) rules.push("field.credential")
         continue
       }
-      if (ACCOUNTING_FIELDS.has(normalized)) {
+      if (matchesTraceField(normalized, ACCOUNTING_FIELDS, ACCOUNTING_FIELD_SUFFIXES)) {
         matches += 1
         if (!rules.includes("field.accounting")) rules.push("field.accounting")
         continue
@@ -360,6 +380,10 @@ export function sanitizeTraceJson(value: JsonValue): RedactionResult<JsonValue> 
     return { value: result.value, matches: result.matches, rules: result.rules }
   }
   return { value, matches, rules }
+}
+
+function matchesTraceField(normalized: string, exact: ReadonlySet<string>, suffixes: readonly string[]): boolean {
+  return exact.has(normalized) || suffixes.some((suffix) => normalized !== suffix && normalized.endsWith(suffix))
 }
 
 export class TraceRecorder {
@@ -381,6 +405,7 @@ export class TraceRecorder {
     sequenceGaps: 0,
   }
   private readonly issues = new Map<string, TraceIssue>()
+  private readonly artifacts = new Map<string, ArtifactReference>()
   private capabilities: readonly TraceCapability[]
   private sequence = 0
   private nativeSequence = 0
@@ -415,6 +440,7 @@ export class TraceRecorder {
     this.nativeIndexPath = join(this.attemptDir, "native", "index.jsonl")
     assertWritableRegularPath(this.journalPath)
     assertWritableRegularPath(this.nativeIndexPath)
+    this.writePreflight()
     const descriptors = openTraceJournals(this.journalPath, this.nativeIndexPath)
     this.journalFd = descriptors.journal
     this.nativeIndexFd = descriptors.nativeIndex
@@ -423,9 +449,31 @@ export class TraceRecorder {
   recordEvent(input: RecordEventInput): string | undefined {
     if (this.finalized) return undefined
     try {
+      const identifiers = sanitizeTraceJson({
+        ...(input.sessionId ? { session_id: input.sessionId } : {}),
+        ...(input.agentId ? { agent_id: input.agentId } : {}),
+        ...(input.parentAgentId ? { parent_agent_id: input.parentAgentId } : {}),
+        ...(input.turnId ? { turn_id: input.turnId } : {}),
+        ...(input.parentSpanId ? { parent_span_id: input.parentSpanId } : {}),
+        span_id: input.spanId,
+      })
+      if (identifiers.matches > 0) throw new Error("Trace event identity is sensitive")
+      for (const reference of input.artifacts ?? []) {
+        if (!Bun.deepEquals(this.artifacts.get(reference.path), reference)) {
+          throw new Error("Trace event references an artifact not owned by this recorder")
+        }
+      }
+      const origin = sanitizeTraceJson(input.origin)
+      const timing = sanitizeTraceJson(input.timing ? { ...input.timing } : { fidelity: "not_available" })
       const payload = sanitizeTraceJson(input.payload ?? {})
       const error = input.error ? sanitizeTraceJson(input.error) : undefined
-      this.counters.redactionsApplied += payload.matches + (error?.matches ?? 0)
+      const relations = input.relations?.map((relation) => sanitizeTraceJson(relation))
+      this.counters.redactionsApplied +=
+        origin.matches +
+        timing.matches +
+        payload.matches +
+        (error?.matches ?? 0) +
+        (relations?.reduce((total, relation) => total + relation.matches, 0) ?? 0)
       const eventId = `event-${String(this.sequence + 1).padStart(8, "0")}`
       const event = {
         schema_version: TRACE_SCHEMA_VERSION,
@@ -445,12 +493,12 @@ export class TraceRecorder {
         event_family: input.eventFamily,
         phase: input.phase,
         status: input.status,
-        origin: input.origin,
-        timing: input.timing ?? { fidelity: "not_available" },
+        origin: origin.value,
+        timing: timing.value,
         payload: payload.value,
         artifacts: input.artifacts ?? [],
         ...(error ? { error: error.value } : {}),
-        ...(input.relations ? { relations: input.relations } : {}),
+        ...(relations ? { relations: relations.map((relation) => relation.value) } : {}),
       }
       appendDurable(this.journalFd, `${JSON.stringify(event)}\n`)
       this.sequence += 1
@@ -508,9 +556,13 @@ export class TraceRecorder {
   }): string | undefined {
     if (this.finalized) return undefined
     try {
+      const nativeRecordId = input.nativeRecordId ?? `native-${String(this.nativeSequence + 1).padStart(8, "0")}`
+      const source = sanitizeTraceText(input.source)
+      if (sanitizeTraceJson([nativeRecordId, ...input.eventIds]).matches > 0) {
+        throw new Error("Native trace identity is sensitive")
+      }
       const artifact = this.storeJsonArtifact(input.content, "native.opencode.event")
       if (!artifact) return undefined
-      const nativeRecordId = input.nativeRecordId ?? `native-${String(this.nativeSequence + 1).padStart(8, "0")}`
       const entry: JsonObject = {
         schema_version: TRACE_SCHEMA_VERSION,
         schema_digest: TRACE_SCHEMA_DIGEST,
@@ -519,12 +571,13 @@ export class TraceRecorder {
         trace_id: this.identity.traceId,
         framework: this.identity.framework,
         recorded_at: input.recordedAt ?? now(),
-        source: input.source,
+        source: source.value,
         artifact,
         event_ids: [...new Set(input.eventIds)],
       }
       appendDurable(this.nativeIndexFd, `${JSON.stringify(entry)}\n`)
       this.nativeSequence += 1
+      this.counters.redactionsApplied += source.matches
       return nativeRecordId
     } catch {
       this.reportIssue("trace.native_write_failed", "Native OpenCode evidence could not be persisted", "error")
@@ -533,26 +586,33 @@ export class TraceRecorder {
   }
 
   updateCapabilities(capabilities: readonly TraceCapability[]): void {
+    const previous = this.capabilities
     try {
       assertCapabilities(capabilities)
       this.capabilities = capabilities
+      this.writePreflight()
     } catch {
+      this.capabilities = previous
       this.reportIssue("trace.capability_update_failed", "The capability report could not be updated", "error")
     }
   }
 
   reportIssue(code: string, message: string, severity: "warning" | "error" = "warning"): void {
     const timestamp = now()
+    const sanitized = sanitizeTraceText(message)
+    this.counters.redactionsApplied += sanitized.matches
     const current = this.issues.get(code)
     if (current) {
       current.lastSeenAt = timestamp
       current.count += 1
+      current.message = sanitized.value
+      if (severity === "error") current.severity = "error"
       return
     }
     this.issues.set(code, {
       severity,
       code,
-      message: sanitizeTraceText(message).value,
+      message: sanitized.value,
       firstSeenAt: timestamp,
       lastSeenAt: timestamp,
       count: 1,
@@ -574,7 +634,8 @@ export class TraceRecorder {
 
     const finalizedAt = now()
     const journal = readFileSync(this.journalPath, "utf8")
-    const complete = this.issues.size === 0 && this.counters.droppedEvents === 0
+    const health = this.healthStatus()
+    const complete = health === "healthy"
     atomicWrite(join(this.attemptDir, "events.jsonl"), journal)
     atomicWrite(
       join(this.attemptDir, "capabilities.json"),
@@ -599,8 +660,8 @@ export class TraceRecorder {
           schema_digest: TRACE_SCHEMA_DIGEST,
           trace_id: this.identity.traceId,
           generated_at: finalizedAt,
-          status: this.healthStatus(),
-          finalization: "clean",
+          status: health,
+          finalization: health === "healthy" ? "clean" : "partial",
           failure_policy: "continue_agent_without_retry",
           agent_outcome_affected: false,
           benchmark_retry_triggered: false,
@@ -660,7 +721,7 @@ export class TraceRecorder {
     return {
       traceId: this.identity.traceId,
       attemptDir: this.attemptDir,
-      health: this.healthStatus(),
+      health,
       complete,
     }
   }
@@ -692,7 +753,7 @@ export class TraceRecorder {
       this.counters.artifactBytesWritten += content.byteLength
     }
     this.counters.redactionsApplied += matches
-    return {
+    const reference = {
       sha256: digest,
       path: relativePath,
       size_bytes: content.byteLength,
@@ -704,13 +765,34 @@ export class TraceRecorder {
         matches,
         rules,
       },
-    }
+    } satisfies ArtifactReference
+    this.artifacts.set(relativePath, reference)
+    return reference
   }
 
   private healthStatus(): "healthy" | "degraded" | "failed" {
     if ([...this.issues.values()].some((issue) => issue.severity === "error")) return "failed"
     if (this.issues.size > 0 || this.counters.droppedEvents > 0) return "degraded"
     return "healthy"
+  }
+
+  private writePreflight(): void {
+    atomicWrite(
+      join(this.attemptDir, "preflight.json"),
+      `${JSON.stringify(
+        {
+          format: "benchmark-trace/preflight-v1",
+          created_at: this.createdAt,
+          identity: identityFields(this.identity),
+          producer: this.config.producer,
+          provenance: this.config.provenance,
+          execution: this.config.execution,
+          capabilities: this.capabilities.map(capabilityDocument),
+        },
+        null,
+        2,
+      )}\n`,
+    )
   }
 }
 
@@ -793,7 +875,13 @@ function assertTraceConfig(config: TraceConfig): void {
   ) {
     throw new Error("Trace identity fields must be non-empty and attempt must be positive.")
   }
+  if (sanitizeTraceJson(identityFields(config.identity)).matches > 0) {
+    throw new Error("Trace identity must not contain credential-like material.")
+  }
   assertCapabilities(config.capabilities)
+  if (config.capabilities.some((capability) => sanitizeTraceJson(capabilityDocument(capability)).matches > 0)) {
+    throw new Error("Trace capabilities must not contain credential-like material.")
+  }
 }
 
 function assertCapabilities(capabilities: readonly TraceCapability[]): void {

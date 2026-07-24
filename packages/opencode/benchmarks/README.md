@@ -247,8 +247,9 @@ reported separately in the attempt summary.
 The framework- and benchmark-independent `benchmark-trace` researcher CLI lives
 with the canonical contract in the OpenHands-benchmarks repository. It can
 validate, inspect, summarize, compare, and render this output directly, including
-comparison with OpenHands and Hermes traces. It is read-only and does not launch
-OpenCode or collect traces.
+comparison with OpenHands and Hermes traces. Analysis is read-only; its explicit
+recovery operation only finalizes an interrupted durable journal and never
+launches an agent.
 
 Terminal-Bench uses the same OpenCode-native adapter with Harbor as an outer
 execution boundary, not a fourth agent adapter. The trace adds the observable
@@ -335,6 +336,21 @@ applying credential redaction and removing accounting fields at the emission
 boundary, those frames pass through the JSONL stream. After Harbor returns, the
 wrapper normalizes them, strips only its internal transport frames from
 `opencode.txt`, and retains all ordinary Harbor output.
+
+Canonicalization is staged per attempt and promoted atomically, so a host
+interruption cannot expose a half-built attempt. The run manifest checkpoints
+the trace-run identity before Harbor starts. Normal exits and forwarded signals
+finalize automatically; after a host crash or forced termination, resume the
+same retained native stream without launching Harbor or spending API credits:
+
+```bash
+bun run bench:terminal -- \
+  --recover-traces-from .benchmark-runs/terminal-bench-2.1/runs/<run-id>/manifest.json
+```
+
+Recovery is idempotent: already promoted attempts are verified and skipped,
+unfinished staging is rebuilt from the sanitized native frames, and `run.json`
+is finalized only after the requested coverage is present.
 
 The trace uses Harbor's pinned task identity, effective agent timeout, and
 container image. Concurrent trials receive locked per-instance attempt

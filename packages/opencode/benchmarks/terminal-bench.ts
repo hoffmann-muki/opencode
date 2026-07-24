@@ -49,6 +49,7 @@ interface CliOptions {
   readonly outputDir: string
   readonly traceDir?: string
   readonly traceRun?: TraceRun
+  readonly recoverTracesFrom?: string
   readonly runId: string
   readonly harborBin: string
   readonly harborVersion?: string
@@ -107,7 +108,11 @@ interface RunManifest {
   readonly finishedAt?: string
   readonly exitCode?: number
   readonly status: "running" | "completed" | "failed"
+  readonly runId: string
   readonly traceDir?: string
+  readonly traceRunId?: string
+  readonly traceCreatedAt?: string
+  readonly traceBenchmark?: string
 }
 
 export function usage(): string {
@@ -129,6 +134,8 @@ export function usage(): string {
     `  --environment NAME     Harbor environment. Default: ${DEFAULT_ENVIRONMENT}.`,
     `  --output-dir DIR       Output root. Default: ${DEFAULT_RUN_ROOT}.`,
     "  --trace-dir DIR        Opt-in benchmark-trace/v1 output base; each invocation creates a private trace run.",
+    "  --recover-traces-from MANIFEST",
+    "                         Finalize staged traces from an interrupted run without launching Harbor.",
     "  --run-id ID            Stable Harbor job and local run identifier.",
     "  --harbor-bin PATH      Harbor executable. Default: harbor.",
     "  --upload               Upload the completed job to Harbor Hub.",
@@ -162,6 +169,7 @@ export function parseArgs(
   let environment = DEFAULT_ENVIRONMENT
   let outputDir = DEFAULT_RUN_ROOT
   let traceDir: string | undefined
+  let recoverTracesFrom: string | undefined
   const now = defaults.now ?? new Date()
   let runId = `terminal-bench-2.1-${now.toISOString().replaceAll(/[:.]/g, "-")}`
   let harborBin = "harbor"
@@ -212,6 +220,9 @@ export function parseArgs(
     } else if (arg === "--trace-dir") {
       traceDir = nextValue(i, arg)
       i += 1
+    } else if (arg === "--recover-traces-from") {
+      recoverTracesFrom = nextValue(i, arg)
+      i += 1
     } else if (arg === "--run-id") {
       runId = nextValue(i, arg)
       i += 1
@@ -248,6 +259,9 @@ export function parseArgs(
   }
 
   if (publicJob && !upload) throw new Error("--public requires --upload.")
+  if (recoverTracesFrom !== undefined && traceDir !== undefined) {
+    throw new Error("--recover-traces-from cannot be combined with --trace-dir.")
+  }
   if (!model.includes("/") || model.startsWith("/") || model.endsWith("/")) {
     throw new Error("--model must use provider/model format.")
   }
@@ -269,6 +283,7 @@ export function parseArgs(
     environment,
     outputDir,
     ...(traceDir !== undefined ? { traceDir } : {}),
+    ...(recoverTracesFrom !== undefined ? { recoverTracesFrom } : {}),
     runId,
     harborBin,
     upload,
@@ -495,6 +510,32 @@ export async function collectTerminalBenchTraces(input: {
   })
 }
 
+export async function recoverTerminalBenchTraces(manifestPath: string): Promise<string> {
+  const path = resolvePathFromRepoRoot(manifestPath)
+  const value: unknown = await Bun.file(path).json()
+  if (!isRecoverableManifest(value)) {
+    throw new Error("Terminal-Bench trace recovery manifest is invalid or lacks trace preflight metadata.")
+  }
+  const run: TraceRun = {
+    id: value.traceRunId,
+    root: resolve(value.traceDir),
+    createdAt: value.traceCreatedAt,
+    benchmark: value.traceBenchmark,
+    framework: "opencode",
+  }
+  const warning = await collectTerminalBenchTraces({
+    run,
+    jobsDir: resolve(value.jobsDir),
+    harborJobName: value.runId,
+    sourceCommit: value.opencodeCommit,
+    taskNames: value.taskNames,
+    ...(value.maxTasks !== undefined ? { maxTasks: value.maxTasks } : {}),
+    attempts: value.attempts,
+  })
+  if (warning) throw new Error(warning)
+  return run.root
+}
+
 export function stripTerminalBenchmarkTraceFrames(output: string): string {
   return stripHarborTraceFrames(output)
 }
@@ -507,6 +548,10 @@ async function main(): Promise<void> {
   })
   if (options.help) {
     console.log(usage())
+    return
+  }
+  if (options.recoverTracesFrom) {
+    console.log(`Benchmark traces: ${await recoverTerminalBenchTraces(options.recoverTracesFrom)}`)
     return
   }
 
@@ -563,7 +608,15 @@ async function main(): Promise<void> {
     stderrPath: paths.stderrPath,
     startedAt,
     status: "running",
-    ...(traceRun ? { traceDir: traceRun.root } : {}),
+    runId: resolvedOptions.runId,
+    ...(traceRun
+      ? {
+          traceDir: traceRun.root,
+          traceRunId: traceRun.id,
+          traceCreatedAt: traceRun.createdAt,
+          traceBenchmark: traceRun.benchmark,
+        }
+      : {}),
   }
   await writeManifest(paths.manifestPath, manifest)
 
@@ -610,6 +663,54 @@ async function main(): Promise<void> {
   console.log(`Run manifest: ${paths.manifestPath}`)
   if (traceRun) console.log(`Benchmark traces: ${traceRun.root}`)
   if (exitCode !== 0) throw new Error(`Harbor exited with code ${exitCode}.`)
+}
+
+function isRecoverableManifest(value: unknown): value is RunManifest & {
+  readonly traceDir: string
+  readonly traceRunId: string
+  readonly traceCreatedAt: string
+  readonly traceBenchmark: "terminal-bench-2.1"
+} {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "schemaVersion" in value &&
+    value.schemaVersion === 2 &&
+    "benchmark" in value &&
+    value.benchmark === "terminal-bench" &&
+    "agent" in value &&
+    value.agent === "opencode" &&
+    "runId" in value &&
+    typeof value.runId === "string" &&
+    SAFE_RUN_ID.test(value.runId) &&
+    "traceDir" in value &&
+    typeof value.traceDir === "string" &&
+    value.traceDir.length > 0 &&
+    "traceRunId" in value &&
+    typeof value.traceRunId === "string" &&
+    value.traceRunId.startsWith("trace-run-") &&
+    "traceCreatedAt" in value &&
+    typeof value.traceCreatedAt === "string" &&
+    Number.isFinite(Date.parse(value.traceCreatedAt)) &&
+    "traceBenchmark" in value &&
+    value.traceBenchmark === "terminal-bench-2.1" &&
+    "jobsDir" in value &&
+    typeof value.jobsDir === "string" &&
+    value.jobsDir.length > 0 &&
+    "opencodeCommit" in value &&
+    typeof value.opencodeCommit === "string" &&
+    /^[0-9a-f]{40}$/.test(value.opencodeCommit) &&
+    "taskNames" in value &&
+    Array.isArray(value.taskNames) &&
+    value.taskNames.every((name) => typeof name === "string" && name.length > 0) &&
+    "attempts" in value &&
+    typeof value.attempts === "number" &&
+    Number.isInteger(value.attempts) &&
+    value.attempts > 0 &&
+    (!("maxTasks" in value) ||
+      value.maxTasks === undefined ||
+      (typeof value.maxTasks === "number" && Number.isInteger(value.maxTasks) && value.maxTasks > 0))
+  )
 }
 
 if (import.meta.main) {
