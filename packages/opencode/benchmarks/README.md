@@ -217,6 +217,13 @@ container setup or any provider request. A traced invocation must be fresh; use
 `--restart` or a new benchmark run id instead of attaching tracing partway
 through a checkpointed run.
 
+The flag configures capture inside the benchmark process; it is not a request
+to reconstruct activity from logs. The live OpenCode event stream is recorded
+as each agent action occurs, and the runner prints the exact private trace path
+when it finishes. No separate collector command needs to run before, during, or
+after inference. The stable base passed to `--trace-dir` can also be used to
+discover its finalized `trace-run-<uuid>` children.
+
 The benchmark-launched OpenCode process publishes its native event stream only
 in this opt-in mode. The adapter records root and child sessions without
 changing native task delegation, model-message boundaries, pending/running/final
@@ -236,6 +243,12 @@ observable boundary. These limitations are explicit in each attempt's
 manifest, and run-level index. A tracing failure after agent execution starts
 does not alter the benchmark outcome or trigger a retry. Trace health is
 reported separately in the attempt summary.
+
+The framework- and benchmark-independent `benchmark-trace` researcher CLI lives
+with the canonical contract in the OpenHands-benchmarks repository. It can
+validate, inspect, summarize, compare, and render this output directly, including
+comparison with OpenHands and Hermes traces. It is read-only and does not launch
+OpenCode or collect traces.
 
 Terminal-Bench uses the same OpenCode-native adapter with Harbor as an outer
 execution boundary, not a fourth agent adapter. The trace adds the observable
