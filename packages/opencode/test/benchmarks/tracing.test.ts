@@ -1,8 +1,11 @@
 import { afterEach, describe, expect, test } from "bun:test"
-import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
+import { createTraceRun, finalizeTraceRun, type TraceHarnessAdapter } from "../../benchmarks/tracing/coordination.ts"
+import { createOpenCodeAttemptTrace } from "../../benchmarks/tracing/integration.ts"
 import { OpenCodeTraceAdapter, opencodeCapabilities } from "../../benchmarks/tracing/opencode.ts"
+import { HarborTraceHarness } from "../../benchmarks/tracing/harbor.ts"
 import {
   TRACE_CAPABILITY_CATEGORIES,
   TRACE_SCHEMA_DIGEST,
@@ -341,6 +344,75 @@ describe("benchmark tracing recorder", () => {
     expect(states["harness.lifecycle"]).toBe("derived")
     expect(states["container.lifecycle"]).toBe("captured")
     expect(states["evaluator.lifecycle"]).toBe("not_exposed")
+  })
+
+  test("coordinates an arbitrary benchmark through a pluggable harness", () => {
+    const root = temporaryRoot()
+    const run = createTraceRun(root, "custom-benchmark", "opencode")
+    createOpenCodeAttemptTrace({
+      run,
+      instanceId: "custom-instance",
+      attempt: 1,
+      frameworkRevision: "a".repeat(40),
+      model: "test/model",
+      evaluationWorkers: 1,
+      inferenceTimeoutMs: 1_000,
+      benchmarkRetries: 0,
+      image: "custom/image:latest",
+    }).finish("completed")
+    let prepared = false
+    const harness: TraceHarnessAdapter = {
+      prepareFinalization(value) {
+        expect(value).toBe(run)
+        prepared = true
+      },
+      resolveSelection(value, observedInstanceIds) {
+        expect(value).toBe(run)
+        expect(observedInstanceIds).toEqual(["custom-instance"])
+        return {
+          instanceIds: ["custom-instance"],
+          strategy: "explicit_ids",
+        }
+      },
+    }
+
+    finalizeTraceRun(run, harness)
+
+    expect(prepared).toBe(true)
+    expect(JSON.parse(readFileSync(join(run.root, "run.json"), "utf8"))).toMatchObject({
+      benchmark: "custom-benchmark",
+      framework: "opencode",
+      selection: {
+        strategy: "explicit_ids",
+        instance_ids: ["custom-instance"],
+      },
+    })
+  })
+
+  test("resolves Harbor topology independently of benchmark identity", () => {
+    const root = temporaryRoot()
+    const job = join(root, "jobs", "custom")
+    mkdirSync(job, { recursive: true })
+    writeFileSync(
+      join(job, "lock.json"),
+      JSON.stringify({
+        trials: [{ task: { name: "custom/task-a" } }],
+      }),
+    )
+    const run = createTraceRun(join(root, "traces"), "custom-harbor-benchmark", "opencode")
+    const harness = new HarborTraceHarness({
+      jobsDir: join(root, "jobs"),
+      jobName: "custom",
+      expectedInstanceCount: 1,
+      expectedAttemptsPerInstance: 1,
+      selectionStrategy: "full_dataset",
+    })
+
+    expect(harness.resolveSelection(run, [])).toEqual({
+      instanceIds: ["task-a"],
+      strategy: "full_dataset",
+      minimumAttemptsPerInstance: 1,
+    })
   })
 })
 

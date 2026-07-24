@@ -718,6 +718,7 @@ export function writeTraceRunIndex(input: {
   readonly traceRoot: string
   readonly runId: string
   readonly benchmark: string
+  readonly framework?: string
   readonly instanceIds: readonly string[]
   readonly selectionStrategy: "explicit_ids" | "full_dataset" | "ordered_window"
   readonly createdAt: string
@@ -761,7 +762,7 @@ export function writeTraceRunIndex(input: {
         contract: contractHeader(),
         run_id: input.runId,
         benchmark: input.benchmark,
-        framework: "opencode",
+        framework: input.framework ?? "opencode",
         created_at: input.createdAt,
         finalized_at: now(),
         selection: {

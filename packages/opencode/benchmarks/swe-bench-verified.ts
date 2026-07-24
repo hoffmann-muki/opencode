@@ -26,14 +26,8 @@ import {
   type InfrastructureRetry,
 } from "./evaluation-orchestrator.ts"
 import { benchmarkSourceIdentity, ensureBenchmarkRuntime, type BenchmarkRuntime } from "./opencode-runtime.ts"
-import {
-  createOpenCodeAttemptTrace,
-  createOpenCodeTraceRun,
-  finalizeOpenCodeTraceRun,
-  finishOpenCodeTrace,
-  traceStatus,
-  type OpenCodeTraceRun,
-} from "./tracing/integration.ts"
+import { DirectTraceHarness, createTraceRun, finalizeTraceRun, type TraceRun } from "./tracing/coordination.ts"
+import { createOpenCodeAttemptTrace, finishOpenCodeTrace, traceStatus } from "./tracing/integration.ts"
 
 const DATASET_NAME = "princeton-nlp/SWE-bench_Verified"
 const DATASET_CONFIG = "default"
@@ -117,7 +111,7 @@ interface CliOptions {
   readonly pure: boolean
   readonly pythonExecutable: string
   readonly traceDir?: string
-  readonly traceRun?: OpenCodeTraceRun
+  readonly traceRun?: TraceRun
   readonly dryRun: boolean
   readonly help: boolean
 }
@@ -2126,7 +2120,7 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
   if (options.traceDir && progress.summaries.length > 0) {
     throw new Error("Tracing requires a fresh benchmark run; use --restart or a new --run-id instead of resuming.")
   }
-  const traceRun = options.traceDir ? createOpenCodeTraceRun(options.traceDir, "swe-bench-verified") : undefined
+  const traceRun = options.traceDir ? createTraceRun(options.traceDir, "swe-bench-verified", "opencode") : undefined
   const effectiveOptions = traceRun ? { ...options, traceRun } : options
   await writeJsonlAtomic(paths.datasetPath, rows.map(datasetArtifactRow))
   const summariesById = new Map<string, JsonObject>()
@@ -2190,12 +2184,19 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
 
   ordered = orderedProgress()
   await writeRunProgress(effectiveOptions, paths, rows, ordered.summaries, ordered.predictions, true)
-  const traceFinalizationError = finalizeOpenCodeTraceRun({
-    run: traceRun,
-    instanceIds: rows.map((row) => row.instance_id),
-    selectionStrategy: effectiveOptions.instanceIds.length > 0 ? "explicit_ids" : "ordered_window",
-  })
-  if (traceFinalizationError) console.warn(traceFinalizationError)
+  if (traceRun) {
+    try {
+      finalizeTraceRun(
+        traceRun,
+        new DirectTraceHarness({
+          instanceIds: rows.map((row) => row.instance_id),
+          strategy: effectiveOptions.instanceIds.length > 0 ? "explicit_ids" : "ordered_window",
+        }),
+      )
+    } catch {
+      console.warn("OpenCode benchmark trace run index could not be finalized; benchmark outputs remain valid.")
+    }
+  }
   if (traceRun) console.log(`Wrote benchmark traces: ${traceRun.root}`)
   console.log(`\nWrote predictions: ${paths.predictionsPath}`)
   console.log(`Wrote immutable prediction manifest: ${paths.manifestPath}`)

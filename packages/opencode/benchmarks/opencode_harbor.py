@@ -39,6 +39,7 @@ class BenchmarkOpenCode(OpenCode):
         trace_root: str | None = None,
         trace_run_id: str | None = None,
         trace_created_at: str | None = None,
+        trace_benchmark: str | None = None,
         evaluation_workers: int = 1,
         benchmark_retries: int = 0,
         harbor_version: str = "unknown",
@@ -82,16 +83,24 @@ class BenchmarkOpenCode(OpenCode):
 
         self._benchmark_binary = path
         self._source_commit = source_commit
-        trace_values = (trace_root, trace_run_id, trace_created_at)
+        trace_values = (
+            trace_root,
+            trace_run_id,
+            trace_created_at,
+            trace_benchmark,
+        )
         if any(value is not None for value in trace_values) and not all(
             value is not None for value in trace_values
         ):
             raise ValueError("OpenCode Harbor tracing requires complete metadata")
+        if trace_benchmark is not None and not trace_benchmark.strip():
+            raise ValueError("trace_benchmark cannot be empty")
         if evaluation_workers < 1 or benchmark_retries < 0:
             raise ValueError("OpenCode Harbor trace execution metadata is invalid")
         self._trace_root = Path(trace_root).resolve() if trace_root else None
         self._trace_run_id = trace_run_id
         self._trace_created_at = trace_created_at
+        self._trace_benchmark = trace_benchmark
         self._evaluation_workers = evaluation_workers
         self._benchmark_retries = benchmark_retries
         self._harbor_version = harbor_version
@@ -170,7 +179,7 @@ class BenchmarkOpenCode(OpenCode):
         metadata: dict[str, Any] = {
             "schemaVersion": 1,
             "runId": self._trace_run_id,
-            "benchmark": "terminal-bench-2.1",
+            "benchmark": self._trace_benchmark,
             "instanceId": self._trace_instance_id,
             "attempt": self._trace_attempt,
             "traceRoot": str(self._trace_root),

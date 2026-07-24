@@ -99,6 +99,7 @@ describe("SWE-bench Pro runner", () => {
             root: "/tmp/traces/trace-run-test",
             createdAt: new Date(0).toISOString(),
             benchmark: "swe-bench-pro",
+            framework: "opencode",
           },
         },
         {},

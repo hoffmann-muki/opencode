@@ -194,6 +194,14 @@ SWE-bench Verified and SWE-bench Pro inference support an opt-in,
 framework-native `benchmark-trace/v1` adapter. Pass a base directory and the
 runner creates a private `trace-run-<uuid>` beneath it:
 
+The tracing integration is benchmark-agnostic. A shared run coordinator owns
+run identity, instance selection, attempt coverage, and final indexing; the
+OpenCode adapter owns native agent events; and a pluggable harness adapter owns
+only harness-specific topology. Direct SWE runners use `DirectTraceHarness`,
+while Terminal-Bench uses the reusable `HarborTraceHarness`. Future benchmarks
+on either execution path provide metadata and selected IDs without adding a new
+trace extractor.
+
 ```bash
 OPENROUTER_API_KEY=... bun run bench:swe-verified:infer -- \
   --run-id traced-verified \

@@ -189,6 +189,7 @@ describe("Terminal-Bench runner", () => {
         root: "/traces/trace-run-test",
         createdAt: "2026-07-20T12:34:56.789Z",
         benchmark: "terminal-bench-2.1",
+        framework: "opencode",
       },
     }
     const args = buildHarborArgs(options, "/runs/harbor-jobs")
@@ -198,6 +199,7 @@ describe("Terminal-Bench runner", () => {
     expect(kwargs).toContain("trace_root=/traces/trace-run-test")
     expect(kwargs).toContain("trace_run_id=trace-run-test")
     expect(kwargs).toContain("trace_created_at=2026-07-20T12:34:56.789Z")
+    expect(kwargs).toContain("trace_benchmark=terminal-bench-2.1")
     expect(kwargs).toContain("evaluation_workers=1")
     expect(kwargs).toContain("benchmark_retries=0")
     expect(kwargs).toContain("harbor_version=0.20.0")

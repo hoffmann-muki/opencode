@@ -152,6 +152,7 @@ describe("SWE-bench Verified runner", () => {
             root: "/tmp/traces/trace-run-test",
             createdAt: new Date(0).toISOString(),
             benchmark: "swe-bench-verified",
+            framework: "opencode",
           },
         },
         {},

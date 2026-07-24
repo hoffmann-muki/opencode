@@ -8,7 +8,7 @@
 
 import { spawn } from "node:child_process"
 import { constants as fsConstants, createWriteStream } from "node:fs"
-import { access, mkdir, rm, writeFile } from "node:fs/promises"
+import { access, mkdir, writeFile } from "node:fs/promises"
 import { dirname, isAbsolute, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
@@ -17,12 +17,8 @@ import {
   terminalBenchmarkAgentConfig,
 } from "./opencode-benchmark-agents.ts"
 import { benchmarkSourceIdentity, ensureBenchmarkRuntime, type BenchmarkRuntime } from "./opencode-runtime.ts"
-import {
-  createOpenCodeAttemptTrace,
-  createOpenCodeTraceRun,
-  finalizeOpenCodeTraceRun,
-  type OpenCodeTraceRun,
-} from "./tracing/integration.ts"
+import { createTraceRun, type TraceRun } from "./tracing/coordination.ts"
+import { collectOpenCodeHarborTraces, stripHarborTraceFrames } from "./tracing/harbor.ts"
 
 export const TERMINAL_BENCH_DATASET = "terminal-bench/terminal-bench-2-1"
 export const TERMINAL_BENCH_TASK_COUNT = 89
@@ -52,7 +48,7 @@ interface CliOptions {
   readonly environment: string
   readonly outputDir: string
   readonly traceDir?: string
-  readonly traceRun?: OpenCodeTraceRun
+  readonly traceRun?: TraceRun
   readonly runId: string
   readonly harborBin: string
   readonly harborVersion?: string
@@ -112,28 +108,6 @@ interface RunManifest {
   readonly exitCode?: number
   readonly status: "running" | "completed" | "failed"
   readonly traceDir?: string
-}
-
-interface HarborTraceMetadata {
-  readonly schemaVersion: 1
-  readonly runId: string
-  readonly benchmark: "terminal-bench-2.1"
-  readonly instanceId: string
-  readonly attempt: number
-  readonly traceRoot: string
-  readonly createdAt: string
-  readonly frameworkRevision: string
-  readonly model: string
-  readonly evaluationWorkers: number
-  readonly inferenceTimeoutSeconds: number
-  readonly benchmarkRetries: number
-  readonly harborVersion: string
-  readonly image: string
-  readonly sessionId: string
-  readonly startedAt: string
-  readonly finishedAt?: string
-  readonly status: "running" | "completed" | "failed" | "timeout"
-  readonly error?: string
 }
 
 export function usage(): string {
@@ -356,6 +330,8 @@ export function buildHarborArgs(options: CliOptions, jobsDir: string): readonly 
           "--agent-kwarg",
           `trace_created_at=${options.traceRun.createdAt}`,
           "--agent-kwarg",
+          `trace_benchmark=${options.traceRun.benchmark}`,
+          "--agent-kwarg",
           `evaluation_workers=${options.concurrency}`,
           "--agent-kwarg",
           `benchmark_retries=${options.maxRetries}`,
@@ -505,7 +481,7 @@ async function writeManifest(path: string, manifest: RunManifest): Promise<void>
 }
 
 export async function collectTerminalBenchTraces(input: {
-  readonly run: OpenCodeTraceRun
+  readonly run: TraceRun
   readonly jobsDir: string
   readonly harborJobName: string
   readonly sourceCommit: string
@@ -513,216 +489,14 @@ export async function collectTerminalBenchTraces(input: {
   readonly maxTasks?: number
   readonly attempts: number
 }): Promise<string | undefined> {
-  try {
-    await Promise.all([
-      rm(join(input.run.root, ".harbor-attempts.json"), { force: true }),
-      rm(join(input.run.root, ".harbor-attempts.lock"), { force: true }),
-    ])
-    const observed = new Map<string, Set<number>>()
-    const metadataPaths = Array.from(
-      new Bun.Glob("**/agent/benchmark-trace.json").scanSync({
-        cwd: input.jobsDir,
-        absolute: true,
-        onlyFiles: true,
-      }),
-    ).sort()
-
-    for (const metadataPath of metadataPaths) {
-      const metadata = parseHarborTraceMetadata(await Bun.file(metadataPath).json())
-      if (
-        metadata.runId !== input.run.id ||
-        resolve(metadata.traceRoot) !== input.run.root ||
-        metadata.createdAt !== input.run.createdAt ||
-        metadata.frameworkRevision !== input.sourceCommit
-      ) {
-        throw new Error(`Foreign OpenCode Harbor trace metadata: ${metadataPath}`)
-      }
-      const stdoutPath = join(dirname(metadataPath), "opencode.txt")
-      const stdout = await Bun.file(stdoutPath).text()
-      const startedAt = Date.parse(metadata.startedAt)
-      const finishedAt = Date.parse(metadata.finishedAt ?? new Date().toISOString())
-      if (!Number.isFinite(startedAt) || !Number.isFinite(finishedAt)) {
-        throw new Error(`Invalid OpenCode Harbor trace timestamps: ${metadataPath}`)
-      }
-      const adapter = createOpenCodeAttemptTrace({
-        run: input.run,
-        instanceId: metadata.instanceId,
-        attempt: metadata.attempt,
-        frameworkRevision: metadata.frameworkRevision,
-        model: metadata.model,
-        evaluationWorkers: metadata.evaluationWorkers,
-        inferenceTimeoutMs: metadata.inferenceTimeoutSeconds * 1_000,
-        benchmarkRetries: metadata.benchmarkRetries,
-        image: metadata.image,
-        harnessRevision: metadata.harborVersion,
-        startedAt,
-      })
-      adapter.startHarness(
-        {
-          name: "harbor",
-          revision: metadata.harborVersion,
-          phase: "agent",
-        },
-        startedAt,
-      )
-      adapter.containerObserved(
-        {
-          image: metadata.image,
-          session_id: metadata.sessionId,
-        },
-        startedAt,
-      )
-      for (const line of stdout.split("\n")) {
-        if (!line.trim()) continue
-        let value: unknown
-        try {
-          value = JSON.parse(line)
-        } catch {
-          continue
-        }
-        adapter.consume(value)
-      }
-      adapter.finish(
-        metadata.status === "completed" ? "completed" : metadata.status === "timeout" ? "timeout" : "failed",
-        metadata.error,
-        finishedAt,
-      )
-      observed.set(metadata.instanceId, new Set([...(observed.get(metadata.instanceId) ?? []), metadata.attempt]))
-      await writeFile(stdoutPath, stripTerminalBenchmarkTraceFrames(stdout), "utf8")
-    }
-
-    const instanceIds =
-      input.taskNames.length > 0
-        ? [...input.taskNames]
-        : parseHarborJobInstanceIds(await Bun.file(join(input.jobsDir, input.harborJobName, "lock.json")).json())
-    const expectedCount =
-      input.taskNames.length > 0 ? input.taskNames.length : (input.maxTasks ?? TERMINAL_BENCH_TASK_COUNT)
-    if (
-      instanceIds.length !== expectedCount ||
-      observed.size !== instanceIds.length ||
-      instanceIds.some((instanceId) => !observed.has(instanceId))
-    ) {
-      throw new Error("Selected Terminal-Bench instances lack finalized OpenCode traces")
-    }
-    if ([...observed.values()].some((attempts) => attempts.size < input.attempts)) {
-      throw new Error("A Terminal-Bench instance lacks a requested OpenCode trace attempt")
-    }
-    return finalizeOpenCodeTraceRun({
-      run: input.run,
-      instanceIds,
-      selectionStrategy:
-        input.taskNames.length > 0 ? "explicit_ids" : input.maxTasks !== undefined ? "ordered_window" : "full_dataset",
-    })
-  } catch {
-    return "OpenCode Terminal-Bench trace run could not be finalized; benchmark outputs remain valid."
-  }
-}
-
-function parseHarborJobInstanceIds(value: unknown): string[] {
-  if (typeof value !== "object" || value === null || !("trials" in value) || !Array.isArray(value.trials)) {
-    throw new Error("Harbor job lock has no resolved trials")
-  }
-  const instanceIds = value.trials.map((trial) => {
-    if (
-      typeof trial !== "object" ||
-      trial === null ||
-      !("task" in trial) ||
-      typeof trial.task !== "object" ||
-      trial.task === null ||
-      !("name" in trial.task) ||
-      typeof trial.task.name !== "string" ||
-      !trial.task.name
-    ) {
-      throw new Error("Harbor job lock has a trial without a task name")
-    }
-    return trial.task.name.replace(/^[^/]*\//, "")
+  return collectOpenCodeHarborTraces({
+    ...input,
+    officialTaskCount: TERMINAL_BENCH_TASK_COUNT,
   })
-  const unique = instanceIds.filter((instanceId, index) => instanceIds.indexOf(instanceId) === index)
-  if (unique.length === 0) throw new Error("Harbor job lock selected no tasks")
-  return unique
 }
 
 export function stripTerminalBenchmarkTraceFrames(output: string): string {
-  return output
-    .split("\n")
-    .filter((line) => !isTerminalBenchmarkTraceFrame(line))
-    .join("\n")
-}
-
-function isTerminalBenchmarkTraceFrame(line: string): boolean {
-  if (!line.trim()) return false
-  try {
-    const value: unknown = JSON.parse(line)
-    return typeof value === "object" && value !== null && "type" in value && value.type === "benchmark_trace.native"
-  } catch {
-    return false
-  }
-}
-
-function parseHarborTraceMetadata(value: unknown): HarborTraceMetadata {
-  if (!isHarborTraceMetadata(value)) {
-    throw new Error("OpenCode Harbor trace metadata is invalid")
-  }
-  return value
-}
-
-function isHarborTraceMetadata(value: unknown): value is HarborTraceMetadata {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "schemaVersion" in value &&
-    value.schemaVersion === 1 &&
-    "benchmark" in value &&
-    value.benchmark === "terminal-bench-2.1" &&
-    "runId" in value &&
-    typeof value.runId === "string" &&
-    value.runId.length > 0 &&
-    "instanceId" in value &&
-    typeof value.instanceId === "string" &&
-    value.instanceId.length > 0 &&
-    "attempt" in value &&
-    typeof value.attempt === "number" &&
-    Number.isInteger(value.attempt) &&
-    value.attempt > 0 &&
-    "traceRoot" in value &&
-    typeof value.traceRoot === "string" &&
-    value.traceRoot.length > 0 &&
-    "createdAt" in value &&
-    typeof value.createdAt === "string" &&
-    "frameworkRevision" in value &&
-    typeof value.frameworkRevision === "string" &&
-    /^[0-9a-f]{40}$/.test(value.frameworkRevision) &&
-    "model" in value &&
-    typeof value.model === "string" &&
-    value.model.length > 0 &&
-    "evaluationWorkers" in value &&
-    typeof value.evaluationWorkers === "number" &&
-    Number.isInteger(value.evaluationWorkers) &&
-    value.evaluationWorkers > 0 &&
-    "inferenceTimeoutSeconds" in value &&
-    typeof value.inferenceTimeoutSeconds === "number" &&
-    Number.isFinite(value.inferenceTimeoutSeconds) &&
-    value.inferenceTimeoutSeconds > 0 &&
-    "benchmarkRetries" in value &&
-    typeof value.benchmarkRetries === "number" &&
-    Number.isInteger(value.benchmarkRetries) &&
-    value.benchmarkRetries >= 0 &&
-    "harborVersion" in value &&
-    typeof value.harborVersion === "string" &&
-    "image" in value &&
-    typeof value.image === "string" &&
-    value.image.length > 0 &&
-    "sessionId" in value &&
-    typeof value.sessionId === "string" &&
-    value.sessionId.length > 0 &&
-    "startedAt" in value &&
-    typeof value.startedAt === "string" &&
-    (!("finishedAt" in value) || typeof value.finishedAt === "string") &&
-    "status" in value &&
-    typeof value.status === "string" &&
-    ["running", "completed", "failed", "timeout"].includes(value.status) &&
-    (!("error" in value) || typeof value.error === "string")
-  )
+  return stripHarborTraceFrames(output)
 }
 
 async function main(): Promise<void> {
@@ -748,7 +522,7 @@ async function main(): Promise<void> {
 
   const harborVersion = await preflight(resolvedOptions)
   const traceRun = resolvedOptions.traceDir
-    ? createOpenCodeTraceRun(resolvedOptions.traceDir, "terminal-bench-2.1")
+    ? createTraceRun(resolvedOptions.traceDir, "terminal-bench-2.1", "opencode")
     : undefined
   const executionOptions = traceRun ? { ...resolvedOptions, traceRun, harborVersion } : resolvedOptions
   const harborArgs = buildHarborArgs(executionOptions, paths.jobsDir)
