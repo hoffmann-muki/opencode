@@ -4,11 +4,13 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { gunzipSync } from "node:zlib"
 import { createTraceRun, finalizeTraceRun, type TraceHarnessAdapter } from "../../benchmarks/tracing/coordination.ts"
+import { buildExecutionTree } from "../../benchmarks/tracing/execution-tree.ts"
 import { createOpenCodeAttemptTrace } from "../../benchmarks/tracing/integration.ts"
 import { OpenCodeTraceAdapter, opencodeCapabilities } from "../../benchmarks/tracing/opencode.ts"
 import { HarborTraceHarness } from "../../benchmarks/tracing/harbor.ts"
 import {
   TRACE_CAPABILITY_CATEGORIES,
+  TRACE_CONTRACT_VERSION,
   TRACE_NATIVE_CHUNK_MEDIA_TYPE,
   TRACE_SCHEMA_DIGEST,
   TraceRecorder,
@@ -16,6 +18,7 @@ import {
   sanitizeTraceJson,
   traceAttemptDirectory,
   writeTraceRunIndex,
+  type JsonObject,
 } from "../../benchmarks/tracing/recorder.ts"
 
 const roots: string[] = []
@@ -160,6 +163,83 @@ describe("benchmark tracing recorder", () => {
     expect(run.attempts).toEqual([expect.objectContaining({ status: "failed" })])
   })
 
+  test("projects paired spans and concurrent siblings into an execution tree", () => {
+    const events = [
+      projectionEvent(1, "attempt.start", "start", "started", "attempt", 0),
+      projectionEvent(2, "model.turn_start", "start", "started", "model-a", 100, "attempt", {
+        request: "first",
+      }),
+      projectionEvent(3, "model.turn_start", "start", "started", "model-b", 150, "attempt", {
+        request: "second",
+      }),
+      projectionEvent(4, "model.turn_end", "end", "completed", "model-b", 250, "attempt", {
+        response: "second",
+      }),
+      projectionEvent(5, "model.turn_end", "end", "completed", "model-a", 300, "attempt", {
+        response: "first",
+      }),
+      projectionEvent(6, "context.compaction", "instant", "completed", "compaction", 400, "attempt"),
+      projectionEvent(7, "attempt.end", "end", "completed", "attempt", 500),
+    ]
+    const content = events.map((event) => `${JSON.stringify(event)}\n`).join("")
+    const tree = buildExecutionTree({
+      events,
+      identity: createTraceIdentity({
+        runId: "run-tree",
+        benchmark: "custom-benchmark",
+        framework: "opencode",
+        instanceId: "instance-1",
+        attempt: 1,
+      }),
+      schemaDigest: TRACE_SCHEMA_DIGEST,
+      eventsContent: content,
+    })
+    const root = tree.root as JsonObject
+    const attempt = (root.children as readonly JsonObject[])[0]!
+    const children = attempt.children as readonly JsonObject[]
+    const first = children[0]!
+    const second = children[1]!
+
+    expect(tree.complete).toBe(true)
+    expect(first.source_event_ids).toEqual(["event-002", "event-005"])
+    expect(first.input).toEqual({ payload: { request: "first" }, artifacts: [] })
+    expect(first.output).toEqual({ payload: { response: "first" }, artifacts: [] })
+    expect(first.concurrency_group).toBe(second.concurrency_group)
+    expect(first.overlaps_with).toEqual([second.node_id])
+    expect(second.overlaps_with).toEqual([first.node_id])
+  })
+
+  test("represents an empty recovered journal in the execution tree", () => {
+    const tree = buildExecutionTree({
+      events: [],
+      identity: createTraceIdentity({
+        runId: "run-empty-tree",
+        benchmark: "custom-benchmark",
+        framework: "opencode",
+        instanceId: "instance-empty",
+        attempt: 1,
+      }),
+      schemaDigest: TRACE_SCHEMA_DIGEST,
+      eventsContent: "",
+      generatedAt: "2026-01-01T00:00:00.000Z",
+    })
+
+    expect(tree.complete).toBe(true)
+    expect(tree.source).toEqual({
+      path: "events.jsonl",
+      sha256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      event_count: 0,
+      represented_event_count: 0,
+    })
+    expect(tree.root).toEqual({
+      node_id: "trace-root",
+      started_at: null,
+      ended_at: null,
+      duration_ms: 0,
+      children: [],
+    })
+  })
+
   test("normalizes native tools, timing, model turns, and session lifecycle", () => {
     const root = temporaryRoot()
     const trace = createAdapter(root, "owner/project__issue-1")
@@ -296,6 +376,25 @@ describe("benchmark tracing recorder", () => {
     expect(events.find((event) => event.event_type === "model.turn_end")?.timing).toEqual({
       fidelity: "native_wall",
       duration_ms: 100,
+    })
+    const executionTree = JSON.parse(readFileSync(join(trace.attemptDir, "execution-tree.json"), "utf8")) as {
+      complete: boolean
+      source: { event_count: number; represented_event_count: number }
+      root: JsonObject
+    }
+    const projected = executionTreeNodes(executionTree.root)
+    expect(executionTree.complete).toBe(true)
+    expect(executionTree.source).toMatchObject({
+      event_count: events.length,
+      represented_event_count: events.length,
+    })
+    expect(projected.flatMap((node) => node.source_event_ids as string[]).sort()).toEqual(
+      events.map((event) => event.event_id as string).sort(),
+    )
+    expect(projected.find((node) => node.event_type === "shell.start")).toMatchObject({
+      kind: "activity",
+      status: "completed",
+      source_event_ids: expect.any(Array),
     })
 
     const retained = Array.from(new Bun.Glob("**/*").scanSync({ cwd: trace.attemptDir, onlyFiles: true }))
@@ -592,7 +691,7 @@ function createAdapter(root: string, instanceId: string) {
   const recorder = new TraceRecorder({
     attemptDir,
     identity,
-    producer: { name: "test-recorder", version: "1.1.0" },
+    producer: { name: "test-recorder", version: TRACE_CONTRACT_VERSION },
     provenance: {
       benchmark: { name: "test", revision: "a".repeat(40) },
       framework: { name: "OpenCode", revision: "a".repeat(40) },
@@ -613,6 +712,44 @@ function createAdapter(root: string, instanceId: string) {
     recorder,
     adapter: new OpenCodeTraceAdapter(recorder, { delegationEnabled: true, startedAt: 900 }),
   }
+}
+
+function projectionEvent(
+  sequence: number,
+  eventType: string,
+  phase: "start" | "end" | "instant",
+  status: string,
+  spanId: string,
+  timestamp: number,
+  parentSpanId?: string,
+  payload: JsonObject = {},
+): JsonObject {
+  return {
+    event_id: `event-${String(sequence).padStart(3, "0")}`,
+    sequence,
+    span_id: spanId,
+    ...(parentSpanId ? { parent_span_id: parentSpanId } : {}),
+    occurred_at: new Date(timestamp).toISOString(),
+    recorded_at: new Date(timestamp).toISOString(),
+    event_type: eventType,
+    event_family: eventType.split(".", 1)[0]!,
+    phase,
+    status,
+    origin: { component: "test-agent", capture_method: "derived" },
+    timing: { fidelity: "derived", ...(phase === "end" ? { duration_ms: timestamp } : {}) },
+    payload,
+    artifacts: [],
+  }
+}
+
+function executionTreeNodes(root: JsonObject): JsonObject[] {
+  const children = root.children
+  if (!Array.isArray(children)) return []
+  return children.flatMap((child) => {
+    if (typeof child !== "object" || child === null || Array.isArray(child)) return []
+    const node = child as JsonObject
+    return [node, ...executionTreeNodes(node)]
+  })
 }
 
 function frame(sequence: number, timestamp: number, sessionID: string, event: object) {

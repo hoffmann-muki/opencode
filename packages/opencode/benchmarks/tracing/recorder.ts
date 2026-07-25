@@ -17,9 +17,11 @@ import {
 import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
 import { gzipSync } from "node:zlib"
 
+import { buildExecutionTree } from "./execution-tree.ts"
+
 export const TRACE_SCHEMA_VERSION = "benchmark-trace/v1"
-export const TRACE_CONTRACT_VERSION = "1.1.0"
-export const TRACE_SCHEMA_DIGEST = "12121cb7fbdb81b1637954eefab17b1faaf39ecdff1ed4fe0d67065941ca4b17"
+export const TRACE_CONTRACT_VERSION = "1.2.0"
+export const TRACE_SCHEMA_DIGEST = "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
 export const TRACE_NATIVE_CHUNK_MEDIA_TYPE = "application/vnd.benchmark-trace.native-records+jsonl+gzip"
 
 const NATIVE_JOURNAL_FORMAT = "benchmark-trace/native-journal-v1"
@@ -736,6 +738,24 @@ export class TraceRecorder {
     atomicWrite(join(this.attemptDir, "events.jsonl"), journal)
     replaceWithHardLink(join(this.attemptDir, "events.jsonl"), this.journalPath)
     atomicWrite(
+      join(this.attemptDir, "execution-tree.json"),
+      `${JSON.stringify(
+        buildExecutionTree({
+          events: journal
+            .trimEnd()
+            .split("\n")
+            .filter(Boolean)
+            .map((line) => JSON.parse(line) as JsonObject),
+          identity: this.identity,
+          schemaDigest: TRACE_SCHEMA_DIGEST,
+          eventsContent: journal,
+          generatedAt: finalizedAt,
+        }),
+        null,
+        2,
+      )}\n`,
+    )
+    atomicWrite(
       this.nativeIndexPath,
       native.length > 0 ? `${native.map((record) => JSON.stringify(record)).join("\n")}\n` : "",
     )
@@ -809,6 +829,7 @@ export class TraceRecorder {
           files: {
             journal: "journal.jsonl",
             events: "events.jsonl",
+            execution_tree: "execution-tree.json",
             capabilities: "capabilities.json",
             health: "health.json",
             native_index: "native/index.jsonl",
@@ -967,11 +988,15 @@ export function writeTraceRunIndex(input: {
     return Array.from(new Bun.Glob("attempt-*/manifest.json").scanSync({ cwd: instanceDir }))
       .sort((left, right) => left.localeCompare(right, undefined, { numeric: true }))
       .map((manifestPath) => {
+        const attemptDir = join(instanceDir, dirname(manifestPath))
+        if (!existsSync(join(attemptDir, "execution-tree.json"))) {
+          throw new Error(`Trace attempt is missing execution-tree.json: ${attemptDir}`)
+        }
         const manifest = JSON.parse(readFileSync(join(instanceDir, manifestPath), "utf8")) as {
           trace_id: string
           attempt: number
         }
-        const events = readFileSync(join(instanceDir, dirname(manifestPath), "events.jsonl"), "utf8")
+        const events = readFileSync(join(attemptDir, "events.jsonl"), "utf8")
         const terminal = events
           .trim()
           .split("\n")
