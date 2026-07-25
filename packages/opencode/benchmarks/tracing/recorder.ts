@@ -929,17 +929,13 @@ export function writeTraceRunIndex(input: {
           trace_id: string
           attempt: number
         }
-        const health = JSON.parse(readFileSync(join(instanceDir, dirname(manifestPath), "health.json"), "utf8")) as {
-          status: string
-        }
         const events = readFileSync(join(instanceDir, dirname(manifestPath), "events.jsonl"), "utf8")
         const terminal = events
           .trim()
           .split("\n")
           .map((line) => JSON.parse(line) as { event_type?: string; status?: string })
           .findLast((event) => event.event_type === "attempt.end")
-        const status =
-          health.status === "healthy" && isTraceStatus(terminal?.status) ? terminal.status : ("degraded" as const)
+        const status = isTraceStatus(terminal?.status) ? terminal.status : ("degraded" as const)
         return {
           trace_id: manifest.trace_id,
           instance_id: instanceId,

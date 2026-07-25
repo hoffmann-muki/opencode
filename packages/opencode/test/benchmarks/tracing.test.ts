@@ -70,6 +70,53 @@ describe("benchmark tracing recorder", () => {
     expect(health.finalization).toBe("partial")
   })
 
+  test("normalizes native error names to contract-safe codes", () => {
+    const trace = createAdapter(temporaryRoot(), "owner/project__native-error")
+    trace.adapter.consume(
+      frame(1, 1_000, "session-root", {
+        type: "session.error",
+        properties: {
+          sessionID: "session-root",
+          error: {
+            name: "APIError",
+            message: "Synthetic provider failure",
+          },
+        },
+      }),
+    )
+
+    trace.adapter.finish("failed", "Synthetic provider failure", 1_100)
+
+    const error = jsonl(join(trace.attemptDir, "events.jsonl")).find(
+      (event) => event.event_type === "agent.error",
+    )?.error
+    expect(error).toEqual({
+      code: "opencode.api_error",
+      message: "Synthetic provider failure",
+    })
+  })
+
+  test("run status preserves agent outcome when trace health is degraded", () => {
+    const root = temporaryRoot()
+    const trace = createAdapter(root, "owner/project__degraded-health")
+    trace.recorder.reportIssue("trace.synthetic_warning", "synthetic warning", "warning")
+    trace.adapter.finish("failed", "Synthetic agent failure", 1_100)
+
+    writeTraceRunIndex({
+      traceRoot: root,
+      runId: trace.identity.runId,
+      benchmark: trace.identity.benchmark,
+      instanceIds: [trace.identity.instanceId],
+      selectionStrategy: "explicit_ids",
+      createdAt: new Date(0).toISOString(),
+    })
+
+    const run = JSON.parse(readFileSync(join(root, "run.json"), "utf8")) as {
+      attempts: Array<{ status: string }>
+    }
+    expect(run.attempts).toEqual([expect.objectContaining({ status: "failed" })])
+  })
+
   test("normalizes native tools, timing, model turns, and session lifecycle", () => {
     const root = temporaryRoot()
     const trace = createAdapter(root, "owner/project__issue-1")

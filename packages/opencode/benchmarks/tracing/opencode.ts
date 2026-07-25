@@ -306,10 +306,7 @@ export class OpenCodeTraceAdapter {
   finish(status: TraceStatus, errorMessage?: string, endedAt = Date.now()): TraceFinalization {
     if (this.finished) return this.finished
     this.endExecution(status, errorMessage, endedAt)
-    const error =
-      status === "completed"
-        ? undefined
-        : lifecycleError(errorMessage)
+    const error = status === "completed" ? undefined : lifecycleError(errorMessage)
     this.record({
       eventType: "harness.shutdown_end",
       eventFamily: "harness",
@@ -420,7 +417,7 @@ export class OpenCodeTraceAdapter {
         origin: nativeOrigin(nativeEventType, nativeEventId(frame)),
         payload: {},
         error: {
-          code: string(error?.name) ?? "opencode.session_error",
+          code: nativeErrorCode(error?.name),
           message: errorMessage(error),
         },
       })
@@ -1105,6 +1102,18 @@ function boolean(value: unknown): boolean | undefined {
 function errorMessage(value: JsonObject | undefined): string {
   const data = object(value?.data)
   return string(data?.message) ?? string(value?.message) ?? string(value?.name) ?? "OpenCode reported an error"
+}
+
+function nativeErrorCode(value: unknown): string {
+  const name = string(value)
+  if (!name) return "opencode.session_error"
+  const normalized = name
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1_$2")
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "_")
+    .replace(/^[^a-z]+/, "")
+  return normalized ? `opencode.${normalized}` : "opencode.session_error"
 }
 
 function lifecycleError(message?: string): JsonObject {
