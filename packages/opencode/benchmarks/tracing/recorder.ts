@@ -24,6 +24,32 @@ export const TRACE_NATIVE_CHUNK_MEDIA_TYPE = "application/vnd.benchmark-trace.na
 
 const NATIVE_JOURNAL_FORMAT = "benchmark-trace/native-journal-v1"
 const NATIVE_CHUNK_TARGET_BYTES = 1024 * 1024
+const EVENT_FAMILIES = new Set([
+  "run",
+  "instance",
+  "attempt",
+  "harness",
+  "container",
+  "evaluator",
+  "agent",
+  "model",
+  "provider",
+  "tool",
+  "shell",
+  "file",
+  "search",
+  "browser",
+  "delegation",
+  "context",
+  "memory",
+  "patch",
+  "trace",
+])
+const EVENT_STATUSES = new Set(["started", "completed", "failed", "cancelled", "timeout", "degraded", "unknown"])
+const TERMINAL_STATUSES = new Set(["completed", "failed", "cancelled", "timeout", "degraded"])
+const CAPTURE_METHODS = new Set(["native_hook", "native_stream", "native_export", "derived", "generic_harness"])
+const TIMING_FIDELITIES = new Set(["native_monotonic", "native_wall", "derived", "not_available"])
+const RELATION_TYPES = new Set(["caused_by", "contains", "derived_from", "native_evidence", "retry_of"])
 
 export const TRACE_CAPABILITY_CATEGORIES = [
   "agent.session",
@@ -483,6 +509,20 @@ export class TraceRecorder {
   recordEvent(input: RecordEventInput): string | undefined {
     if (this.finalized) return undefined
     try {
+      assertEventContractFields(input)
+      const errorArtifact = input.error?.artifact
+      const errorArtifactPath =
+        typeof errorArtifact === "object" && errorArtifact !== null ? Reflect.get(errorArtifact, "path") : undefined
+      if (
+        errorArtifact !== undefined &&
+        (typeof errorArtifact !== "object" ||
+          errorArtifact === null ||
+          Array.isArray(errorArtifact) ||
+          typeof errorArtifactPath !== "string" ||
+          !Bun.deepEquals(this.artifacts.get(errorArtifactPath), errorArtifact))
+      ) {
+        throw new Error("Trace error references an artifact not owned by this recorder")
+      }
       const identifiers = sanitizeTraceJson({
         ...(input.sessionId ? { session_id: input.sessionId } : {}),
         ...(input.agentId ? { agent_id: input.agentId } : {}),
@@ -654,19 +694,21 @@ export class TraceRecorder {
   reportIssue(code: string, message: string, severity: "warning" | "error" = "warning"): void {
     const timestamp = now()
     const sanitized = sanitizeTraceText(message)
+    const safeCode = /^[a-z][a-z0-9._-]*$/.test(code) ? code : "adapter.invalid_issue_code"
+    const safeMessage = sanitized.value || "Trace adapter failure"
     this.counters.redactionsApplied += sanitized.matches
-    const current = this.issues.get(code)
+    const current = this.issues.get(safeCode)
     if (current) {
       current.lastSeenAt = timestamp
       current.count += 1
-      current.message = sanitized.value
+      current.message = safeMessage
       if (severity === "error") current.severity = "error"
       return
     }
-    this.issues.set(code, {
+    this.issues.set(safeCode, {
       severity,
-      code,
-      message: sanitized.value,
+      code: safeCode,
+      message: safeMessage,
       firstSeenAt: timestamp,
       lastSeenAt: timestamp,
       count: 1,
@@ -981,7 +1023,12 @@ function assertTraceConfig(config: TraceConfig): void {
     !config.identity.framework ||
     !config.identity.instanceId ||
     !Number.isInteger(config.identity.attempt) ||
-    config.identity.attempt < 1
+    config.identity.attempt < 1 ||
+    [config.identity.traceId, config.identity.runId, config.identity.instanceId].some((value) => value.length > 512) ||
+    !/^[a-z][a-z0-9._-]*$/.test(config.identity.benchmark) ||
+    config.identity.benchmark.length > 128 ||
+    !/^[a-z][a-z0-9._-]*$/.test(config.identity.framework) ||
+    config.identity.framework.length > 128
   ) {
     throw new Error("Trace identity fields must be non-empty and attempt must be positive.")
   }
@@ -1015,6 +1062,104 @@ function identityFields(identity: TraceIdentity): JsonObject {
     instance_id: identity.instanceId,
     attempt: identity.attempt,
   }
+}
+
+function assertEventContractFields(input: RecordEventInput): void {
+  const identifiers = [
+    input.spanId,
+    input.sessionId,
+    input.agentId,
+    input.parentAgentId,
+    input.turnId,
+    input.parentSpanId,
+  ].filter((value) => value !== undefined)
+  const nativeEventID = input.origin.native_event_id
+  if (typeof nativeEventID === "string") identifiers.push(nativeEventID)
+  const nativeEventType = input.origin.native_event_type
+  const errorCode = input.error?.code
+  const errorMessage = input.error?.message
+  const timing = input.timing ?? { fidelity: "not_available" }
+  if (
+    !/^[a-z][a-z0-9_]*(\.[a-z][a-z0-9_]*)+$/.test(input.eventType) ||
+    input.eventType.length > 128 ||
+    !EVENT_FAMILIES.has(input.eventFamily) ||
+    !EVENT_STATUSES.has(input.status) ||
+    (input.phase === "start" && input.status !== "started") ||
+    (input.phase === "end" && !TERMINAL_STATUSES.has(input.status)) ||
+    (input.phase === "instant" && input.status === "started") ||
+    identifiers.some((value) => !value || value.length > 512) ||
+    !isValidOrigin(input.origin, nativeEventType, nativeEventID) ||
+    !isValidTiming(timing, input.phase) ||
+    (input.occurredAt !== undefined && !isTimestamp(input.occurredAt)) ||
+    (input.error !== undefined &&
+      (typeof errorCode !== "string" ||
+        !/^[a-z][a-z0-9._-]*$/.test(errorCode) ||
+        typeof errorMessage !== "string" ||
+        Object.keys(input.error).some((key) => !["code", "message", "artifact"].includes(key)))) ||
+    input.relations?.some(
+      (relation) =>
+        typeof relation.type !== "string" ||
+        !RELATION_TYPES.has(relation.type) ||
+        typeof relation.event_id !== "string" ||
+        !relation.event_id ||
+        relation.event_id.length > 512 ||
+        Object.keys(relation).some((key) => key !== "type" && key !== "event_id"),
+    )
+  ) {
+    throw new Error("Normalized trace event violates the trace contract")
+  }
+}
+
+function isValidOrigin(
+  origin: JsonObject,
+  nativeEventType: JsonValue | undefined,
+  nativeEventID: JsonValue | undefined,
+) {
+  return (
+    typeof origin.component === "string" &&
+    origin.component.length > 0 &&
+    origin.component.length <= 256 &&
+    typeof origin.capture_method === "string" &&
+    CAPTURE_METHODS.has(origin.capture_method) &&
+    Object.keys(origin).every((key) =>
+      ["component", "capture_method", "native_event_type", "native_event_id"].includes(key),
+    ) &&
+    (nativeEventType === undefined ||
+      (typeof nativeEventType === "string" && nativeEventType.length > 0 && nativeEventType.length <= 256)) &&
+    (nativeEventID === undefined ||
+      (typeof nativeEventID === "string" && nativeEventID.length > 0 && nativeEventID.length <= 512))
+  )
+}
+
+function isValidTiming(timing: TraceTiming, phase: EventPhase): boolean {
+  const keys = Object.keys(timing)
+  if (
+    !TIMING_FIDELITIES.has(timing.fidelity) ||
+    keys.some(
+      (key) => !["fidelity", "clock_id", "started_monotonic_ns", "ended_monotonic_ns", "duration_ms"].includes(key),
+    ) ||
+    (timing.clock_id !== undefined && (!timing.clock_id || timing.clock_id.length > 256)) ||
+    (timing.started_monotonic_ns !== undefined &&
+      (!Number.isInteger(timing.started_monotonic_ns) || timing.started_monotonic_ns < 0)) ||
+    (timing.ended_monotonic_ns !== undefined &&
+      (!Number.isInteger(timing.ended_monotonic_ns) || timing.ended_monotonic_ns < 0)) ||
+    (timing.duration_ms !== undefined && (!Number.isFinite(timing.duration_ms) || timing.duration_ms < 0)) ||
+    (timing.fidelity === "native_monotonic" && !timing.clock_id) ||
+    (timing.fidelity === "not_available" && keys.length !== 1) ||
+    (timing.started_monotonic_ns !== undefined && timing.fidelity !== "native_monotonic") ||
+    (timing.ended_monotonic_ns !== undefined &&
+      (timing.fidelity !== "native_monotonic" ||
+        timing.started_monotonic_ns === undefined ||
+        timing.duration_ms === undefined)) ||
+    (phase === "end" && timing.fidelity !== "not_available" && timing.duration_ms === undefined)
+  ) {
+    return false
+  }
+  return true
+}
+
+function isTimestamp(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}T.+(?:Z|[+-]\d{2}:\d{2})$/.test(value) && Number.isFinite(Date.parse(value))
 }
 
 function capabilityDocument(capability: TraceCapability): JsonObject {

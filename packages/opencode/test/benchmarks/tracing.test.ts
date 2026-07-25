@@ -96,6 +96,49 @@ describe("benchmark tracing recorder", () => {
     })
   })
 
+  test("rejects malformed native boundaries without finalizing invalid documents", () => {
+    const trace = createAdapter(temporaryRoot(), "owner/project__malformed-native")
+    trace.adapter.consume(
+      frame(1, Number.NaN, "session-root", {
+        type: "session.error",
+        properties: {
+          sessionID: "session-root",
+          error: { name: "APIError", message: "Synthetic provider failure" },
+        },
+      }),
+    )
+    trace.adapter.consume(
+      frame(1, 1_000, "x".repeat(600), {
+        type: "session.error",
+        properties: {
+          sessionID: "x".repeat(600),
+          error: { name: "APIError", message: "Synthetic provider failure" },
+        },
+      }),
+    )
+    trace.recorder.reportIssue("INVALID ISSUE CODE", "", "warning")
+
+    const finalized = trace.adapter.finish("failed", "Synthetic agent failure", 1_100)
+    const health = JSON.parse(readFileSync(join(trace.attemptDir, "health.json"), "utf8")) as {
+      issues: Array<{ code: string; message: string }>
+    }
+    const events = jsonl(join(trace.attemptDir, "events.jsonl"))
+
+    expect(finalized.health).toBe("failed")
+    expect(health.issues.find((issue) => issue.code === "adapter.invalid_issue_code")).toMatchObject({
+      code: "adapter.invalid_issue_code",
+      message: "Trace adapter failure",
+    })
+    expect(health.issues.map((issue) => issue.code)).toContain("opencode.invalid_native_frame")
+    expect(
+      events.every((event) =>
+        ["session_id", "agent_id", "parent_agent_id", "turn_id", "span_id", "parent_span_id"].every(
+          (key) => typeof event[key] !== "string" || event[key].length <= 512,
+        ),
+      ),
+    ).toBe(true)
+  })
+
   test("run status preserves agent outcome when trace health is degraded", () => {
     const root = temporaryRoot()
     const trace = createAdapter(root, "owner/project__degraded-health")

@@ -144,7 +144,16 @@ export class OpenCodeTraceAdapter {
 
   consume(value: unknown): void {
     const frame = nativeFrame(value)
-    if (!frame) return
+    if (!frame) {
+      if (string(object(value)?.type) === "benchmark_trace.native") {
+        this.recorder.reportIssue(
+          "opencode.invalid_native_frame",
+          "OpenCode emitted a malformed native trace frame",
+          "error",
+        )
+      }
+      return
+    }
     this.startExecution(frame.timestamp)
     const nativeEventType = string(frame.event.type) ?? "unknown"
     const nativeId = nativeEventId(frame)
@@ -1033,6 +1042,9 @@ function nativeFrame(value: unknown): NativeFrame | undefined {
     !Number.isInteger(frame.sequence) ||
     frame.sequence < 1 ||
     typeof frame?.timestamp !== "number" ||
+    !Number.isFinite(frame.timestamp) ||
+    frame.timestamp < 0 ||
+    frame.timestamp > 253_402_300_799_999 ||
     typeof frame.sessionID !== "string" ||
     !object(frame.event)
   ) {
