@@ -1110,6 +1110,7 @@ async function runInstanceAttempt(
     console.log(
       `Running opencode for ${row.instance_id} in ${image} (attempt ${context.attempt}/${context.maxAttempts}).`,
     )
+    trace?.startExecution()
     agentResult = await runProcess("docker", args, {
       cwd: REPO_ROOT,
       timeoutMs: options.timeoutMs,
@@ -1121,6 +1122,10 @@ async function runInstanceAttempt(
         if (parsed) trace.consume(parsed)
       },
     })
+    trace?.endExecution(
+      agentResult.timedOut ? "timeout" : agentResult.exitCode === 0 ? "completed" : "failed",
+      agentResult.stderr || undefined,
+    )
     const retainedAgentResult = {
       ...agentResult,
       stdout: stripBenchmarkTraceFrames(agentResult.stdout),
@@ -1132,6 +1137,7 @@ async function runInstanceAttempt(
     if (sessionId) sessionExported = await exportRootSession(name, sessionId, options.pure, attemptRunDir)
   } catch (error) {
     infrastructureError = errorMessage(error)
+    if (failureStage === "agent") trace?.endExecution("failed", infrastructureError)
   }
 
   if (containerStarted) {

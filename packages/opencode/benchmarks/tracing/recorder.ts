@@ -18,8 +18,8 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
 import { gzipSync } from "node:zlib"
 
 export const TRACE_SCHEMA_VERSION = "benchmark-trace/v1"
-export const TRACE_CONTRACT_VERSION = "1.0.0"
-export const TRACE_SCHEMA_DIGEST = "8d58396efde1e27da6da87c1008aa16d9ab6ee154c855087dd51fad41cc8ab18"
+export const TRACE_CONTRACT_VERSION = "1.1.0"
+export const TRACE_SCHEMA_DIGEST = "12121cb7fbdb81b1637954eefab17b1faaf39ecdff1ed4fe0d67065941ca4b17"
 export const TRACE_NATIVE_CHUNK_MEDIA_TYPE = "application/vnd.benchmark-trace.native-records+jsonl+gzip"
 
 const NATIVE_JOURNAL_FORMAT = "benchmark-trace/native-journal-v1"

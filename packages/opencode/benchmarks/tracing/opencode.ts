@@ -80,8 +80,13 @@ export class OpenCodeTraceAdapter {
   private readonly attemptStartedAt: number
   private readonly instanceSpan: string
   private readonly attemptSpan: string
-  private readonly harnessSpan: string
-  private harnessStartedAt?: number
+  private readonly startupSpan: string
+  private readonly executionSpan: string
+  private readonly shutdownSpan: string
+  private startupStartedAt: number
+  private executionStartedAt?: number
+  private executionEndedAt?: number
+  private shutdownStartedAt?: number
   private finished?: TraceFinalization
 
   constructor(recorder: TraceRecorder, options: { readonly delegationEnabled: boolean; readonly startedAt?: number }) {
@@ -89,7 +94,10 @@ export class OpenCodeTraceAdapter {
     this.attemptStartedAt = options?.startedAt ?? Date.now()
     this.instanceSpan = `instance-${recorder.identity.traceId}`
     this.attemptSpan = `attempt-${recorder.identity.traceId}`
-    this.harnessSpan = `opencode-harness-${recorder.identity.traceId}`
+    this.startupSpan = `opencode-startup-${recorder.identity.traceId}`
+    this.executionSpan = `opencode-execution-${recorder.identity.traceId}`
+    this.shutdownSpan = `opencode-shutdown-${recorder.identity.traceId}`
+    this.startupStartedAt = this.attemptStartedAt
     this.record({
       eventType: "instance.start",
       eventFamily: "instance",
@@ -120,11 +128,24 @@ export class OpenCodeTraceAdapter {
         },
       },
     })
+    this.record({
+      eventType: "harness.startup_start",
+      eventFamily: "harness",
+      phase: "start",
+      status: "started",
+      spanId: this.startupSpan,
+      parentSpanId: this.attemptSpan,
+      occurredAt: iso(this.attemptStartedAt),
+      origin: harnessOrigin(),
+      timing: { fidelity: "derived" },
+      payload: {},
+    })
   }
 
   consume(value: unknown): void {
     const frame = nativeFrame(value)
     if (!frame) return
+    this.startExecution(frame.timestamp)
     const nativeEventType = string(frame.event.type) ?? "unknown"
     const nativeId = nativeEventId(frame)
     if (this.seenNative.has(nativeId)) return
@@ -143,7 +164,6 @@ export class OpenCodeTraceAdapter {
         source: `opencode.event-stream.${nativeEventType}`,
         content: frame as unknown as JsonValue,
         eventIds: normalized.map((event) => event.eventId),
-        recordedAt: iso(frame.timestamp),
         nativeRecordId: nativeId,
       })
       if (retained) {
@@ -169,20 +189,102 @@ export class OpenCodeTraceAdapter {
     }
   }
 
-  startHarness(metadata: JsonObject, occurredAt = this.attemptStartedAt): void {
-    if (this.harnessStartedAt !== undefined) return
-    this.harnessStartedAt = occurredAt
+  startExecution(startedAt = Date.now(), entered = true): void {
+    if (this.executionStartedAt !== undefined) return
     this.record({
-      eventType: "harness.start",
+      eventType: "harness.startup_end",
+      eventFamily: "harness",
+      phase: "end",
+      status: "completed",
+      spanId: this.startupSpan,
+      parentSpanId: this.attemptSpan,
+      occurredAt: iso(startedAt),
+      origin: harnessOrigin(),
+      timing: wallDuration(this.startupStartedAt, startedAt),
+      payload: {},
+    })
+    this.executionStartedAt = startedAt
+    this.record({
+      eventType: "agent.execution_start",
+      eventFamily: "agent",
+      phase: "start",
+      status: "started",
+      spanId: this.executionSpan,
+      parentSpanId: this.attemptSpan,
+      occurredAt: iso(startedAt),
+      origin: harnessOrigin(),
+      timing: { fidelity: "derived" },
+      payload: { entered },
+    })
+  }
+
+  endExecution(status: TraceStatus, errorMessage?: string, endedAt = Date.now()): void {
+    if (this.executionEndedAt !== undefined) return
+    if (this.executionStartedAt === undefined) {
+      this.record({
+        eventType: "harness.startup_end",
+        eventFamily: "harness",
+        phase: "end",
+        status,
+        spanId: this.startupSpan,
+        parentSpanId: this.attemptSpan,
+        occurredAt: iso(endedAt),
+        origin: harnessOrigin(),
+        timing: wallDuration(this.startupStartedAt, endedAt),
+        payload: {},
+        ...(status === "completed" ? {} : { error: lifecycleError(errorMessage) }),
+      })
+      this.executionStartedAt = endedAt
+      this.record({
+        eventType: "agent.execution_start",
+        eventFamily: "agent",
+        phase: "start",
+        status: "started",
+        spanId: this.executionSpan,
+        parentSpanId: this.attemptSpan,
+        occurredAt: iso(endedAt),
+        origin: harnessOrigin(),
+        timing: { fidelity: "derived" },
+        payload: { entered: false },
+      })
+    }
+    this.closeIncompleteSpans(endedAt)
+    const openSessions = [...this.sessions.values()].filter((session) => !session.ended)
+    if (openSessions.length > 0) {
+      this.recorder.reportIssue(
+        "opencode.incomplete_session",
+        `${openSessions.length} OpenCode sessions ended without a native idle boundary`,
+      )
+    }
+    for (const session of openSessions) {
+      this.endSession(session, status === "completed" ? "degraded" : status, endedAt, "execution_boundary")
+    }
+    this.record({
+      eventType: "agent.execution_end",
+      eventFamily: "agent",
+      phase: "end",
+      status,
+      spanId: this.executionSpan,
+      parentSpanId: this.attemptSpan,
+      occurredAt: iso(endedAt),
+      origin: harnessOrigin(),
+      timing: wallDuration(this.executionStartedAt, endedAt),
+      payload: {},
+      ...(status === "completed" ? {} : { error: lifecycleError(errorMessage) }),
+    })
+    this.executionEndedAt = endedAt
+    this.shutdownStartedAt = endedAt
+    this.record({
+      eventType: "harness.shutdown_start",
       eventFamily: "harness",
       phase: "start",
       status: "started",
-      spanId: this.harnessSpan,
+      spanId: this.shutdownSpan,
       parentSpanId: this.attemptSpan,
-      occurredAt: iso(occurredAt),
+      occurredAt: iso(endedAt),
       origin: harnessOrigin(),
       timing: { fidelity: "derived" },
-      payload: metadata,
+      payload: {},
     })
   }
 
@@ -193,7 +295,7 @@ export class OpenCodeTraceAdapter {
       phase: "instant",
       status: "completed",
       spanId: `opencode-container-${this.recorder.identity.traceId}`,
-      parentSpanId: this.harnessStartedAt !== undefined ? this.harnessSpan : this.attemptSpan,
+      parentSpanId: this.lifecycleParentSpan,
       occurredAt: iso(occurredAt),
       origin: harnessOrigin(),
       timing: { fidelity: "derived" },
@@ -203,39 +305,24 @@ export class OpenCodeTraceAdapter {
 
   finish(status: TraceStatus, errorMessage?: string, endedAt = Date.now()): TraceFinalization {
     if (this.finished) return this.finished
-    this.closeIncompleteSpans(endedAt)
-    const openSessions = [...this.sessions.values()].filter((session) => !session.ended)
-    if (openSessions.length > 0) {
-      this.recorder.reportIssue(
-        "opencode.incomplete_session",
-        `${openSessions.length} OpenCode sessions ended without a native idle boundary`,
-      )
-    }
-    for (const session of openSessions) {
-      this.endSession(session, status === "completed" ? "degraded" : status, endedAt, "adapter_finalization")
-    }
+    this.endExecution(status, errorMessage, endedAt)
     const error =
       status === "completed"
         ? undefined
-        : {
-            code: "agent.session_failed",
-            message: errorMessage || "OpenCode session did not complete",
-          }
-    if (this.harnessStartedAt !== undefined) {
-      this.record({
-        eventType: "harness.end",
-        eventFamily: "harness",
-        phase: "end",
-        status,
-        spanId: this.harnessSpan,
-        parentSpanId: this.attemptSpan,
-        occurredAt: iso(endedAt),
-        origin: harnessOrigin(),
-        timing: wallDuration(this.harnessStartedAt, endedAt),
-        payload: {},
-        ...(error ? { error } : {}),
-      })
-    }
+        : lifecycleError(errorMessage)
+    this.record({
+      eventType: "harness.shutdown_end",
+      eventFamily: "harness",
+      phase: "end",
+      status,
+      spanId: this.shutdownSpan,
+      parentSpanId: this.attemptSpan,
+      occurredAt: iso(endedAt),
+      origin: harnessOrigin(),
+      timing: wallDuration(this.shutdownStartedAt ?? endedAt, endedAt),
+      payload: {},
+      ...(error ? { error } : {}),
+    })
     this.record({
       eventType: "attempt.end",
       eventFamily: "attempt",
@@ -535,6 +622,31 @@ export class OpenCodeTraceAdapter {
     const turnId = string(part.messageID)
     const observed: ObservedEvent[] = []
     const startTime = number(object(state.time)?.start) ?? frame.timestamp
+    const model = turnId ? this.models.get(`${sessionId}:${turnId}`) : undefined
+    if (model) {
+      const eventId = this.record({
+        eventType: "model.turn_end",
+        eventFamily: "model",
+        phase: "end",
+        status: "completed",
+        spanId: model.spanId,
+        parentSpanId: this.sessions.get(sessionId)?.spanId ?? this.rootParentSpan,
+        sessionId,
+        agentId: model.agentId,
+        turnId: model.turnId,
+        occurredAt: iso(startTime),
+        origin: nativeOrigin(string(frame.event.type) ?? "message.part.updated", nativeEventId(frame)),
+        timing: wallDuration(model.startedAt, startTime),
+        payload: {
+          finish_reason: "tool_calls",
+          boundary: "native_tool_start",
+        },
+        relations: [{ type: "caused_by", event_id: model.startEventId }],
+      })
+      this.models.delete(`${sessionId}:${turnId}`)
+      this.finishedModels.add(`${sessionId}:${turnId}`)
+      if (eventId) observed.push({ eventId, eventType: "model.turn_end" })
+    }
     let pending = this.tools.get(key)
 
     if (!pending) {
@@ -771,7 +883,7 @@ export class OpenCodeTraceAdapter {
   }
 
   private observeForEvent(eventType: string, family: EventFamily, phase: "start" | "end" | "instant"): void {
-    if (family === "agent") this.observe("agent.session", eventType)
+    if (eventType.startsWith("agent.session")) this.observe("agent.session", eventType)
     if (family === "model") this.observe("model.turn", eventType)
     if (family === "provider") this.observe("provider.exchange", eventType)
     if (
@@ -809,8 +921,13 @@ export class OpenCodeTraceAdapter {
   }
 
   private get rootParentSpan(): string {
-    if (this.harnessStartedAt !== undefined) return this.harnessSpan
-    return this.attemptSpan
+    return this.executionSpan
+  }
+
+  private get lifecycleParentSpan(): string {
+    if (this.executionStartedAt === undefined) return this.startupSpan
+    if (this.executionEndedAt === undefined) return this.executionSpan
+    return this.shutdownSpan
   }
 }
 
@@ -818,7 +935,6 @@ export function opencodeCapabilities(
   observed: ReadonlyMap<CapabilityCategory, Set<string>>,
 ): readonly TraceCapability[] {
   const unavailable = new Set<CapabilityCategory>(["provider.exchange", "memory", "evaluator.lifecycle"])
-  if (!observed.has("harness.lifecycle")) unavailable.add("harness.lifecycle")
   if (!observed.has("container.lifecycle")) unavailable.add("container.lifecycle")
   const characteristics: Partial<
     Record<
@@ -844,9 +960,12 @@ export function opencodeCapabilities(
   }
   const limitations: Partial<Record<CapabilityCategory, readonly string[]>> = {
     "model.turn": [
-      "Model boundaries are derived from native assistant-message lifecycle records; exact provider request bodies are not exposed.",
+      "Model boundaries are derived from assistant creation and the first native tool-call or message-completion boundary; exact provider request bodies are not exposed.",
     ],
     "provider.exchange": ["Exact provider request and response payloads are not exposed by the OpenCode event stream."],
+    "harness.lifecycle": [
+      "Startup and shutdown are coarse harness-owned phases; benchmark-specific infrastructure is intentionally not subdivided.",
+    ],
     shell: ["Nested operating-system subprocesses are outside the OpenCode shell-tool boundary."],
     memory: ["OpenCode does not expose a distinct durable memory subsystem in this benchmark configuration."],
   }
@@ -986,4 +1105,11 @@ function boolean(value: unknown): boolean | undefined {
 function errorMessage(value: JsonObject | undefined): string {
   const data = object(value?.data)
   return string(data?.message) ?? string(value?.message) ?? string(value?.name) ?? "OpenCode reported an error"
+}
+
+function lifecycleError(message?: string): JsonObject {
+  return {
+    code: "agent.session_failed",
+    message: message || "OpenCode session did not complete",
+  }
 }

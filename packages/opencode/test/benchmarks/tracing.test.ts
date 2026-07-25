@@ -168,7 +168,7 @@ describe("benchmark tracing recorder", () => {
       }),
     )
 
-    const finalized = trace.adapter.finish("completed")
+    const finalized = trace.adapter.finish("completed", undefined, 1_300)
     expect(finalized.health).toBe("healthy")
     expect(finalized.complete).toBe(true)
 
@@ -176,12 +176,18 @@ describe("benchmark tracing recorder", () => {
     expect(events.map((event) => event.event_type)).toEqual([
       "instance.start",
       "attempt.start",
+      "harness.startup_start",
+      "harness.startup_end",
+      "agent.execution_start",
       "agent.session_start",
       "model.turn_start",
+      "model.turn_end",
       "shell.start",
       "shell.end",
-      "model.turn_end",
       "agent.session_end",
+      "agent.execution_end",
+      "harness.shutdown_start",
+      "harness.shutdown_end",
       "attempt.end",
       "instance.end",
     ])
@@ -196,6 +202,10 @@ describe("benchmark tracing recorder", () => {
     expect(events.find((event) => event.event_type === "shell.end")?.timing).toEqual({
       fidelity: "native_wall",
       duration_ms: 25,
+    })
+    expect(events.find((event) => event.event_type === "model.turn_end")?.timing).toEqual({
+      fidelity: "native_wall",
+      duration_ms: 100,
     })
 
     const retained = Array.from(new Bun.Glob("**/*").scanSync({ cwd: trace.attemptDir, onlyFiles: true }))
@@ -383,11 +393,10 @@ describe("benchmark tracing recorder", () => {
     })
   })
 
-  test("records opt-in Harbor and container lifecycle without enabling evaluator claims", () => {
+  test("records generic harness lifecycle and container metadata without evaluator claims", () => {
     const root = temporaryRoot()
     const trace = createAdapter(root, "terminal-task")
 
-    trace.adapter.startHarness({ name: "harbor", revision: "0.20.0" }, 1_000)
     trace.adapter.containerObserved({ image: "example/task:latest" }, 1_010)
     trace.adapter.finish("completed", undefined, 1_100)
 
@@ -493,7 +502,7 @@ function createAdapter(root: string, instanceId: string) {
   const recorder = new TraceRecorder({
     attemptDir,
     identity,
-    producer: { name: "test-recorder", version: "1.0.0" },
+    producer: { name: "test-recorder", version: "1.1.0" },
     provenance: {
       benchmark: { name: "test", revision: "a".repeat(40) },
       framework: { name: "OpenCode", revision: "a".repeat(40) },
@@ -512,7 +521,7 @@ function createAdapter(root: string, instanceId: string) {
     attemptDir,
     identity,
     recorder,
-    adapter: new OpenCodeTraceAdapter(recorder, { delegationEnabled: true }),
+    adapter: new OpenCodeTraceAdapter(recorder, { delegationEnabled: true, startedAt: 900 }),
   }
 }
 

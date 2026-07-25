@@ -140,14 +140,6 @@ export async function collectOpenCodeHarborTraces(input: {
         harnessRevision: metadata.harborVersion,
         startedAt,
       })
-      adapter.startHarness(
-        {
-          name: "harbor",
-          revision: metadata.harborVersion,
-          phase: "agent",
-        },
-        startedAt,
-      )
       adapter.containerObserved(
         {
           image: metadata.image,
@@ -155,6 +147,7 @@ export async function collectOpenCodeHarborTraces(input: {
         },
         startedAt,
       )
+      adapter.startExecution(startedAt)
       for (const line of stdout.split("\n")) {
         if (!line.trim()) continue
         let value: unknown
@@ -165,11 +158,10 @@ export async function collectOpenCodeHarborTraces(input: {
         }
         adapter.consume(value)
       }
-      const finalized = adapter.finish(
-        metadata.status === "completed" ? "completed" : metadata.status === "timeout" ? "timeout" : "failed",
-        metadata.error,
-        finishedAt,
-      )
+      const status =
+        metadata.status === "completed" ? "completed" : metadata.status === "timeout" ? "timeout" : "failed"
+      adapter.endExecution(status, metadata.error, finishedAt)
+      const finalized = adapter.finish(status, metadata.error, finishedAt)
       mkdirSync(dirname(attemptDir), { recursive: true, mode: 0o700 })
       renameSync(finalized.attemptDir, attemptDir)
       rmSync(stagingRoot, { force: true, recursive: true })

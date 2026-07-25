@@ -223,6 +223,14 @@ runner prints the exact private trace path when it finishes. No separate
 collector command needs to run before, during, or after inference. The stable
 base can also be used to discover its finalized `trace-run-<uuid>` children.
 
+Every complete attempt contains one coarse startup span, one detailed
+agent-execution span, and one coarse shutdown span. These generic envelopes
+account for the entire attempt without encoding benchmark-specific setup or
+teardown internals. Detailed root and child spans retain their native overlap;
+the trace does not force concurrent work into a serial history. Native frame
+time is stored as occurrence time, while recorder arrival remains a distinct
+capture timestamp.
+
 The trace-enabled OpenCode process publishes its native event stream to the
 adapter, which records root and child sessions without
 changing native task delegation, model-message boundaries, pending/running/final
@@ -259,14 +267,18 @@ with the canonical contract in the OpenHands-benchmarks repository. It can
 validate, inspect, summarize, compare, and render this output directly, including
 comparison with OpenHands and Hermes traces. Analysis is read-only; its explicit
 recovery operation only finalizes an interrupted durable journal and never
-launches an agent.
+launches an agent. Summaries report detailed execution coverage, explicit
+unattributed gaps, concurrency, lanes, source/capture inversions, and capture
+delay. Timeline rendering defaults to source time and also supports capture and
+durable-sequence order.
 
 Terminal-Bench uses the same OpenCode-native adapter with Harbor as an outer
-execution boundary, not a fourth agent adapter. The trace adds the observable
-Harbor agent phase and resolved task-container identity. Harbor's verifier runs
-outside the installed-agent boundary, so evaluator lifecycle remains explicitly
-`not_exposed`; Harbor's logs, results, and ATIF trajectory remain authoritative
-auxiliary artifacts.
+execution boundary, not a fourth agent adapter. The trace retains Harbor
+provenance and resolved task-container identity inside the same generic phase
+envelopes; it does not add a second Harbor-specific lifecycle. Harbor's verifier
+runs outside the installed-agent boundary, so evaluator lifecycle remains
+explicitly `not_exposed`; Harbor's logs, results, and ATIF trajectory remain
+authoritative auxiliary artifacts.
 
 ## Terminal-Bench 2.1
 
