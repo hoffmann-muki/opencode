@@ -17,6 +17,10 @@ from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
 from harbor.models.task.id import PackageTaskId
 
+from packages.opencode.benchmarks.tracing.agentsight_harbor import (
+    HarborAgentSightProfiler,
+)
+
 
 FULL_GIT_SHA = re.compile(r"^[0-9a-f]{40}$")
 FULL_SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -108,6 +112,7 @@ class BenchmarkOpenCode(OpenCode):
         self._trace_attempt: int | None = None
         self._trace_agent_timeout: float | None = None
         self._trace_image: str | None = None
+        self._agentsight_profiler: HarborAgentSightProfiler | None = None
         super().__init__(*args, logs_dir=logs_dir, **kwargs)
 
     @override
@@ -171,10 +176,22 @@ class BenchmarkOpenCode(OpenCode):
             or self._trace_attempt is None
             or self._trace_agent_timeout is None
             or self._trace_image is None
+            or self._trace_run_id is None
+            or self._trace_benchmark is None
             or self.session_id is None
         ):
             raise ValueError("Harbor did not initialize OpenCode trace identity")
 
+        self._agentsight_profiler = await asyncio.to_thread(
+            HarborAgentSightProfiler.start,
+            logs_dir=self.logs_dir,
+            trace_run_id=self._trace_run_id,
+            benchmark=self._trace_benchmark,
+            framework="opencode",
+            instance_id=self._trace_instance_id,
+            attempt=self._trace_attempt,
+            docker_session_id=environment.session_id,
+        )
         started_at = datetime.now(timezone.utc)
         metadata: dict[str, Any] = {
             "schemaVersion": 1,
@@ -192,11 +209,13 @@ class BenchmarkOpenCode(OpenCode):
             "harborVersion": self._harbor_version,
             "image": self._trace_image,
             "sessionId": self.session_id,
+            "agentSightProfileId": self._agentsight_profiler.profile_id,
+            "agentSightStrict": self._agentsight_profiler.strict,
             "startedAt": started_at.isoformat(),
             "status": "running",
         }
-        _atomic_write_json(self.logs_dir / TRACE_METADATA_FILENAME, metadata)
         try:
+            _atomic_write_json(self.logs_dir / TRACE_METADATA_FILENAME, metadata)
             await super().run(instruction, environment, context)
         except BaseException as error:
             _atomic_write_json(
@@ -213,14 +232,17 @@ class BenchmarkOpenCode(OpenCode):
                 },
             )
             raise
-        _atomic_write_json(
-            self.logs_dir / TRACE_METADATA_FILENAME,
-            {
-                **metadata,
-                "finishedAt": datetime.now(timezone.utc).isoformat(),
-                "status": "completed",
-            },
-        )
+        else:
+            _atomic_write_json(
+                self.logs_dir / TRACE_METADATA_FILENAME,
+                {
+                    **metadata,
+                    "finishedAt": datetime.now(timezone.utc).isoformat(),
+                    "status": "completed",
+                },
+            )
+        finally:
+            await asyncio.to_thread(self._agentsight_profiler.finish)
 
 
 def _trial_metadata(logs_dir: Path) -> dict[str, Any]:
@@ -248,9 +270,7 @@ def _trial_metadata(logs_dir: Path) -> dict[str, Any]:
     task_agent = document.get("agent")
     environment = document.get("environment")
     timeout = task_agent.get("timeout_sec") if isinstance(task_agent, dict) else None
-    image = (
-        environment.get("docker_image") if isinstance(environment, dict) else None
-    )
+    image = environment.get("docker_image") if isinstance(environment, dict) else None
     if not isinstance(timeout, int | float) or timeout <= 0:
         raise ValueError("Harbor task has no positive agent timeout")
     if not isinstance(image, str) or not image:

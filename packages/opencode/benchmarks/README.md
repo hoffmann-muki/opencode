@@ -282,14 +282,16 @@ authoritative auxiliary artifacts.
 
 ### AgentSight companion profiles
 
-Traced SWE-bench Verified and SWE-bench Pro attempts also start AgentSight
-automatically when the local `agentsight:play` image is available. This is an
-independent OS-level profile, not another semantic trace extractor. The generic
-adapter maps the already-running task container to its PID namespace, then a
-privileged, network-isolated sidecar records process, filesystem, network,
-signal, memory, and system activity. Static TLS capture is scoped to the
-OpenCode binary; namespace-wide stdio capture is disabled because AgentSight's
-stdio probe requires one concrete PID.
+Every traced SWE-bench Verified, SWE-bench Pro, and Terminal-Bench 2.1 attempt
+also starts AgentSight automatically. This is an independent OS-level profile,
+not another semantic trace extractor. The generic adapter maps the
+already-running task container to its PID namespace, then one privileged,
+network-isolated sidecar records process, filesystem, network, signal, memory,
+and system activity. Static TLS capture is scoped to the exact OpenCode binary
+and task PID namespace for both SWE-bench and Terminal-Bench; this preserves
+provider-call correlation without attaching transport probes to unrelated
+processes. Namespace-wide stdio capture is disabled because AgentSight's stdio
+probe requires one concrete PID.
 
 No collector command is required. Output is colocated with the attempt:
 
@@ -307,14 +309,29 @@ No collector command is required. Output is colocated with the attempt:
     └── system-events.jsonl.zst
 ```
 
-The runner waits for a readiness record matching the trace and scope before
+The runner waits for a readiness record matching the profile and scope before
 starting OpenCode, and stops the sidecar before destroying the task container.
+Terminal-Bench stages the completed profile in the Harbor trial log, then
+atomically co-locates it with the normalized semantic attempt during trace
+promotion. Its deterministic profile identity and correlation record name the
+run, benchmark, framework, instance, and attempt.
+The profile root is directly visualizable with the same scope-aware command
+used for multi-plane framework profiles:
+
+```bash
+agentsight report --profile-dir <attempt>/profiles/agentsight serve
+```
+
+OpenCode currently contributes one `task-container` scope, so this produces one
+scope lane; the loader still preserves scope identity and uses the same
+normalized wall-clock representation as a future multi-scope profile.
 Profiling is best-effort and has separate health by default, so an unavailable
 image or probe does not alter the benchmark result or retry policy. Set
 `BENCHMARK_AGENTSIGHT_STRICT=1` to require profiling before provider work, or
 `BENCHMARK_AGENTSIGHT=off` to disable it explicitly. `AGENTSIGHT_IMAGE`,
-`AGENTSIGHT_READY_TIMEOUT_MS`, and `AGENTSIGHT_STOP_TIMEOUT_SECONDS` override
-the image and supervisor timeouts.
+`AGENTSIGHT_READY_TIMEOUT_SECONDS`, and `AGENTSIGHT_STOP_TIMEOUT_SECONDS`
+override the image and supervisor timeouts. The legacy
+`AGENTSIGHT_READY_TIMEOUT_MS` spelling remains accepted by OpenCode.
 
 Profiles retain sensitive research evidence even though parsed authentication
 headers are removed before persistence. Keep the attempt directory private.

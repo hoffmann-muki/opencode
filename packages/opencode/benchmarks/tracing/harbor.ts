@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, rmSync } from "node:fs"
-import { writeFile } from "node:fs/promises"
+import { cp, lstat, mkdir, readdir, writeFile } from "node:fs/promises"
 import { dirname, join, resolve } from "node:path"
 import { encodedInstanceId, traceAttemptDirectory } from "./recorder.ts"
 import {
@@ -27,6 +27,8 @@ interface HarborTraceMetadata {
   readonly harborVersion: string
   readonly image: string
   readonly sessionId: string
+  readonly agentSightProfileId: string
+  readonly agentSightStrict: boolean
   readonly startedAt: string
   readonly finishedAt?: string
   readonly status: "running" | "completed" | "failed" | "timeout"
@@ -110,6 +112,8 @@ export async function collectOpenCodeHarborTraces(input: {
       const attemptDir = traceAttemptDirectory(input.run.root, metadata.instanceId, metadata.attempt)
       if (existsSync(join(attemptDir, "manifest.json"))) {
         assertExistingAttempt(attemptDir, metadata)
+        assertAgentSightProfile(attemptDir, metadata.agentSightProfileId)
+        rmSync(join(dirname(metadataPath), ".agentsight-profile"), { force: true, recursive: true })
         await writeFile(stdoutPath, stripHarborTraceFrames(stdout), "utf8")
         continue
       }
@@ -162,8 +166,15 @@ export async function collectOpenCodeHarborTraces(input: {
         metadata.status === "completed" ? "completed" : metadata.status === "timeout" ? "timeout" : "failed"
       adapter.endExecution(status, metadata.error, finishedAt)
       const finalized = adapter.finish(status, metadata.error, finishedAt)
+      try {
+        await attachAgentSightProfile(dirname(metadataPath), finalized.attemptDir, metadata.agentSightProfileId)
+      } catch (error) {
+        if (metadata.agentSightStrict) throw error
+        await writeUnavailableAgentSightProfile(finalized.attemptDir, metadata, error)
+      }
       mkdirSync(dirname(attemptDir), { recursive: true, mode: 0o700 })
       renameSync(finalized.attemptDir, attemptDir)
+      rmSync(join(dirname(metadataPath), ".agentsight-profile"), { force: true, recursive: true })
       rmSync(stagingRoot, { force: true, recursive: true })
       await writeFile(stdoutPath, stripHarborTraceFrames(stdout), "utf8")
     }
@@ -209,6 +220,115 @@ function assertExistingAttempt(attemptDir: string, metadata: HarborTraceMetadata
     value.attempt !== metadata.attempt
   ) {
     throw new Error(`Existing OpenCode trace attempt conflicts with Harbor metadata: ${attemptDir}`)
+  }
+}
+
+async function attachAgentSightProfile(agentDir: string, attemptDir: string, profileId: string): Promise<void> {
+  const source = join(agentDir, ".agentsight-profile", "profiles", "agentsight")
+  const destination = join(attemptDir, "profiles", "agentsight")
+  await assertRealTree(source)
+  assertAgentSightProfile(source, profileId, true)
+  if (existsSync(destination)) throw new Error(`OpenCode trace already has an AgentSight profile: ${destination}`)
+  await cp(source, destination, {
+    recursive: true,
+    force: false,
+    errorOnExist: true,
+  })
+}
+
+async function assertRealTree(path: string): Promise<void> {
+  const status = await lstat(path)
+  if (status.isSymbolicLink()) throw new Error(`OpenCode AgentSight profile contains a symbolic link: ${path}`)
+  if (!status.isDirectory()) return
+  await Promise.all((await readdir(path)).map((name) => assertRealTree(join(path, name))))
+}
+
+async function writeUnavailableAgentSightProfile(
+  attemptDir: string,
+  metadata: HarborTraceMetadata,
+  error: unknown,
+): Promise<void> {
+  const directory = join(attemptDir, "profiles", "agentsight")
+  const reason = `profile attachment failed: ${error instanceof Error ? error.name : "unknown error"}`
+  const source = {
+    status: "unavailable",
+    complete: false,
+    reason,
+  }
+  await mkdir(directory, { recursive: true, mode: 0o700 })
+  await Promise.all([
+    writeFile(
+      join(directory, "profile.json"),
+      `${JSON.stringify(
+        {
+          schema: "benchmark-agentsight-profile/v1",
+          profileId: metadata.agentSightProfileId,
+          status: "unavailable",
+          topology: "docker-pid-host-sidecar",
+          sourceScopes: [],
+          startedAt: metadata.startedAt,
+          updatedAt: new Date().toISOString(),
+          targetContainer: "unavailable",
+          image: process.env.AGENTSIGHT_IMAGE?.trim() || "agentsight:play",
+          correlation: {
+            runId: metadata.runId,
+            benchmark: metadata.benchmark,
+            framework: "opencode",
+            instanceId: metadata.instanceId,
+            attempt: metadata.attempt,
+          },
+          reason,
+        },
+        null,
+        2,
+      )}\n`,
+      { mode: 0o600 },
+    ),
+    writeFile(
+      join(directory, "health.json"),
+      `${JSON.stringify(
+        {
+          schema: "benchmark-agentsight-health/v1",
+          profileId: metadata.agentSightProfileId,
+          status: "unavailable",
+          complete: false,
+          reason,
+          sources: { "task-container": source },
+        },
+        null,
+        2,
+      )}\n`,
+      { mode: 0o600 },
+    ),
+    writeFile(
+      join(directory, "summary.json"),
+      `${JSON.stringify(
+        {
+          status: "unavailable",
+          complete: false,
+          reason,
+          sources: { "task-container": source },
+        },
+        null,
+        2,
+      )}\n`,
+      { mode: 0o600 },
+    ),
+  ])
+}
+
+function assertAgentSightProfile(attemptDir: string, profileId: string, direct = false): void {
+  const directory = direct ? attemptDir : join(attemptDir, "profiles", "agentsight")
+  const value: unknown = JSON.parse(readFileSync(join(directory, "profile.json"), "utf8"))
+  if (
+    typeof value !== "object" ||
+    value === null ||
+    !("schema" in value) ||
+    value.schema !== "benchmark-agentsight-profile/v1" ||
+    !("profileId" in value) ||
+    value.profileId !== profileId
+  ) {
+    throw new Error(`OpenCode AgentSight profile conflicts with Harbor metadata: ${directory}`)
   }
 }
 
@@ -310,6 +430,11 @@ function isHarborTraceMetadata(value: unknown): value is HarborTraceMetadata {
     "sessionId" in value &&
     typeof value.sessionId === "string" &&
     value.sessionId.length > 0 &&
+    "agentSightProfileId" in value &&
+    typeof value.agentSightProfileId === "string" &&
+    /^agentsight-[0-9a-f]{32}$/.test(value.agentSightProfileId) &&
+    "agentSightStrict" in value &&
+    typeof value.agentSightStrict === "boolean" &&
     "startedAt" in value &&
     typeof value.startedAt === "string" &&
     (!("finishedAt" in value) || typeof value.finishedAt === "string") &&

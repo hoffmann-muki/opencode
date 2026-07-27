@@ -275,9 +275,30 @@ describe("Terminal-Bench runner", () => {
           harborVersion: "0.20.0",
           image: "example/task:latest",
           sessionId: "task-a__trial__agent",
+          agentSightProfileId: `agentsight-${"c".repeat(32)}`,
+          agentSightStrict: false,
           startedAt: new Date(1_000).toISOString(),
           finishedAt: new Date(1_100).toISOString(),
           status: "completed",
+        }),
+      )
+      const profileDir = join(agentDir, ".agentsight-profile", "profiles", "agentsight")
+      mkdirSync(profileDir, { recursive: true })
+      writeFileSync(
+        join(profileDir, "profile.json"),
+        JSON.stringify({
+          schema: "benchmark-agentsight-profile/v1",
+          profileId: `agentsight-${"c".repeat(32)}`,
+          status: "completed",
+        }),
+      )
+      writeFileSync(
+        join(profileDir, "health.json"),
+        JSON.stringify({
+          schema: "benchmark-agentsight-health/v1",
+          profileId: `agentsight-${"c".repeat(32)}`,
+          status: "completed",
+          complete: true,
         }),
       )
       writeFileSync(
@@ -312,6 +333,15 @@ describe("Terminal-Bench runner", () => {
       expect(Bun.file(join(run.root, "run.json")).size).toBeGreaterThan(0)
       expect(readFileSync(join(agentDir, "opencode.txt"), "utf8")).not.toContain("benchmark_trace.native")
       expect(await Bun.file(join(run.root, ".harbor-staging")).exists()).toBe(false)
+      expect(
+        JSON.parse(
+          readFileSync(
+            join(run.root, "instances", "task-a", "attempt-1", "profiles", "agentsight", "profile.json"),
+            "utf8",
+          ),
+        ).profileId,
+      ).toBe(`agentsight-${"c".repeat(32)}`)
+      expect(await Bun.file(join(agentDir, ".agentsight-profile")).exists()).toBe(false)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }

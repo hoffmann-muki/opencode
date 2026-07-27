@@ -253,12 +253,20 @@ export function buildAgentSightSidecarArgs(input: {
 }
 
 function agentSightSettings(env: Record<string, string | undefined>): AgentSightSettings {
+  const readyTimeoutMs = env.AGENTSIGHT_READY_TIMEOUT_SECONDS
+    ? positiveSeconds(env.AGENTSIGHT_READY_TIMEOUT_SECONDS, DEFAULT_READY_TIMEOUT_MS)
+    : positiveInteger(env.AGENTSIGHT_READY_TIMEOUT_MS, DEFAULT_READY_TIMEOUT_MS)
   return {
     image: env.AGENTSIGHT_IMAGE?.trim() || DEFAULT_IMAGE,
     strict: env.BENCHMARK_AGENTSIGHT_STRICT === "1",
-    readyTimeoutMs: positiveInteger(env.AGENTSIGHT_READY_TIMEOUT_MS, DEFAULT_READY_TIMEOUT_MS),
+    readyTimeoutMs,
     stopTimeoutSeconds: positiveInteger(env.AGENTSIGHT_STOP_TIMEOUT_SECONDS, DEFAULT_STOP_TIMEOUT_SECONDS),
   }
+}
+
+function positiveSeconds(value: string | undefined, fallbackMs: number): number {
+  const parsed = Number.parseFloat(value ?? "")
+  return Number.isFinite(parsed) && parsed > 0 ? Math.ceil(parsed * 1_000) : fallbackMs
 }
 
 function disabled(env: Record<string, string | undefined>): boolean {
