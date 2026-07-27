@@ -23,6 +23,7 @@ import { collectOpenCodeHarborTraces, stripHarborTraceFrames } from "./tracing/h
 export const TERMINAL_BENCH_DATASET = "terminal-bench/terminal-bench-2-1"
 export const TERMINAL_BENCH_TASK_COUNT = 89
 
+const TERMINAL_BENCH_TASK_PREFIX = "terminal-bench/"
 const DEFAULT_RUN_ROOT = ".benchmark-runs/terminal-bench-2.1"
 const DEFAULT_MAX_TASKS = 1
 const DEFAULT_ATTEMPTS = 1
@@ -126,7 +127,7 @@ export function usage(): string {
     "Flags:",
     `  --max-tasks N          Maximum tasks after filtering. Default: ${DEFAULT_MAX_TASKS}.`,
     "  --all-tasks            Remove the smoke task limit without leaderboard upload.",
-    "  --task-name NAME       Official task name or glob to include. Repeatable.",
+    "  --task-name NAME       Official task name or glob to include; terminal-bench/ is optional. Repeatable.",
     `  --attempts N           Attempts per task. Default: ${DEFAULT_ATTEMPTS}.`,
     `  --concurrency N        Concurrent Harbor trials. Default: ${DEFAULT_CONCURRENCY}.`,
     `  --max-retries N        Infrastructure retries per trial. Default: ${DEFAULT_MAX_RETRIES}.`,
@@ -280,8 +281,13 @@ export function parseArgs(
     throw new Error("--run-id may contain only letters, numbers, dots, underscores, and hyphens.")
   }
 
+  const normalizedTaskNames = taskNames.map(normalizeTerminalBenchTaskName)
+  if (new Set(normalizedTaskNames).size !== normalizedTaskNames.length) {
+    throw new Error("--task-name values must be unique.")
+  }
+
   return {
-    taskNames,
+    taskNames: normalizedTaskNames,
     ...(maxTasks !== undefined ? { maxTasks } : {}),
     attempts,
     concurrency,
@@ -321,6 +327,18 @@ export function resolveDefaultModel(env: NodeJS.ProcessEnv = process.env): strin
     return env.OPENROUTER_MODEL.startsWith("openrouter/") ? env.OPENROUTER_MODEL : `openrouter/${env.OPENROUTER_MODEL}`
   }
   return DEFAULT_MODEL
+}
+
+export function normalizeTerminalBenchTaskName(taskName: string): string {
+  const normalized = taskName.startsWith(TERMINAL_BENCH_TASK_PREFIX)
+    ? taskName.slice(TERMINAL_BENCH_TASK_PREFIX.length)
+    : taskName
+  if (!normalized || normalized.includes("/")) {
+    throw new Error(
+      `--task-name must be an official Terminal-Bench task name or glob, optionally prefixed with ${TERMINAL_BENCH_TASK_PREFIX}`,
+    )
+  }
+  return normalized
 }
 
 export function buildHarborArgs(options: CliOptions, jobsDir: string): readonly string[] {
@@ -376,7 +394,9 @@ export function buildHarborArgs(options: CliOptions, jobsDir: string): readonly 
     options.runId,
   ]
 
-  for (const taskName of options.taskNames) args.push("--include-task-name", taskName)
+  for (const taskName of options.taskNames) {
+    args.push("--include-task-name", `${TERMINAL_BENCH_TASK_PREFIX}${normalizeTerminalBenchTaskName(taskName)}`)
+  }
   if (options.maxTasks !== undefined) args.push("--n-tasks", String(options.maxTasks))
   if (options.upload) args.push("--upload")
   if (options.public) args.push("--public")
@@ -514,6 +534,7 @@ export async function collectTerminalBenchTraces(input: {
 }): Promise<string | undefined> {
   return collectOpenCodeHarborTraces({
     ...input,
+    taskNames: input.taskNames.map(normalizeTerminalBenchTaskName),
     officialTaskCount: TERMINAL_BENCH_TASK_COUNT,
   })
 }

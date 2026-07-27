@@ -5,6 +5,7 @@ import { join, resolve } from "node:path"
 import {
   TERMINAL_BENCH_DATASET,
   buildHarborArgs,
+  normalizeTerminalBenchTaskName,
   parseArgs,
   recoverTerminalBenchTraces,
   resolveDefaultModel,
@@ -109,12 +110,32 @@ describe("Terminal-Bench runner", () => {
       "--job-name",
       "terminal-smoke",
       "--include-task-name",
-      "git-*",
+      "terminal-bench/git-*",
       "--include-task-name",
-      "compression",
+      "terminal-bench/compression",
       "--n-tasks",
       "2",
     ])
+  })
+
+  test("accepts short or qualified task names and sends canonical Harbor filters", () => {
+    expect(normalizeTerminalBenchTaskName("write-compressor")).toBe("write-compressor")
+    expect(normalizeTerminalBenchTaskName("terminal-bench/write-compressor")).toBe("write-compressor")
+    expect(
+      parseArgs(
+        ["--task-name", "terminal-bench/write-compressor", "--task-name", "git-*"],
+        defaults,
+      ).taskNames,
+    ).toEqual(["write-compressor", "git-*"])
+    expect(() =>
+      parseArgs(
+        ["--task-name", "write-compressor", "--task-name", "terminal-bench/write-compressor"],
+        defaults,
+      ),
+    ).toThrow("must be unique")
+    expect(() => normalizeTerminalBenchTaskName("another-package/task")).toThrow(
+      "official Terminal-Bench task name",
+    )
   })
 
   test("accepts trace-only recovery without a provider run", () => {
@@ -132,6 +153,7 @@ describe("Terminal-Bench runner", () => {
     const coordinator = config.agent[BENCHMARK_COORDINATOR_AGENT]
 
     expect(config.default_agent).toBe(BENCHMARK_COORDINATOR_AGENT)
+    expect(config.agent.title.disable).toBe(true)
     expect(TERMINAL_BENCHMARK_AGENT_TOPOLOGY).toBe("supervisor-delegation")
     expect(coordinator.mode).toBe("primary")
     expect(coordinator.permission.task).toBe("allow")

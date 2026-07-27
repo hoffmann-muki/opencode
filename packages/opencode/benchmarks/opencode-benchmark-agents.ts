@@ -127,6 +127,9 @@ export function terminalBenchmarkAgentConfig() {
   return {
     default_agent: BENCHMARK_COORDINATOR_AGENT,
     agent: {
+      title: {
+        disable: true,
+      },
       [BENCHMARK_COORDINATOR_AGENT]: {
         mode: "primary",
         description: "Coordinates Terminal-Bench tasks through investigation, execution, and verification subagents.",
