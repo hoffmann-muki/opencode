@@ -28,6 +28,7 @@ import {
 import { benchmarkSourceIdentity, ensureBenchmarkRuntime, type BenchmarkRuntime } from "./opencode-runtime.ts"
 import { DirectTraceHarness, createTraceRun, finalizeTraceRun, type TraceRun } from "./tracing/coordination.ts"
 import { createOpenCodeAttemptTrace, finishOpenCodeTrace, traceStatus } from "./tracing/integration.ts"
+import { startAgentSightDockerProfile, type AgentSightProfileHandle } from "./tracing/agentsight.ts"
 
 const DATASET_NAME = "ScaleAI/SWE-bench_Pro"
 const DATASET_CONFIG = "default"
@@ -1077,6 +1078,7 @@ async function runInstanceAttempt(
   let sessionId: string | undefined
   let sessionExported = false
   let failureStage: InfrastructureStage = "setup"
+  let agentSight: AgentSightProfileHandle | undefined
   const trace = options.traceRun
     ? createOpenCodeAttemptTrace({
         run: options.traceRun,
@@ -1105,6 +1107,15 @@ async function runInstanceAttempt(
   try {
     imageMetadata = await prepareContainer(row, options, attemptRunDir, image, name)
     containerStarted = true
+    if (trace) {
+      agentSight = await startAgentSightDockerProfile({
+        attemptDir: trace.attemptDir,
+        profileId: trace.traceId,
+        containerName: name,
+        binaryPath: "/usr/local/bin/opencode",
+        scopeId: "task-container",
+      })
+    }
     failureStage = "agent"
     const args = buildOpencodeExecArgs(name, row, options, process.env)
     console.log(
@@ -1138,6 +1149,11 @@ async function runInstanceAttempt(
   } catch (error) {
     infrastructureError = errorMessage(error)
     if (failureStage === "agent") trace?.endExecution("failed", infrastructureError)
+  }
+  try {
+    await agentSight?.finish()
+  } catch (error) {
+    infrastructureError ??= errorMessage(error)
   }
 
   if (containerStarted) {

@@ -280,6 +280,47 @@ runs outside the installed-agent boundary, so evaluator lifecycle remains
 explicitly `not_exposed`; Harbor's logs, results, and ATIF trajectory remain
 authoritative auxiliary artifacts.
 
+### AgentSight companion profiles
+
+Traced SWE-bench Verified and SWE-bench Pro attempts also start AgentSight
+automatically when the local `agentsight:play` image is available. This is an
+independent OS-level profile, not another semantic trace extractor. The generic
+adapter maps the already-running task container to its PID namespace, then a
+privileged, network-isolated sidecar records process, filesystem, network,
+signal, memory, and system activity. Static TLS capture is scoped to the
+OpenCode binary; namespace-wide stdio capture is disabled because AgentSight's
+stdio probe requires one concrete PID.
+
+No collector command is required. Output is colocated with the attempt:
+
+```text
+<attempt>/profiles/agentsight/
+├── profile.json
+├── health.json
+├── summary.json
+├── collector.log
+└── sources/task-container/
+    ├── profile.json
+    ├── health.json
+    ├── ready.json
+    ├── capture.db
+    └── system-events.jsonl.zst
+```
+
+The runner waits for a readiness record matching the trace and scope before
+starting OpenCode, and stops the sidecar before destroying the task container.
+Profiling is best-effort and has separate health by default, so an unavailable
+image or probe does not alter the benchmark result or retry policy. Set
+`BENCHMARK_AGENTSIGHT_STRICT=1` to require profiling before provider work, or
+`BENCHMARK_AGENTSIGHT=off` to disable it explicitly. `AGENTSIGHT_IMAGE`,
+`AGENTSIGHT_READY_TIMEOUT_MS`, and `AGENTSIGHT_STOP_TIMEOUT_SECONDS` override
+the image and supervisor timeouts.
+
+Profiles retain sensitive research evidence even though parsed authentication
+headers are removed before persistence. Keep the attempt directory private.
+`events.jsonl` remains the canonical agent-semantic trace; AgentSight's
+`system-events.jsonl.zst` is the independent systems evidence stream.
+
 ## Terminal-Bench 2.1
 
 Terminal-Bench 2.1 is run through Harbor, the benchmark's official evaluation
