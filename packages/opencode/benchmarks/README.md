@@ -38,7 +38,7 @@ OPENROUTER_API_KEY=... bun run bench:swe-verified:infer -- \
 
 The safe defaults use `scikit-learn__scikit-learn-13439`,
 `openrouter/qwen/qwen3-coder-next`, one inference worker, one agent attempt, a
-30-minute agent timeout, and zero infrastructure retries. Passing
+15-minute agent timeout, and zero infrastructure retries. Passing
 `--max-instances` or `--offset` opts into dataset-window selection instead of
 the fixed smoke instance. Implicit windows preserve dataset order. Explicit
 `--instance-id` values preserve command order, reject duplicates, and take
