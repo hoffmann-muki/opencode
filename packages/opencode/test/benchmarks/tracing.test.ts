@@ -57,6 +57,18 @@ describe("benchmark tracing recorder", () => {
     })
   })
 
+  test("redacts private keys truncated before their closing boundary", () => {
+    const result = sanitizeTraceJson({
+      output: "-----BEGIN PRIVATE KEY-----\nsynthetic-truncated-payload",
+    })
+
+    expect(result.matches).toBe(1)
+    expect(result.rules).toEqual(["credential.private_key"])
+    expect(result.value).toEqual({
+      output: "<redacted:private_key>",
+    })
+  })
+
   test("marks error-level observability defects as failed and partial", () => {
     const trace = createAdapter(temporaryRoot(), "owner/project__health")
     trace.recorder.reportIssue("trace.synthetic_failure", "synthetic failure", "error")

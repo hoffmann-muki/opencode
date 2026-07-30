@@ -302,7 +302,8 @@ const ACCOUNTING_FIELD_SUFFIXES = [...ACCOUNTING_FIELDS]
 const TEXT_RULES = [
   {
     name: "credential.private_key",
-    pattern: /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?-----END [A-Z0-9 ]*PRIVATE KEY-----/gs,
+    pattern:
+      /-----BEGIN [A-Z0-9 ]*PRIVATE KEY-----.*?(?:-----END [A-Z0-9 ]*PRIVATE KEY-----|$)/gs,
     replacement: "<redacted:private_key>",
   },
   {
