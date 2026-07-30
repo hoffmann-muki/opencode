@@ -1,0 +1,106 @@
+<path>/testbed/astropy/io/registry/base.py</path>
+<type>file</type>
+<content>
+270:             The data format identifier.
+271:         data_class : class
+272:             The class of the object that can be read/written.
+273:         """
+274:         if (data_format, data_class) in self._identifiers:
+275:             self._identifiers.pop((data_format, data_class))
+276:         else:
+277:             raise IORegistryError(
+278:                 f"No identifier defined for format {data_format!r} and class"
+279:                 f" {data_class.__name__!r}"
+280:             )
+281: 
+282:     def identify_format(self, origin, data_class_required, path, fileobj, args, kwargs):
+283:         """Loop through identifiers to see which formats match.
+284: 
+285:         Parameters
+286:         ----------
+287:         origin : str
+288:             A string ``"read`` or ``"write"`` identifying whether the file is to be
+289:             opened for reading or writing.
+290:         data_class_required : object
+291:             The specified class for the result of `read` or the class that is to be
+292:             written.
+293:         path : str or path-like or None
+294:             The path to the file or None.
+295:         fileobj : file-like or None.
+296:             An open file object to read the file's contents, or ``None`` if the
+297:             file could not be opened.
+298:         args : sequence
+299:             Positional arguments for the `read` or `write` function. Note that
+300:             these must be provided as sequence.
+301:         kwargs : dict-like
+302:             Keyword arguments for the `read` or `write` function. Note that this
+303:             parameter must be `dict`-like.
+304: 
+305:         Returns
+306:         -------
+307:         valid_formats : list
+308:             List of matching formats.
+309:         """
+310:         valid_formats = []
+311:         for data_format, data_class in self._identifiers:
+312:             if self._is_best_match(data_class_required, data_class, self._identifiers):
+313:                 if self._identifiers[(data_format, data_class)](
+314:                     origin, path, fileobj, *args, **kwargs
+315:                 ):
+316:                     valid_formats.append(data_format)
+317: 
+318:         return valid_formats
+319: 
+320:     # =========================================================================
+321:     # Utils
+322: 
+323:     def _get_format_table_str(self, data_class, filter_on):
+324:         """``get_formats()``, without column "Data class", as a str."""
+325:         format_table = self.get_formats(data_class, filter_on)
+326:         format_table.remove_column("Data class")
+327:         format_table_str = "\n".join(format_table.pformat(max_lines=-1))
+328:         return format_table_str
+329: 
+330:     def _is_best_match(self, class1, class2, format_classes):
+331:         """Determine if class2 is the "best" match for class1 in the list of classes.
+332: 
+333:         It is assumed that (class2 in classes) is True.
+334:         class2 is the the best match if:
+335: 
+336:         - ``class1`` is a subclass of ``class2`` AND
+337:         - ``class2`` is the nearest ancestor of ``class1`` that is in classes
+338:           (which includes the case that ``class1 is class2``)
+339:         """
+340:         if issubclass(class1, class2):
+341:             classes = {cls for fmt, cls in format_classes}
+342:             for parent in class1.__mro__:
+343:                 if parent is class2:  # class2 is closest registered ancestor
+344:                     return True
+345:                 if parent in classes:  # class2 was superseded
+346:                     return False
+347:         return False
+348: 
+349:     def _get_valid_format(self, mode, cls, path, fileobj, args, kwargs):
+350:         """
+351:         Returns the first valid format that can be used to read/write the data in
+352:         question.  Mode can be either 'read' or 'write'.
+353:         """
+354:         valid_formats = self.identify_format(mode, cls, path, fileobj, args, kwargs)
+355: 
+356:         if len(valid_formats) == 0:
+357:             format_table_str = self._get_format_table_str(cls, mode.capitalize())
+358:             raise IORegistryError(
+359:                 "Format could not be identified based on the"
+360:                 " file name or contents, please provide a"
+361:                 " 'format' argument.\n"
+362:                 f"The available formats are:\n{format_table_str}"
+363:             )
+364:         elif len(valid_formats) > 1:
+365:             return self._get_highest_priority_format(mode, cls, valid_formats)
+366: 
+367:         return valid_formats[0]
+368: 
+369:     def _get_highest_priority_format(self, mode, cls, valid_formats):
+
+(Showing lines 270-369 of 474. Use offset=370 to continue.)
+</content>

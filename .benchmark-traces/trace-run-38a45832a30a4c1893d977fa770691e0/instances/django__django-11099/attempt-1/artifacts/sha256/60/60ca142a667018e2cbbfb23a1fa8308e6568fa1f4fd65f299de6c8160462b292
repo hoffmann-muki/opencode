@@ -1,0 +1,1 @@
+{"command":"python -m django test tests.auth_tests.test_validators --settings=tests.settings 2>&1 | head -50"}

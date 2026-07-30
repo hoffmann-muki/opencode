@@ -1,0 +1,13 @@
+212:    def test_identify_format(self, registry, fmtcls1):
+213:        """Test ``registry.identify_format()``."""
+218:        formats = registry.identify_format(*args)
+223:        formats = registry.identify_format(*args)
+262:    def test_compat_identify_format(self, registry, fmtcls1):
+268:        formats = compat.identify_format(*args, registry=registry)
+278:                formats = compat.identify_format(*args)
+362:        """Test ``registry.identify_format()``."""
+366:        formats = registry.identify_format(*args)
+372:        formats = registry.identify_format(*args)
+736:        """Test ``registry.identify_format()``."""
+741:        formats = registry.identify_format(*args)
+747:        formats = registry.identify_format(*args)

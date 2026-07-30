@@ -1,0 +1,3 @@
+233:        result = testdir.runpytest("--runxfail")
+334:        result = testdir.runpytest(p, "--runxfail")
+352:        result = testdir.runpytest(p, "--runxfail")

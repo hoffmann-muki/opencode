@@ -1,0 +1,17 @@
+Testing ASCIIUsernameValidator:
+  PASS: "valid_user"
+  PASS: "user.name"
+  PASS: "user@domain"
+  PASS: "user+tag"
+  PASS: "user-123"
+  FAIL: "user name" -> ValidationError
+  FAIL: "" -> ValidationError
+
+Testing UnicodeUsernameValidator:
+  PASS: "valid_user"
+  PASS: "user.name"
+  PASS: "user@domain"
+  PASS: "user+tag"
+  PASS: "user-123"
+  FAIL: "user name" -> ValidationError
+  FAIL: "" -> ValidationError

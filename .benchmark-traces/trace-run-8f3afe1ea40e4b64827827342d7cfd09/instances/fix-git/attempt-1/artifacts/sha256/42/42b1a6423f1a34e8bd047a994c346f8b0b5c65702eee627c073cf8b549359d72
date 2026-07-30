@@ -1,0 +1,1 @@
+{"command":"cd /app/personal-site && git add _includes/about.md && git commit -m \"Merge 'Move to Stanford' commit\""}

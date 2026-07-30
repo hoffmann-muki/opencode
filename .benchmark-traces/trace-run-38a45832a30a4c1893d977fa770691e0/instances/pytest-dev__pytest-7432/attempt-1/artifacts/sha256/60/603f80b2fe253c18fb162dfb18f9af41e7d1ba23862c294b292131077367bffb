@@ -1,0 +1,2 @@
+Great! The fix is working. Now let me verify that the skip location is actually showing the correct line number in the test file (not skipping.py:239):
+

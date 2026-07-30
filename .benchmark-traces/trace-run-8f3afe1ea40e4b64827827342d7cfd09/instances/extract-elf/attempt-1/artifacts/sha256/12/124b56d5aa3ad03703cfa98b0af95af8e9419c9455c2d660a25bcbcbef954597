@@ -1,0 +1,1 @@
+{"command":"ls -la /app/ && cat /app/*.json 2>/dev/null || echo \"No JSON files found\""}

@@ -1,0 +1,26 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+2320:     @property
+2321:     def extents(self):
+2322:         """Return extents of the span selector."""
+2323:         if self.direction == 'horizontal':
+2324:             vmin = self._rect.get_x()
+2325:             vmax = vmin + self._rect.get_width()
+2326:         else:
+2327:             vmin = self._rect.get_y()
+2328:             vmax = vmin + self._rect.get_height()
+2329:         return vmin, vmax
+2330: 
+2331:     @extents.setter
+2332:     def extents(self, extents):
+2333:         # Update displayed shape
+2334:         self._draw_shape(*extents)
+2335:         if self._interactive:
+2336:             # Update displayed handles
+2337:             self._edge_handles.set_data(self.extents)
+2338:         self.set_visible(self.visible)
+2339:         self.update()
+
+(Showing lines 2320-2339 of 3409. Use offset=2340 to continue.)
+</content>

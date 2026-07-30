@@ -1,0 +1,1 @@
+{"command":"ls -la /testbed/*.patch /testbed/*.diff 2>/dev/null || echo \"No patch files found\""}

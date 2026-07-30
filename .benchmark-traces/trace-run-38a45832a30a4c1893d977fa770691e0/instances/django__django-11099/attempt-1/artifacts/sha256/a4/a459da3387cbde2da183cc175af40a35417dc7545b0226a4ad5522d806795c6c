@@ -1,0 +1,106 @@
+<path>/testbed/django/core/validators.py</path>
+<type>file</type>
+<content>
+1: import ipaddress
+2: import re
+3: from pathlib import Path
+4: from urllib.parse import urlsplit, urlunsplit
+5: 
+6: from django.core.exceptions import ValidationError
+7: from django.utils.deconstruct import deconstructible
+8: from django.utils.functional import SimpleLazyObject
+9: from django.utils.ipv6 import is_valid_ipv6_address
+10: from django.utils.translation import gettext_lazy as _, ngettext_lazy
+11: 
+12: # These values, if given to validate(), will trigger the self.required check.
+13: EMPTY_VALUES = (None, '', [], (), {})
+14: 
+15: 
+16: def _lazy_re_compile(regex, flags=0):
+17:     """Lazily compile a regex with flags."""
+18:     def _compile():
+19:         # Compile the regex if it was not passed pre-compiled.
+20:         if isinstance(regex, str):
+21:             return re.compile(regex, flags)
+22:         else:
+23:             assert not flags, "flags must be empty if regex is passed pre-compiled"
+24:             return regex
+25:     return SimpleLazyObject(_compile)
+26: 
+27: 
+28: @deconstructible
+29: class RegexValidator:
+30:     regex = ''
+31:     message = _('Enter a valid value.')
+32:     code = 'invalid'
+33:     inverse_match = False
+34:     flags = 0
+35: 
+36:     def __init__(self, regex=None, message=None, code=None, inverse_match=None, flags=None):
+37:         if regex is not None:
+38:             self.regex = regex
+39:         if message is not None:
+40:             self.message = message
+41:         if code is not None:
+42:             self.code = code
+43:         if inverse_match is not None:
+44:             self.inverse_match = inverse_match
+45:         if flags is not None:
+46:             self.flags = flags
+47:         if self.flags and not isinstance(self.regex, str):
+48:             raise TypeError("If the flags are set, regex must be a regular expression string.")
+49: 
+50:         self.regex = _lazy_re_compile(self.regex, self.flags)
+51: 
+52:     def __call__(self, value):
+53:         """
+54:         Validate that the input contains (or does *not* contain, if
+55:         inverse_match is True) a match for the regular expression.
+56:         """
+57:         regex_matches = self.regex.search(str(value))
+58:         invalid_input = regex_matches if self.inverse_match else not regex_matches
+59:         if invalid_input:
+60:             raise ValidationError(self.message, code=self.code)
+61: 
+62:     def __eq__(self, other):
+63:         return (
+64:             isinstance(other, RegexValidator) and
+65:             self.regex.pattern == other.regex.pattern and
+66:             self.regex.flags == other.regex.flags and
+67:             (self.message == other.message) and
+68:             (self.code == other.code) and
+69:             (self.inverse_match == other.inverse_match)
+70:         )
+71: 
+72: 
+73: @deconstructible
+74: class URLValidator(RegexValidator):
+75:     ul = '\u00a1-\uffff'  # unicode letters range (must not be a raw string)
+76: 
+77:     # IP patterns
+78:     ipv4_re = r'(?:25[0-5]|2[0-4]\d|[0-1]?\d?\d)(?:\.(?:25[0-5]|2[0-4]\d|[0-1]?\d?\d)){3}'
+79:     ipv6_re = r'\[[0-9a-f:\.]+\]'  # (simple regex, validated later)
+80: 
+81:     # Host patterns
+82:     hostname_re = r'[a-z' + ul + r'0-9](?:[a-z' + ul + r'0-9-]{0,61}[a-z' + ul + r'0-9])?'
+83:     # Max length for domain name labels is 63 characters per RFC 1034 sec. 3.1
+84:     domain_re = r'(?:\.(?!-)[a-z' + ul + r'0-9-]{1,63}(?<!-))*'
+85:     tld_re = (
+86:         r'\.'                                # dot
+87:         r'(?!-)'                             # can't start with a dash
+88:         r'(?:[a-z' + ul + '-]{2,63}'         # domain label
+89:         r'|xn--[a-z0-9]{1,59})'              # or punycode label
+90:         r'(?<!-)'                            # can't end with a dash
+91:         r'\.?'                               # may have a trailing dot
+92:     )
+93:     host_re = '(' + hostname_re + domain_re + tld_re + '|localhost)'
+94: 
+95:     regex = _lazy_re_compile(
+96:         r'^(?:[a-z0-9\.\-\+]*)://'  # scheme is validated separately
+97:         r'(?:[^\s:@/]+(?::[^\s:@/]*)?@)?'  # user:pass authentication
+98:         r'(?:' + ipv4_re + '|' + ipv6_re + '|' + host_re + ')'
+99:         r'(?::\d{2,5})?'  # port
+100:         r'(?:[/?#][^\s]*)?'  # resource path
+
+(Showing lines 1-100 of 539. Use offset=101 to continue.)
+</content>

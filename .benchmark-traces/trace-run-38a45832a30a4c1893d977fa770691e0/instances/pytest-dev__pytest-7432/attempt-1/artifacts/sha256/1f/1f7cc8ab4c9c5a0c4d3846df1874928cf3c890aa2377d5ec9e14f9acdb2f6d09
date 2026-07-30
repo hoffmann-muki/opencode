@@ -1,0 +1,9 @@
+123:def skip(msg: str = "", *, allow_module_level: bool = False) -> "NoReturn":
+132:        module level, skipping the rest of the module. Default to False.
+135:        It is better to use the :ref:`pytest.mark.skipif ref` marker when possible to declare a test to be
+136:        skipped under certain conditions like mismatching platforms or
+140:        to skip a doctest statically.
+178:def importorskip(
+181:    """Imports and returns the requested module ``modname``, or skip the
+187:        still skipped.
+195:        docutils = pytest.importorskip("docutils")

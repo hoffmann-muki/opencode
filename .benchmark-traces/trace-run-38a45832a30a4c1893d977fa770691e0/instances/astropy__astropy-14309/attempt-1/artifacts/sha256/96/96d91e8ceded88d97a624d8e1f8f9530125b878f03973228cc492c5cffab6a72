@@ -1,0 +1,9 @@
+19:from . import BinTableHDU, GroupsHDU, HDUList, TableHDU
+72:    return len(args) > 0 and isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+147:        - :class:`~astropy.io.fits.hdu.table.TableHDU`
+148:        - :class:`~astropy.io.fits.hdu.table.BinTableHDU`
+149:        - :class:`~astropy.io.fits.hdu.table.GroupsHDU`
+150:        - :class:`~astropy.io.fits.hdu.hdulist.HDUList`
+185:    if isinstance(input, HDUList):
+189:            if isinstance(hdu_item, (TableHDU, BinTableHDU, GroupsHDU)):
+235:    elif isinstance(input, (TableHDU, BinTableHDU, GroupsHDU)):

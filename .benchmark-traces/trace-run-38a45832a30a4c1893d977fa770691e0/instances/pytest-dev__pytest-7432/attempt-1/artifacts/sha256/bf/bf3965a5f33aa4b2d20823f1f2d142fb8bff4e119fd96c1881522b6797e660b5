@@ -1,0 +1,4 @@
+/testbed/testing/test_skipping.py
+/testbed/testing/example_scripts/unittest/test_setup_skip_class.py
+/testbed/testing/example_scripts/unittest/test_setup_skip_module.py
+/testbed/testing/example_scripts/unittest/test_setup_skip.py

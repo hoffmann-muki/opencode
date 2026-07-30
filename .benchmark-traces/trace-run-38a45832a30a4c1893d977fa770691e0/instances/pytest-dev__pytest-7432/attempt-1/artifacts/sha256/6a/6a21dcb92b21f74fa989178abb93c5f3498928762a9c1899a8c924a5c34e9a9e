@@ -1,0 +1,4 @@
+I see the issue now. The test shows that skip location reporting is still broken with `--runxfail`. The problem is that when using `pytest.skip()` directly in a test function, the location is correctly reported, but when using `@pytest.mark.skip` or `@pytest.mark.skipif` decorators, the location still points to `skipping.py:239`.
+
+Let me analyze the code more carefully to understand the root cause:
+

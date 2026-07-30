@@ -1,0 +1,36 @@
+<path>/testbed/astropy/io/fits/connect.py</path>
+<type>file</type>
+<content>
+48: def is_fits(origin, filepath, fileobj, *args, **kwargs):
+49:     """
+50:     Determine whether `origin` is a FITS file.
+51: 
+52:     Parameters
+53:     ----------
+54:     origin : str or readable file-like
+55:         Path or file object containing a potential FITS file.
+56: 
+57:     Returns
+58:     -------
+59:     is_fits : bool
+60:         Returns `True` if the given file is a FITS file.
+61:     """
+62:     if fileobj is not None:
+63:         pos = fileobj.tell()
+64:         sig = fileobj.read(30)
+65:         fileobj.seek(pos)
+66:         return sig == FITS_SIGNATURE
+67:     elif filepath is not None:
+68:         if filepath.lower().endswith(
+69:             (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+70:         ):
+71:             return True
+72:     return len(args) > 0 and isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+73: 
+74: 
+75: def _decode_mixins(tbl):
+76:     """Decode a Table ``tbl`` that has astropy Columns + appropriate meta-data into
+77:     the corresponding table with mixin columns (as appropriate).
+
+(Showing lines 48-77 of 454. Use offset=78 to continue.)
+</content>

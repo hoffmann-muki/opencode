@@ -1,0 +1,132 @@
+<path>/testbed/test_fix.py</path>
+<type>file</type>
+<content>
+1: """Test script to verify the skip location reporting fix with --runxfail."""
+2: import subprocess
+3: import sys
+4: import tempfile
+5: import os
+6: 
+7: 
+8: def test_skip_location_with_runxfail():
+9:     """Test that skip location is correctly reported when --runxfail is used."""
+10:     
+11:     # Create a test file with both skip and xfail tests
+12:     test_content = '''
+13: import pytest
+14: 
+15: def test_skip_with_reason():
+16:     """This test should be skipped."""
+17:     pytest.skip("This is a skip test")
+18: 
+19: @pytest.mark.xfail
+20: def test_xfail_test():
+21:     """This test is expected to fail."""
+22:     assert False
+23: 
+24: def test_normal_pass():
+25:     """This test should pass."""
+26:     assert True
+27: '''
+28:     
+29:     with tempfile.TemporaryDirectory() as tmpdir:
+30:         test_file = os.path.join(tmpdir, "test_example.py")
+31:         with open(test_file, "w") as f:
+32:             f.write(test_content)
+33:         
+34:         # Run with --runxfail
+35:         result = subprocess.run(
+36:             [sys.executable, "-m", "pytest", test_file, "--runxfail", "-v"],
+37:             capture_output=True,
+38:             text=True
+39:         )
+40:         
+41:         print("=" * 80)
+42:         print("STDOUT:")
+43:         print(result.stdout)
+44:         print("=" * 80)
+45:         print("STDERR:")
+46:         print(result.stderr)
+47:         print("=" * 80)
+48:         
+49:         # Check that skip location is in the test file, not in skipping.py
+50:         # The skip should show the test file location, not line 239 in skipping.py
+51:         if "test_example.py" in result.stdout and "test_skip_with_reason" in result.stdout:
+52:             # Check that the location is not pointing to skipping.py line 239
+53:             if "skipping.py:239" not in result.stdout:
+54:                 print("✓ SUCCESS: Skip location is correctly pointing to test file")
+55:                 return True
+56:             else:
+57:                 print("✗ FAILURE: Skip location is still pointing to skipping.py:239")
+58:                 return False
+59:         else:
+60:             print("✗ FAILURE: Could not find skip test in output")
+61:             return False
+62: 
+63: 
+64: def test_xfail_still_works_with_runxfail():
+65:     """Test that xfail tests still work correctly with --runxfail."""
+66:     
+67:     test_content = '''
+68: import pytest
+69: 
+70: @pytest.mark.xfail
+71: def test_xfail_should_run():
+72:     """This xfail test should run and fail with --runxfail."""
+73:     assert False
+74: 
+75: @pytest.mark.xfail
+76: def test_xfail_should_pass():
+77:     """This xfail test should run and pass with --runxfail (XPASS)."""
+78:     assert True
+79: '''
+80:     
+81:     with tempfile.TemporaryDirectory() as tmpdir:
+82:         test_file = os.path.join(tmpdir, "test_xfail.py")
+83:         with open(test_file, "w") as f:
+84:             f.write(test_content)
+85:         
+86:         result = subprocess.run(
+87:             [sys.executable, "-m", "pytest", test_file, "--runxfail", "-v"],
+88:             capture_output=True,
+89:             text=True
+90:         )
+91:         
+92:         print("\n" + "=" * 80)
+93:         print("XFAIL TESTS OUTPUT:")
+94:         print(result.stdout)
+95:         print("=" * 80)
+96:         
+97:         # With --runxfail, xfail tests should run normally
+98:         # The xfail that fails should be reported as failed (not xfailed)
+99:         # The xfail that passes should be reported as passed (XPASS)
+100:         if "test_xfail_should_run" in result.stdout and "test_xfail_should_pass" in result.stdout:
+101:             print("✓ SUCCESS: xfail tests are running with --runxfail")
+102:             return True
+103:         else:
+104:             print("✗ FAILURE: xfail tests not found in output")
+105:             return False
+106: 
+107: 
+108: if __name__ == "__main__":
+109:     print("Testing skip location reporting with --runxfail...")
+110:     print()
+111:     
+112:     test1_passed = test_skip_location_with_runxfail()
+113:     test2_passed = test_xfail_still_works_with_runxfail()
+114:     
+115:     print("\n" + "=" * 80)
+116:     print("SUMMARY:")
+117:     print(f"  Skip location test: {'PASSED' if test1_passed else 'FAILED'}")
+118:     print(f"  Xfail behavior test: {'PASSED' if test2_passed else 'FAILED'}")
+119:     print("=" * 80)
+120:     
+121:     if test1_passed and test2_passed:
+122:         print("\n✓ All tests passed!")
+123:         sys.exit(0)
+124:     else:
+125:         print("\n✗ Some tests failed!")
+126:         sys.exit(1)
+
+(End of file - total 126 lines)
+</content>

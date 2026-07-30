@@ -1,0 +1,56 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+2158:     def _setup_edge_handle(self, props):
+2159:         self._edge_handles = ToolLineHandles(self.ax, self.extents,
+2160:                                              direction=self.direction,
+2161:                                              line_props=props,
+2162:                                              useblit=self.useblit)
+2163:         self.artists.extend([line for line in self._edge_handles.artists])
+2164: 
+2165:     def _press(self, event):
+2166:         """Button press event handler."""
+2167:         if self._interactive and self._rect.get_visible():
+2168:             self._set_active_handle(event)
+2169:         else:
+2170:             self._active_handle = None
+2171: 
+2172:         if self._active_handle is None or not self._interactive:
+2173:             # Clear previous rectangle before drawing new rectangle.
+2174:             self.update()
+2175: 
+2176:         v = event.xdata if self.direction == 'horizontal' else event.ydata
+2177:         # self._pressv and self._prev are deprecated but we still need to
+2178:         # maintain them
+2179:         self._pressv = v
+2180:         self._prev = self._get_data(event)
+2181: 
+2182:         if self._active_handle is None:
+2183:             # when the press event outside the span, we initially set the
+2184:             # visibility to False and extents to (v, v)
+2185:             # update will be called when setting the extents
+2186:             self.visible = False
+2187:             self.extents = v, v
+2188:             # We need to set the visibility back, so the span selector will be
+2189:             # drawn when necessary (span width > 0)
+2190:             self.visible = True
+2191:         else:
+2192:             self.set_visible(True)
+2193: 
+2194:         return False
+2195: 
+2196:     @property
+2197:     def direction(self):
+2198:         """Direction of the span selector: 'vertical' or 'horizontal'."""
+2199:         return self._direction
+2200: 
+2201:     @direction.setter
+2202:     def direction(self, direction):
+2203:         """Set the direction of the span selector."""
+2204:         _api.check_in_list(['horizontal', 'vertical'], direction=direction)
+2205:         if hasattr(self, '_direction') and direction != self._direction:
+2206:             # remove previous artists
+2207:             self._rect.remove()
+
+(Showing lines 2158-2207 of 3409. Use offset=2208 to continue.)
+</content>

@@ -1,0 +1,206 @@
+<path>/testbed/sympy/core/function.py</path>
+<type>file</type>
+<content>
+317: class Function(Application, Expr):
+318:     """Base class for applied mathematical functions.
+319: 
+320:     It also serves as a constructor for undefined function classes.
+321: 
+322:     Examples
+323:     ========
+324: 
+325:     First example shows how to use Function as a constructor for undefined
+326:     function classes:
+327: 
+328:     >>> from sympy import Function, Symbol
+329:     >>> x = Symbol('x')
+330:     >>> f = Function('f')
+331:     >>> g = Function('g')(x)
+332:     >>> f
+333:     f
+334:     >>> f(x)
+335:     f(x)
+336:     >>> g
+337:     g(x)
+338:     >>> f(x).diff(x)
+339:     Derivative(f(x), x)
+340:     >>> g.diff(x)
+341:     Derivative(g(x), x)
+342: 
+343:     In the following example Function is used as a base class for
+344:     ``my_func`` that represents a mathematical function *my_func*. Suppose
+345:     that it is well known, that *my_func(0)* is *1* and *my_func* at infinity
+346:     goes to *0*, so we want those two simplifications to occur automatically.
+347:     Suppose also that *my_func(x)* is real exactly when *x* is real. Here is
+348:     an implementation that honours those requirements:
+349: 
+350:     >>> from sympy import Function, S, oo, I, sin
+351:     >>> class my_func(Function):
+352:     ...
+353:     ...     @classmethod
+354:     ...     def eval(cls, x):
+355:     ...         if x.is_Number:
+356:     ...             if x is S.Zero:
+357:     ...                 return S.One
+358:     ...             elif x is S.Infinity:
+359:     ...                 return S.Zero
+360:     ...
+361:     ...     def _eval_is_real(self):
+362:     ...         return self.args[0].is_real
+363:     ...
+364:     >>> x = S('x')
+365:     >>> my_func(0) + sin(0)
+366:     1
+367:     >>> my_func(oo)
+368:     0
+369:     >>> my_func(3.54).n() # Not yet implemented for my_func.
+370:     my_func(3.54)
+371:     >>> my_func(I).is_real
+372:     False
+373: 
+374:     In order for ``my_func`` to become useful, several other methods would
+375:     need to be implemented. See source code of some of the already
+376:     implemented functions for more complete examples.
+377: 
+378:     Also, if the function can take more than one argument, then ``nargs``
+379:     must be defined, e.g. if ``my_func`` can take one or two arguments
+380:     then,
+381: 
+382:     >>> class my_func(Function):
+383:     ...     nargs = (1, 2)
+384:     ...
+385:     >>>
+386:     """
+387: 
+388:     @property
+389:     def _diff_wrt(self):
+390:         """Allow derivatives wrt functions.
+391: 
+392:         Examples
+393:         ========
+394: 
+395:         >>> from sympy import Function, Symbol
+396:         >>> f = Function('f')
+397:         >>> x = Symbol('x')
+398:         >>> f(x)._diff_wrt
+399:         True
+400: 
+401:         """
+402:         return True
+403: 
+404:     @cacheit
+405:     def __new__(cls, *args, **options):
+406:         # Handle calls like Function('f')
+407:         if cls is Function:
+408:             return UndefinedFunction(*args, **options)
+409: 
+410:         n = len(args)
+411:         if n not in cls.nargs:
+412:             # XXX: exception message must be in exactly this format to
+413:             # make it work with NumPy's functions like vectorize(). See,
+414:             # for example, https://github.com/numpy/numpy/issues/1697.
+415:             # The ideal solution would be just to attach metadata to
+416:             # the exception and change NumPy to take advantage of this.
+417:             temp = ('%(name)s takes %(qual)s %(args)s '
+418:                    'argument%(plural)s (%(given)s given)')
+419:             raise TypeError(temp % {
+420:                 'name': cls,
+421:                 'qual': 'exactly' if len(cls.nargs) == 1 else 'at least',
+422:                 'args': min(cls.nargs),
+423:                 'plural': 's'*(min(cls.nargs) != 1),
+424:                 'given': n})
+425: 
+426:         evaluate = options.get('evaluate', global_evaluate[0])
+427:         result = super(Function, cls).__new__(cls, *args, **options)
+428:         if not evaluate or not isinstance(result, cls):
+429:             return result
+430: 
+431:         pr = max(cls._should_evalf(a) for a in result.args)
+432:         pr2 = min(cls._should_evalf(a) for a in result.args)
+433:         if pr2 > 0:
+434:             return result.evalf(mlib.libmpf.prec_to_dps(pr))
+435:         return result
+436: 
+437:     @classmethod
+438:     def _should_evalf(cls, arg):
+439:         """
+440:         Decide if the function should automatically evalf().
+441: 
+442:         By default (in this implementation), this happens if (and only if) the
+443:         ARG is a floating point number.
+444:         This function is used by __new__.
+445: 
+446:         Returns the precision to evalf to, or -1 if it shouldn't evalf.
+447:         """
+448:         from sympy.core.symbol import Wild
+449:         if arg.is_Float:
+450:             return arg._prec
+451:         if not arg.is_Add:
+452:             return -1
+453:         # Don't use as_real_imag() here, that's too much work
+454:         a, b = Wild('a'), Wild('b')
+455:         m = arg.match(a + b*S.ImaginaryUnit)
+456:         if not m or not (m[a].is_Float or m[b].is_Float):
+457:             return -1
+458:         l = [m[i]._prec for i in m if m[i].is_Float]
+459:         l.append(-1)
+460:         return max(l)
+461: 
+462:     @classmethod
+463:     def class_key(cls):
+464:         from sympy.sets.fancysets import Naturals0
+465:         funcs = {
+466:             'exp': 10,
+467:             'log': 11,
+468:             'sin': 20,
+469:             'cos': 21,
+470:             'tan': 22,
+471:             'cot': 23,
+472:             'sinh': 30,
+473:             'cosh': 31,
+474:             'tanh': 32,
+475:             'coth': 33,
+476:             'conjugate': 40,
+477:             're': 41,
+478:             'im': 42,
+479:             'arg': 43,
+480:         }
+481:         name = cls.__name__
+482: 
+483:         try:
+484:             i = funcs[name]
+485:         except KeyError:
+486:             i = 0 if isinstance(cls.nargs, Naturals0) else 10000
+487: 
+488:         return 4, i, name
+489: 
+490:     @property
+491:     def is_commutative(self):
+492:         """
+493:         Returns whether the functon is commutative.
+494:         """
+495:         if all(getattr(t, 'is_commutative') for t in self.args):
+496:             return True
+497:         else:
+498:             return False
+499: 
+500:     def _eval_evalf(self, prec):
+501:         # Lookup mpmath function based on name
+502:         fname = self.func.__name__
+503:         try:
+504:             if not hasattr(mpmath, fname):
+505:                 from sympy.utilities.lambdify import MPMATH_TRANSLATIONS
+506:                 fname = MPMATH_TRANSLATIONS[fname]
+507:             func = getattr(mpmath, fname)
+508:         except (AttributeError, KeyError):
+509:             try:
+510:                 return Float(self._imp_(*self.args), prec)
+511:             except (AttributeError, TypeError, ValueError):
+512:                 return
+513: 
+514:         # Convert all args to mpf or mpc
+515:         # Convert the arguments to *higher* precision than requested for the
+516:         # final result.
+
+(Showing lines 317-516 of 2650. Use offset=517 to continue.)
+</content>

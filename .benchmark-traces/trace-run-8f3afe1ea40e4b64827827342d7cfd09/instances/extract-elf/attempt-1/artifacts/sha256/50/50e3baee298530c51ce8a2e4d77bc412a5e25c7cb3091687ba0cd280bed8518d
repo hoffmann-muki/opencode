@@ -1,0 +1,1 @@
+{"command":"readelf -x .plt /app/a.out && echo \"---\" && readelf -x .plt.got /app/a.out && echo \"---\" && readelf -x .plt.sec /app/a.out && echo \"---\" && readelf -x .eh_frame /app/a.out"}

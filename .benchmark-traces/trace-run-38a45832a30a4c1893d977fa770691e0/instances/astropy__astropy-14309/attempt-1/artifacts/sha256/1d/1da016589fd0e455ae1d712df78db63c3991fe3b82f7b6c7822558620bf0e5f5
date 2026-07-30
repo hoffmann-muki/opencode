@@ -1,0 +1,1010 @@
+<path>/testbed/astropy/io/fits/tests/test_connect.py</path>
+<type>file</type>
+<content>
+1: import gc
+2: import warnings
+3: 
+4: import numpy as np
+5: import pytest
+6: from numpy.testing import assert_allclose, assert_array_equal
+7: 
+8: from astropy import units as u
+9: from astropy.io import fits
+10: from astropy.io.fits import BinTableHDU, HDUList, ImageHDU, PrimaryHDU, table_to_hdu
+11: from astropy.io.fits.column import (
+12:     _fortran_to_python_format,
+13:     _parse_tdisp_format,
+14:     python_to_tdisp,
+15: )
+16: from astropy.io.tests.mixin_columns import compare_attrs, mixin_cols, serialized_names
+17: from astropy.table import Column, QTable, Table
+18: from astropy.table.table_helpers import simple_table
+19: from astropy.time import Time
+20: from astropy.units import allclose as quantity_allclose
+21: from astropy.units.format.fits import UnitScaleError
+22: from astropy.units.quantity import QuantityInfo
+23: from astropy.utils.compat import NUMPY_LT_1_22
+24: from astropy.utils.data import get_pkg_data_filename
+25: from astropy.utils.exceptions import AstropyDeprecationWarning, AstropyUserWarning
+26: from astropy.utils.misc import _NOT_OVERWRITING_MSG_MATCH
+27: 
+28: # FITS does not preserve precision, in_subfmt, and out_subfmt.
+29: time_attrs = ["value", "shape", "format", "scale", "location"]
+30: compare_attrs = {
+31:     name: (time_attrs if isinstance(col, Time) else compare_attrs[name])
+32:     for name, col in mixin_cols.items()
+33: }
+34: # FITS does not support multi-element location, array with object dtype,
+35: # or logarithmic quantities.
+36: unsupported_cols = {
+37:     name: col
+38:     for name, col in mixin_cols.items()
+39:     if (
+40:         isinstance(col, Time)
+41:         and col.location.shape != ()
+42:         or isinstance(col, np.ndarray)
+43:         and col.dtype.kind == "O"
+44:         or isinstance(col, u.LogQuantity)
+45:     )
+46: }
+47: mixin_cols = {
+48:     name: col for name, col in mixin_cols.items() if name not in unsupported_cols
+49: }
+50: 
+51: 
+52: def equal_data(a, b):
+53:     return all(np.all(a[name] == b[name]) for name in a.dtype.names)
+54: 
+55: 
+56: class TestSingleTable:
+57:     def setup_class(self):
+58:         self.data = np.array(
+59:             list(zip([1, 2, 3, 4], ["a", "b", "c", "d"], [2.3, 4.5, 6.7, 8.9])),
+60:             dtype=[("a", int), ("b", "U1"), ("c", float)],
+61:         )
+62: 
+63:     def test_simple(self, tmp_path):
+64:         filename = tmp_path / "test_simple.fts"
+65:         t1 = Table(self.data)
+66:         t1.write(filename, overwrite=True)
+67:         t2 = Table.read(filename)
+68:         assert equal_data(t1, t2)
+69: 
+70:     def test_simple_pathlib(self, tmp_path):
+71:         filename = tmp_path / "test_simple.fit"
+72:         t1 = Table(self.data)
+73:         t1.write(filename, overwrite=True)
+74:         t2 = Table.read(filename)
+75:         assert equal_data(t1, t2)
+76: 
+77:     def test_simple_meta(self, tmp_path):
+78:         filename = tmp_path / "test_simple.fits"
+79:         t1 = Table(self.data)
+80:         t1.meta["A"] = 1
+81:         t1.meta["B"] = 2.3
+82:         t1.meta["C"] = "spam"
+83:         t1.meta["comments"] = ["this", "is", "a", "long", "comment"]
+84:         t1.meta["HISTORY"] = ["first", "second", "third"]
+85:         t1.write(filename, overwrite=True)
+86:         t2 = Table.read(filename)
+87:         assert equal_data(t1, t2)
+88:         for key in t1.meta:
+89:             if isinstance(t1.meta, list):
+90:                 for i in range(len(t1.meta[key])):
+91:                     assert t1.meta[key][i] == t2.meta[key][i]
+92:             else:
+93:                 assert t1.meta[key] == t2.meta[key]
+94: 
+95:     def test_simple_meta_conflicting(self, tmp_path):
+96:         filename = tmp_path / "test_simple.fits"
+97:         t1 = Table(self.data)
+98:         t1.meta["ttype1"] = "spam"
+99:         with pytest.warns(
+100:             AstropyUserWarning,
+101:             match=(
+102:                 "Meta-data keyword ttype1 "
+103:                 "will be ignored since it conflicts with a FITS "
+104:                 "reserved keyword"
+105:             ),
+106:         ) as w:
+107:             t1.write(filename, overwrite=True)
+108:         assert len(w) == 1
+109: 
+110:     def test_simple_noextension(self, tmp_path):
+111:         """
+112:         Test that file type is recognized without extension
+113:         """
+114:         filename = tmp_path / "test_simple"
+115:         t1 = Table(self.data)
+116:         t1.write(filename, overwrite=True, format="fits")
+117:         t2 = Table.read(filename)
+118:         assert equal_data(t1, t2)
+119: 
+120:     @pytest.mark.parametrize("table_type", (Table, QTable))
+121:     def test_with_units(self, table_type, tmp_path):
+122:         filename = tmp_path / "test_with_units.fits"
+123:         t1 = table_type(self.data)
+124:         t1["a"].unit = u.m
+125:         t1["c"].unit = u.km / u.s
+126:         t1.write(filename, overwrite=True)
+127:         t2 = table_type.read(filename)
+128:         assert equal_data(t1, t2)
+129:         assert t2["a"].unit == u.m
+130:         assert t2["c"].unit == u.km / u.s
+131: 
+132:     def test_with_custom_units_qtable(self, tmp_path):
+133:         # Test only for QTable - for Table's Column, new units are dropped
+134:         # (as is checked in test_write_drop_nonstandard_units).
+135:         filename = tmp_path / "test_with_units.fits"
+136:         unit = u.def_unit("bandpass_sol_lum")
+137:         t = QTable()
+138:         t["l"] = np.ones(5) * unit
+139:         with pytest.warns(AstropyUserWarning) as w:
+140:             t.write(filename, overwrite=True)
+141:         assert len(w) == 1
+142:         assert "bandpass_sol_lum" in str(w[0].message)
+143:         # Just reading back, the data is fine but the unit is not recognized.
+144:         with pytest.warns(
+145:             u.UnitsWarning, match="'bandpass_sol_lum' did not parse"
+146:         ) as w:
+147:             t2 = QTable.read(filename)
+148:         assert len(w) == 1
+149:         assert isinstance(t2["l"].unit, u.UnrecognizedUnit)
+150:         assert str(t2["l"].unit) == "bandpass_sol_lum"
+151:         assert np.all(t2["l"].value == t["l"].value)
+152: 
+153:         # But if we enable the unit, it should be recognized.
+154:         with u.add_enabled_units(unit):
+155:             t3 = QTable.read(filename)
+156:             assert t3["l"].unit is unit
+157:             assert equal_data(t3, t)
+158: 
+159:             # Regression check for #8897; write used to fail when a custom
+160:             # unit was enabled.
+161:             with pytest.warns(AstropyUserWarning):
+162:                 t3.write(filename, overwrite=True)
+163: 
+164:         # It should also be possible to read the file in using a unit alias,
+165:         # even to a unit that may not be the same.
+166:         with u.set_enabled_aliases({"bandpass_sol_lum": u.Lsun}):
+167:             t3 = QTable.read(filename)
+168:             assert t3["l"].unit is u.Lsun
+169: 
+170:     @pytest.mark.parametrize("table_type", (Table, QTable))
+171:     def test_read_with_unit_aliases(self, table_type):
+172:         hdu = BinTableHDU(self.data)
+173:         hdu.columns[0].unit = "Angstroms"
+174:         hdu.columns[2].unit = "ergs/(cm.s.Angstroms)"
+175:         with u.set_enabled_aliases(dict(Angstroms=u.AA, ergs=u.erg)):
+176:             t = table_type.read(hdu)
+177:         assert t["a"].unit == u.AA
+178:         assert t["c"].unit == u.erg / (u.cm * u.s * u.AA)
+179: 
+180:     @pytest.mark.parametrize("table_type", (Table, QTable))
+181:     def test_with_format(self, table_type, tmp_path):
+182:         filename = tmp_path / "test_with_format.fits"
+183:         t1 = table_type(self.data)
+184:         t1["a"].format = "{:5d}"
+185:         t1["b"].format = "{:>20}"
+186:         t1["c"].format = "{:6.2f}"
+187:         t1.write(filename, overwrite=True)
+188:         t2 = table_type.read(filename)
+189:         assert equal_data(t1, t2)
+190:         assert t2["a"].format == "{:5d}"
+191:         assert t2["b"].format == "{:>20}"
+192:         assert t2["c"].format == "{:6.2f}"
+193: 
+194:     def test_masked(self, tmp_path):
+195:         filename = tmp_path / "test_masked.fits"
+196:         t1 = Table(self.data, masked=True)
+197:         t1.mask["a"] = [1, 0, 1, 0]
+198:         t1.mask["b"] = [1, 0, 0, 1]
+199:         t1.mask["c"] = [0, 1, 1, 0]
+200:         t1.write(filename, overwrite=True)
+201:         t2 = Table.read(filename)
+202:         assert equal_data(t1, t2)
+203:         assert np.all(t1["a"].mask == t2["a"].mask)
+204:         assert np.all(t1["b"].mask == t2["b"].mask)
+205:         assert np.all(t1["c"].mask == t2["c"].mask)
+206: 
+207:     @pytest.mark.parametrize("masked", [True, False])
+208:     def test_masked_nan(self, masked, tmp_path):
+209:         """Check that masked values by default are replaced by NaN.
+210: 
+211:         This should work for any shape and be independent of whether the
+212:         Table is formally masked or not.
+213: 
+214:         """
+215:         filename = tmp_path / "test_masked_nan.fits"
+216:         a = np.ma.MaskedArray([5.25, 8.5, 3.75, 6.25], mask=[1, 0, 1, 0])
+217:         b = np.ma.MaskedArray([2.5, 4.5, 6.75, 8.875], mask=[1, 0, 0, 1], dtype="f4")
+218:         c = np.ma.stack([a, b], axis=-1)
+219:         t1 = Table([a, b, c], names=["a", "b", "c"], masked=masked)
+220:         t1.write(filename, overwrite=True)
+221:         t2 = Table.read(filename)
+222:         assert_array_equal(t2["a"].data, [np.nan, 8.5, np.nan, 6.25])
+223:         assert_array_equal(t2["b"].data, [np.nan, 4.5, 6.75, np.nan])
+224:         assert_array_equal(
+225:             t2["c"].data, np.stack([t2["a"].data, t2["b"].data], axis=-1)
+226:         )
+227:         assert np.all(t1["a"].mask == t2["a"].mask)
+228:         assert np.all(t1["b"].mask == t2["b"].mask)
+229:         assert np.all(t1["c"].mask == t2["c"].mask)
+230: 
+231:     def test_masked_serialize_data_mask(self, tmp_path):
+232:         filename = tmp_path / "test_masked_nan.fits"
+233:         a = np.ma.MaskedArray([5.25, 8.5, 3.75, 6.25], mask=[1, 0, 1, 0])
+234:         b = np.ma.MaskedArray([2.5, 4.5, 6.75, 8.875], mask=[1, 0, 0, 1])
+235:         c = np.ma.stack([a, b], axis=-1)
+236:         t1 = Table([a, b, c], names=["a", "b", "c"])
+237:         t1.write(filename, overwrite=True)
+238:         t2 = Table.read(filename)
+239:         assert_array_equal(t2["a"].data, [5.25, 8.5, 3.75, 6.25])
+240:         assert_array_equal(t2["b"].data, [2.5, 4.5, 6.75, 8.875])
+241:         assert_array_equal(
+242:             t2["c"].data, np.stack([t2["a"].data, t2["b"].data], axis=-1)
+243:         )
+244:         assert np.all(t1["a"].mask == t2["a"].mask)
+245:         assert np.all(t1["b"].mask == t2["b"].mask)
+246:         assert np.all(t1["c"].mask == t2["c"].mask)
+247: 
+248:     def test_read_from_fileobj(self, tmp_path):
+249:         filename = tmp_path / "test_read_from_fileobj.fits"
+250:         hdu = BinTableHDU(self.data)
+251:         hdu.writeto(filename, overwrite=True)
+252:         with open(filename, "rb") as f:
+253:             t = Table.read(f)
+254:         assert equal_data(t, self.data)
+255: 
+256:     def test_read_with_nonstandard_units(self):
+257:         hdu = BinTableHDU(self.data)
+258:         hdu.columns[0].unit = "RADIANS"
+259:         hdu.columns[1].unit = "spam"
+260:         hdu.columns[2].unit = "millieggs"
+261:         with pytest.warns(u.UnitsWarning, match="did not parse as fits unit"):
+262:             t = Table.read(hdu)
+263:         assert equal_data(t, self.data)
+264: 
+265:     @pytest.mark.parametrize("table_type", (Table, QTable))
+266:     def test_write_drop_nonstandard_units(self, table_type, tmp_path):
+267:         # While we are generous on input (see above), we are strict on
+268:         # output, dropping units not recognized by the fits standard.
+269:         filename = tmp_path / "test_nonstandard_units.fits"
+270:         spam = u.def_unit("spam")
+271:         t = table_type()
+272:         t["a"] = [1.0, 2.0, 3.0] * spam
+273:         with pytest.warns(AstropyUserWarning, match="spam") as w:
+274:             t.write(filename)
+275:         assert len(w) == 1
+276:         if table_type is Table:
+277:             assert "cannot be recovered in reading. " in str(w[0].message)
+278:         else:
+279:             assert "lost to non-astropy fits readers" in str(w[0].message)
+280: 
+281:         with fits.open(filename) as ff:
+282:             hdu = ff[1]
+283:             assert "TUNIT1" not in hdu.header
+284: 
+285:     def test_memmap(self, tmp_path):
+286:         filename = tmp_path / "test_simple.fts"
+287:         t1 = Table(self.data)
+288:         t1.write(filename, overwrite=True)
+289:         t2 = Table.read(filename, memmap=False)
+290:         t3 = Table.read(filename, memmap=True)
+291:         assert equal_data(t2, t3)
+292:         # To avoid issues with --open-files, we need to remove references to
+293:         # data that uses memory mapping and force the garbage collection
+294:         del t1, t2, t3
+295:         gc.collect()
+296: 
+297:     @pytest.mark.parametrize("memmap", (False, True))
+298:     def test_character_as_bytes(self, tmp_path, memmap):
+299:         filename = tmp_path / "test_simple.fts"
+300:         t1 = Table(self.data)
+301:         t1.write(filename, overwrite=True)
+302:         t2 = Table.read(filename, character_as_bytes=False, memmap=memmap)
+303:         t3 = Table.read(filename, character_as_bytes=True, memmap=memmap)
+304:         assert t2["b"].dtype.kind == "U"
+305:         assert t3["b"].dtype.kind == "S"
+306:         assert equal_data(t2, t3)
+307:         # To avoid issues with --open-files, we need to remove references to
+308:         # data that uses memory mapping and force the garbage collection
+309:         del t1, t2, t3
+310:         gc.collect()
+311: 
+312:     def test_oned_single_element(self, tmp_path):
+313:         filename = tmp_path / "test_oned_single_element.fits"
+314:         table = Table({"x": [[1], [2]]})
+315:         table.write(filename, overwrite=True)
+316: 
+317:         read = Table.read(filename)
+318:         assert read["x"].shape == (2, 1)
+319:         assert len(read["x"][0]) == 1
+320: 
+321:     def test_write_append(self, tmp_path):
+322:         t = Table(self.data)
+323:         hdu = table_to_hdu(t)
+324: 
+325:         def check_equal(filename, expected, start_from=1):
+326:             with fits.open(filename) as hdu_list:
+327:                 assert len(hdu_list) == expected
+328:                 for hdu_table in hdu_list[start_from:]:
+329:                     assert hdu_table.header == hdu.header
+330:                     assert np.all(hdu_table.data == hdu.data)
+331: 
+332:         filename = tmp_path / "test_write_append.fits"
+333:         t.write(filename, append=True)
+334:         t.write(filename, append=True)
+335:         check_equal(filename, 3)
+336: 
+337:         # Check the overwrite works correctly.
+338:         t.write(filename, append=True, overwrite=True)
+339:         t.write(filename, append=True)
+340:         check_equal(filename, 3)
+341: 
+342:         # Normal write, check it's not appending.
+343:         t.write(filename, overwrite=True)
+344:         t.write(filename, overwrite=True)
+345:         check_equal(filename, 2)
+346: 
+347:         # Now write followed by append, with different shaped tables.
+348:         t2 = Table(np.array([1, 2]))
+349:         t2.write(filename, overwrite=True)
+350:         t.write(filename, append=True)
+351:         check_equal(filename, 3, start_from=2)
+352:         assert equal_data(t2, Table.read(filename, hdu=1))
+353: 
+354:     def test_write_overwrite(self, tmp_path):
+355:         t = Table(self.data)
+356:         filename = tmp_path / "test_write_overwrite.fits"
+357:         t.write(filename)
+358:         with pytest.raises(OSError, match=_NOT_OVERWRITING_MSG_MATCH):
+359:             t.write(filename)
+360:         t.write(filename, overwrite=True)
+361: 
+362:     def test_mask_nans_on_read(self, tmp_path):
+363:         filename = tmp_path / "test_inexact_format_parse_on_read.fits"
+364:         c1 = fits.Column(name="a", array=np.array([1, 2, np.nan]), format="E")
+365:         table_hdu = fits.TableHDU.from_columns([c1])
+366:         table_hdu.writeto(filename)
+367: 
+368:         tab = Table.read(filename)
+369:         assert any(tab.mask)
+370:         assert tab.mask[2]
+371: 
+372:         tab = Table.read(filename, mask_invalid=False)
+373:         assert tab.mask is None
+374: 
+375:         # using memmap also deactivate the masking
+376:         tab = Table.read(filename, memmap=True)
+377:         assert tab.mask is None
+378: 
+379:     def test_mask_null_on_read(self, tmp_path):
+380:         filename = tmp_path / "test_null_format_parse_on_read.fits"
+381:         col = fits.Column(
+382:             name="a",
+383:             array=np.array([1, 2, 99, 60000], dtype="u2"),
+384:             format="I",
+385:             null=99,
+386:             bzero=32768,
+387:         )
+388:         bin_table_hdu = fits.BinTableHDU.from_columns([col])
+389:         bin_table_hdu.writeto(filename, overwrite=True)
+390: 
+391:         tab = Table.read(filename)
+392:         assert any(tab.mask)
+393:         assert tab.mask[2]
+394: 
+395:     def test_mask_str_on_read(self, tmp_path):
+396:         filename = tmp_path / "test_null_format_parse_on_read.fits"
+397:         col = fits.Column(
+398:             name="a", array=np.array([b"foo", b"bar", b""], dtype="|S3"), format="A3"
+399:         )
+400:         bin_table_hdu = fits.BinTableHDU.from_columns([col])
+401:         bin_table_hdu.writeto(filename, overwrite=True)
+402: 
+403:         tab = Table.read(filename)
+404:         assert any(tab.mask)
+405:         assert tab.mask[2]
+406: 
+407:         tab = Table.read(filename, mask_invalid=False)
+408:         assert tab.mask is None
+409: 
+410: 
+411: class TestMultipleHDU:
+412:     def setup_class(self):
+413:         self.data1 = np.array(
+414:             list(zip([1, 2, 3, 4], ["a", "b", "c", "d"], [2.3, 4.5, 6.7, 8.9])),
+415:             dtype=[("a", int), ("b", "U1"), ("c", float)],
+416:         )
+417:         self.data2 = np.array(
+418:             list(zip([1.4, 2.3, 3.2, 4.7], [2.3, 4.5, 6.7, 8.9])),
+419:             dtype=[("p", float), ("q", float)],
+420:         )
+421:         self.data3 = np.array(
+422:             list(zip([1, 2, 3, 4], [2.3, 4.5, 6.7, 8.9])),
+423:             dtype=[("A", int), ("B", float)],
+424:         )
+425:         hdu0 = PrimaryHDU()
+426:         hdu1 = BinTableHDU(self.data1, name="first")
+427:         hdu2 = BinTableHDU(self.data2, name="second")
+428:         hdu3 = ImageHDU(np.ones((3, 3)), name="third")
+429:         hdu4 = BinTableHDU(self.data3)
+430: 
+431:         self.hdus = HDUList([hdu0, hdu1, hdu2, hdu3, hdu4])
+432:         self.hdusb = HDUList([hdu0, hdu3, hdu2, hdu1])
+433:         self.hdus3 = HDUList([hdu0, hdu3, hdu2])
+434:         self.hdus2 = HDUList([hdu0, hdu1, hdu3])
+435:         self.hdus1 = HDUList([hdu0, hdu1])
+436: 
+437:     def teardown_class(self):
+438:         del self.hdus
+439: 
+440:     def setup_method(self, method):
+441:         warnings.filterwarnings("always")
+442: 
+443:     def test_read(self, tmp_path):
+444:         filename = tmp_path / "test_read.fits"
+445:         self.hdus.writeto(filename)
+446:         with pytest.warns(
+447:             AstropyUserWarning,
+448:             match=r"hdu= was not specified but multiple tables "
+449:             r"are present, reading in first available "
+450:             r"table \(hdu=1\)",
+451:         ):
+452:             t = Table.read(filename)
+453:         assert equal_data(t, self.data1)
+454: 
+455:         filename = tmp_path / "test_read_2.fits"
+456:         self.hdusb.writeto(filename)
+457:         with pytest.warns(
+458:             AstropyUserWarning,
+459:             match=r"hdu= was not specified but multiple tables "
+460:             r"are present, reading in first available "
+461:             r"table \(hdu=2\)",
+462:         ):
+463:             t3 = Table.read(filename)
+464:         assert equal_data(t3, self.data2)
+465: 
+466:     def test_read_with_hdu_0(self, tmp_path):
+467:         filename = tmp_path / "test_read_with_hdu_0.fits"
+468:         self.hdus.writeto(filename)
+469:         with pytest.raises(ValueError) as exc:
+470:             Table.read(filename, hdu=0)
+471:         assert exc.value.args[0] == "No table found in hdu=0"
+472: 
+473:     @pytest.mark.parametrize("hdu", [1, "first"])
+474:     def test_read_with_hdu_1(self, tmp_path, hdu):
+475:         filename = tmp_path / "test_read_with_hdu_1.fits"
+476:         self.hdus.writeto(filename)
+477:         t = Table.read(filename, hdu=hdu)
+478:         assert equal_data(t, self.data1)
+479: 
+480:     @pytest.mark.parametrize("hdu", [2, "second"])
+481:     def test_read_with_hdu_2(self, tmp_path, hdu):
+482:         filename = tmp_path / "test_read_with_hdu_2.fits"
+483:         self.hdus.writeto(filename)
+484:         t = Table.read(filename, hdu=hdu)
+485:         assert equal_data(t, self.data2)
+486: 
+487:     @pytest.mark.parametrize("hdu", [3, "third"])
+488:     def test_read_with_hdu_3(self, tmp_path, hdu):
+489:         filename = tmp_path / "test_read_with_hdu_3.fits"
+490:         self.hdus.writeto(filename)
+491:         with pytest.raises(ValueError, match="No table found in hdu=3"):
+492:             Table.read(filename, hdu=hdu)
+493: 
+494:     def test_read_with_hdu_4(self, tmp_path):
+495:         filename = tmp_path / "test_read_with_hdu_4.fits"
+496:         self.hdus.writeto(filename)
+497:         t = Table.read(filename, hdu=4)
+498:         assert equal_data(t, self.data3)
+499: 
+500:     @pytest.mark.parametrize("hdu", [2, 3, "1", "second", ""])
+501:     def test_read_with_hdu_missing(self, tmp_path, hdu):
+502:         filename = tmp_path / "test_warn_with_hdu_1.fits"
+503:         self.hdus1.writeto(filename)
+504:         with pytest.warns(
+505:             AstropyDeprecationWarning,
+506:             match=rf"Specified hdu={hdu} not found, "
+507:             r"reading in first available table \(hdu=1\)",
+508:         ):
+509:             t1 = Table.read(filename, hdu=hdu)
+510:         assert equal_data(t1, self.data1)
+511: 
+512:     @pytest.mark.parametrize("hdu", [0, 2, "third"])
+513:     def test_read_with_hdu_warning(self, tmp_path, hdu):
+514:         filename = tmp_path / "test_warn_with_hdu_2.fits"
+515:         self.hdus2.writeto(filename)
+516:         with pytest.warns(
+517:             AstropyDeprecationWarning,
+518:             match=rf"No table found in specified hdu={hdu}, "
+519:             r"reading in first available table \(hdu=1\)",
+520:         ):
+521:             t2 = Table.read(filename, hdu=hdu)
+522:         assert equal_data(t2, self.data1)
+523: 
+524:     @pytest.mark.parametrize("hdu", [0, 1, "third"])
+525:     def test_read_in_last_hdu(self, tmp_path, hdu):
+526:         filename = tmp_path / "test_warn_with_hdu_3.fits"
+527:         self.hdus3.writeto(filename)
+528:         with pytest.warns(
+529:             AstropyDeprecationWarning,
+530:             match=rf"No table found in specified hdu={hdu}, "
+531:             r"reading in first available table \(hdu=2\)",
+532:         ):
+533:             t3 = Table.read(filename, hdu=hdu)
+534:         assert equal_data(t3, self.data2)
+535: 
+536:     def test_read_from_hdulist(self):
+537:         with pytest.warns(
+538:             AstropyUserWarning,
+539:             match=r"hdu= was not specified but multiple tables "
+540:             r"are present, reading in first available "
+541:             r"table \(hdu=1\)",
+542:         ):
+543:             t = Table.read(self.hdus)
+544:         assert equal_data(t, self.data1)
+545: 
+546:         with pytest.warns(
+547:             AstropyUserWarning,
+548:             match=r"hdu= was not specified but multiple tables "
+549:             r"are present, reading in first available "
+550:             r"table \(hdu=2\)",
+551:         ):
+552:             t3 = Table.read(self.hdusb)
+553:         assert equal_data(t3, self.data2)
+554: 
+555:     def test_read_from_hdulist_with_hdu_0(self):
+556:         with pytest.raises(ValueError) as exc:
+557:             Table.read(self.hdus, hdu=0)
+558:         assert exc.value.args[0] == "No table found in hdu=0"
+559: 
+560:     @pytest.mark.parametrize("hdu", [1, "first", None])
+561:     def test_read_from_hdulist_with_single_table(self, hdu):
+562:         t = Table.read(self.hdus1, hdu=hdu)
+563:         assert equal_data(t, self.data1)
+564: 
+565:     @pytest.mark.parametrize("hdu", [1, "first"])
+566:     def test_read_from_hdulist_with_hdu_1(self, hdu):
+567:         t = Table.read(self.hdus, hdu=hdu)
+568:         assert equal_data(t, self.data1)
+569: 
+570:     @pytest.mark.parametrize("hdu", [2, "second"])
+571:     def test_read_from_hdulist_with_hdu_2(self, hdu):
+572:         t = Table.read(self.hdus, hdu=hdu)
+573:         assert equal_data(t, self.data2)
+574: 
+575:     @pytest.mark.parametrize("hdu", [3, "third"])
+576:     def test_read_from_hdulist_with_hdu_3(self, hdu):
+577:         with pytest.raises(ValueError, match="No table found in hdu=3"):
+578:             Table.read(self.hdus, hdu=hdu)
+579: 
+580:     @pytest.mark.parametrize("hdu", [0, 2, "third"])
+581:     def test_read_from_hdulist_with_hdu_warning(self, hdu):
+582:         with pytest.warns(
+583:             AstropyDeprecationWarning,
+584:             match=rf"No table found in specified hdu={hdu}, "
+585:             r"reading in first available table \(hdu=1\)",
+586:         ):
+587:             t2 = Table.read(self.hdus2, hdu=hdu)
+588:         assert equal_data(t2, self.data1)
+589: 
+590:     @pytest.mark.parametrize("hdu", [2, 3, "1", "second", ""])
+591:     def test_read_from_hdulist_with_hdu_missing(self, hdu):
+592:         with pytest.warns(
+593:             AstropyDeprecationWarning,
+594:             match=rf"Specified hdu={hdu} not found, "
+595:             r"reading in first available table \(hdu=1\)",
+596:         ):
+597:             t1 = Table.read(self.hdus1, hdu=hdu)
+598:         assert equal_data(t1, self.data1)
+599: 
+600:     @pytest.mark.parametrize("hdu", [0, 1, "third"])
+601:     def test_read_from_hdulist_in_last_hdu(self, hdu):
+602:         with pytest.warns(
+603:             AstropyDeprecationWarning,
+604:             match=rf"No table found in specified hdu={hdu}, "
+605:             r"reading in first available table \(hdu=2\)",
+606:         ):
+607:             t3 = Table.read(self.hdus3, hdu=hdu)
+608:         assert equal_data(t3, self.data2)
+609: 
+610:     @pytest.mark.parametrize("hdu", [None, 1, "first"])
+611:     def test_read_from_single_hdu(self, hdu):
+612:         t = Table.read(self.hdus[1])
+613:         assert equal_data(t, self.data1)
+614: 
+615: 
+616: def test_masking_regression_1795():
+617:     """
+618:     Regression test for #1795 - this bug originally caused columns where TNULL
+619:     was not defined to have their first element masked.
+620:     """
+621:     t = Table.read(get_pkg_data_filename("data/tb.fits"))
+622:     assert np.all(t["c1"].mask == np.array([False, False]))
+623:     assert not hasattr(t["c2"], "mask")
+624:     assert not hasattr(t["c3"], "mask")
+625:     assert not hasattr(t["c4"], "mask")
+626:     assert np.all(t["c1"].data == np.array([1, 2]))
+627:     assert np.all(t["c2"].data == np.array([b"abc", b"xy "]))
+628:     assert_allclose(t["c3"].data, np.array([3.70000007153, 6.6999997139]))
+629:     assert np.all(t["c4"].data == np.array([False, True]))
+630: 
+631: 
+632: def test_scale_error():
+633:     a = [1, 4, 5]
+634:     b = [2.0, 5.0, 8.2]
+635:     c = ["x", "y", "z"]
+636:     t = Table([a, b, c], names=("a", "b", "c"), meta={"name": "first table"})
+637:     t["a"].unit = "1.2"
+638:     with pytest.raises(
+639:         UnitScaleError,
+640:         match=r"The column 'a' could not be "
+641:         r"stored in FITS format because it has a scale '\(1\.2\)'"
+642:         r" that is not recognized by the FITS standard\. Either "
+643:         r"scale the data or change the units\.",
+644:     ):
+645:         t.write("t.fits", format="fits", overwrite=True)
+646: 
+647: 
+648: @pytest.mark.parametrize(
+649:     "tdisp_str, format_return",
+650:     [
+651:         ("EN10.5", ("EN", "10", "5", None)),
+652:         ("F6.2", ("F", "6", "2", None)),
+653:         ("B5.10", ("B", "5", "10", None)),
+654:         ("E10.5E3", ("E", "10", "5", "3")),
+655:         ("A21", ("A", "21", None, None)),
+656:     ],
+657: )
+658: def test_parse_tdisp_format(tdisp_str, format_return):
+659:     assert _parse_tdisp_format(tdisp_str) == format_return
+660: 
+661: 
+662: @pytest.mark.parametrize(
+663:     "tdisp_str, format_str_return",
+664:     [
+665:         ("G15.4E2", "{:15.4g}"),
+666:         ("Z5.10", "{:5x}"),
+667:         ("I6.5", "{:6d}"),
+668:         ("L8", "{:>8}"),
+669:         ("E20.7", "{:20.7e}"),
+670:     ],
+671: )
+672: def test_fortran_to_python_format(tdisp_str, format_str_return):
+673:     assert _fortran_to_python_format(tdisp_str) == format_str_return
+674: 
+675: 
+676: @pytest.mark.parametrize(
+677:     "fmt_str, tdisp_str",
+678:     [
+679:         ("{:3d}", "I3"),
+680:         ("3d", "I3"),
+681:         ("7.3f", "F7.3"),
+682:         ("{:>4}", "A4"),
+683:         ("{:7.4f}", "F7.4"),
+684:         ("%5.3g", "G5.3"),
+685:         ("%10s", "A10"),
+686:         ("%.4f", "F13.4"),
+687:     ],
+688: )
+689: def test_python_to_tdisp(fmt_str, tdisp_str):
+690:     assert python_to_tdisp(fmt_str) == tdisp_str
+691: 
+692: 
+693: def test_logical_python_to_tdisp():
+694:     assert python_to_tdisp("{:>7}", logical_dtype=True) == "L7"
+695: 
+696: 
+697: def test_bool_column(tmp_path):
+698:     """
+699:     Regression test for https://github.com/astropy/astropy/issues/1953
+700: 
+701:     Ensures that Table columns of bools are properly written to a FITS table.
+702:     """
+703: 
+704:     arr = np.ones(5, dtype=bool)
+705:     arr[::2] == np.False_
+706: 
+707:     t = Table([arr])
+708:     t.write(tmp_path / "test.fits", overwrite=True)
+709: 
+710:     with fits.open(tmp_path / "test.fits") as hdul:
+711:         assert hdul[1].data["col0"].dtype == np.dtype("bool")
+712:         assert np.all(hdul[1].data["col0"] == arr)
+713: 
+714: 
+715: def test_unicode_column(tmp_path):
+716:     """
+717:     Test that a column of unicode strings is still written as one
+718:     byte-per-character in the FITS table (so long as the column can be ASCII
+719:     encoded).
+720: 
+721:     Regression test for one of the issues fixed in
+722:     https://github.com/astropy/astropy/pull/4228
+723:     """
+724: 
+725:     t = Table([np.array(["a", "b", "cd"])])
+726:     t.write(tmp_path / "test.fits", overwrite=True)
+727: 
+728:     with fits.open(tmp_path / "test.fits") as hdul:
+729:         assert np.all(hdul[1].data["col0"] == ["a", "b", "cd"])
+730:         assert hdul[1].header["TFORM1"] == "2A"
+731: 
+732:     t2 = Table([np.array(["\N{SNOWMAN}"])])
+733: 
+734:     with pytest.raises(UnicodeEncodeError):
+735:         t2.write(tmp_path / "test.fits", overwrite=True)
+736: 
+737: 
+738: def test_unit_warnings_read_write(tmp_path):
+739:     filename = tmp_path / "test_unit.fits"
+740:     t1 = Table([[1, 2], [3, 4]], names=["a", "b"])
+741:     t1["a"].unit = "m/s"
+742:     t1["b"].unit = "not-a-unit"
+743: 
+744:     with pytest.warns(
+745:         u.UnitsWarning, match="'not-a-unit' did not parse as fits unit"
+746:     ) as w:
+747:         t1.write(filename, overwrite=True)
+748:     assert len(w) == 1
+749: 
+750:     with pytest.warns(
+751:         u.UnitsWarning, match="'not-a-unit' did not parse as fits unit"
+752:     ) as w:
+753:         Table.read(filename, hdu=1)
+754: 
+755: 
+756: def test_convert_comment_convention():
+757:     """
+758:     Regression test for https://github.com/astropy/astropy/issues/6079
+759:     """
+760:     filename = get_pkg_data_filename("data/stddata.fits")
+761:     with pytest.warns(
+762:         AstropyUserWarning,
+763:         match=r"hdu= was not specified but " r"multiple tables are present",
+764:     ):
+765:         t = Table.read(filename)
+766: 
+767:     assert t.meta["comments"] == [
+768:         "",
+769:         " *** End of mandatory fields ***",
+770:         "",
+771:         "",
+772:         " *** Column names ***",
+773:         "",
+774:         "",
+775:         " *** Column formats ***",
+776:         "",
+777:     ]
+778: 
+779: 
+780: def assert_objects_equal(obj1, obj2, attrs, compare_class=True):
+781:     if compare_class:
+782:         assert obj1.__class__ is obj2.__class__
+783: 
+784:     info_attrs = [
+785:         "info.name",
+786:         "info.format",
+787:         "info.unit",
+788:         "info.description",
+789:         "info.meta",
+790:         "info.dtype",
+791:     ]
+792:     for attr in attrs + info_attrs:
+793:         a1 = obj1
+794:         a2 = obj2
+795:         for subattr in attr.split("."):
+796:             try:
+797:                 a1 = getattr(a1, subattr)
+798:                 a2 = getattr(a2, subattr)
+799:             except AttributeError:
+800:                 a1 = a1[subattr]
+801:                 a2 = a2[subattr]
+802: 
+803:         # Mixin info.meta can None instead of empty OrderedDict(), #6720 would
+804:         # fix this.
+805:         if attr == "info.meta":
+806:             if a1 is None:
+807:                 a1 = {}
+808:             if a2 is None:
+809:                 a2 = {}
+810: 
+811:         if isinstance(a1, np.ndarray) and a1.dtype.kind == "f":
+812:             assert quantity_allclose(a1, a2, rtol=1e-15)
+813:         elif isinstance(a1, np.dtype):
+814:             # FITS does not perfectly preserve dtype: byte order can change, and
+815:             # unicode gets stored as bytes.  So, we just check safe casting, to
+816:             # ensure we do not, e.g., accidentally change integer to float, etc.
+817:             if NUMPY_LT_1_22 and a1.names:
+818:                 # For old numpy, can_cast does not deal well with structured dtype.
+819:                 assert a1.names == a2.names
+820:             else:
+821:                 assert np.can_cast(a2, a1, casting="safe")
+822:         else:
+823:             assert np.all(a1 == a2)
+824: 
+825: 
+826: def test_fits_mixins_qtable_to_table(tmp_path):
+827:     """Test writing as QTable and reading as Table.  Ensure correct classes
+828:     come out.
+829:     """
+830:     filename = tmp_path / "test_simple.fits"
+831: 
+832:     names = sorted(mixin_cols)
+833: 
+834:     t = QTable([mixin_cols[name] for name in names], names=names)
+835:     t.write(filename, format="fits")
+836:     t2 = Table.read(filename, format="fits", astropy_native=True)
+837: 
+838:     assert t.colnames == t2.colnames
+839: 
+840:     for name, col in t.columns.items():
+841:         col2 = t2[name]
+842: 
+843:         # Special-case Time, which does not yet support round-tripping
+844:         # the format.
+845:         if isinstance(col2, Time):
+846:             col2.format = col.format
+847: 
+848:         attrs = compare_attrs[name]
+849:         compare_class = True
+850: 
+851:         if isinstance(col.info, QuantityInfo):
+852:             # Downgrade Quantity to Column + unit
+853:             assert type(col2) is Column
+854:             # Class-specific attributes like `value` or `wrap_angle` are lost.
+855:             attrs = ["unit"]
+856:             compare_class = False
+857:             # Compare data values here (assert_objects_equal doesn't know how in this case)
+858:             assert np.all(col.value == col2)
+859: 
+860:         assert_objects_equal(col, col2, attrs, compare_class)
+861: 
+862: 
+863: @pytest.mark.parametrize("table_cls", (Table, QTable))
+864: def test_fits_mixins_as_one(table_cls, tmp_path):
+865:     """Test write/read all cols at once and validate intermediate column names"""
+866:     filename = tmp_path / "test_simple.fits"
+867:     names = sorted(mixin_cols)
+868:     # FITS stores times directly, so we just get the column back.
+869:     all_serialized_names = []
+870:     for name in sorted(mixin_cols):
+871:         all_serialized_names.extend(
+872:             [name] if isinstance(mixin_cols[name], Time) else serialized_names[name]
+873:         )
+874:     t = table_cls([mixin_cols[name] for name in names], names=names)
+875:     t.meta["C"] = "spam"
+876:     t.meta["comments"] = ["this", "is", "a", "comment"]
+877:     t.meta["history"] = ["first", "second", "third"]
+878: 
+879:     t.write(filename, format="fits")
+880: 
+881:     t2 = table_cls.read(filename, format="fits", astropy_native=True)
+882:     assert t2.meta["C"] == "spam"
+883:     assert t2.meta["comments"] == ["this", "is", "a", "comment"]
+884:     assert t2.meta["HISTORY"] == ["first", "second", "third"]
+885: 
+886:     assert t.colnames == t2.colnames
+887: 
+888:     # Read directly via fits and confirm column names
+889:     with fits.open(filename) as hdus:
+890:         assert hdus[1].columns.names == all_serialized_names
+891: 
+892: 
+893: @pytest.mark.parametrize("name_col", list(mixin_cols.items()))
+894: @pytest.mark.parametrize("table_cls", (Table, QTable))
+895: def test_fits_mixins_per_column(table_cls, name_col, tmp_path):
+896:     """Test write/read one col at a time and do detailed validation"""
+897:     filename = tmp_path / "test_simple.fits"
+898:     name, col = name_col
+899: 
+900:     c = [1.0, 2.0]
+901:     t = table_cls([c, col, c], names=["c1", name, "c2"])
+902:     t[name].info.description = "my \n\n\n description"
+903:     t[name].info.meta = {"list": list(range(50)), "dict": {"a": "b" * 200}}
+904: 
+905:     if not t.has_mixin_columns:
+906:         pytest.skip("column is not a mixin (e.g. Quantity subclass in Table)")
+907: 
+908:     t.write(filename, format="fits")
+909:     t2 = table_cls.read(filename, format="fits", astropy_native=True)
+910:     if isinstance(col, Time):
+911:         # FITS Time does not preserve format
+912:         t2[name].format = col.format
+913: 
+914:     assert t.colnames == t2.colnames
+915: 
+916:     for colname in t.colnames:
+917:         compare = ["data"] if colname in ("c1", "c2") else compare_attrs[colname]
+918:         assert_objects_equal(t[colname], t2[colname], compare)
+919: 
+920:     # Special case to make sure Column type doesn't leak into Time class data
+921:     if name.startswith("tm"):
+922:         assert t2[name]._time.jd1.__class__ is np.ndarray
+923:         assert t2[name]._time.jd2.__class__ is np.ndarray
+924: 
+925: 
+926: @pytest.mark.parametrize("name_col", unsupported_cols.items())
+927: @pytest.mark.xfail(reason="column type unsupported")
+928: def test_fits_unsupported_mixin(self, name_col, tmp_path):
+929:     # Check that we actually fail in writing unsupported columns defined
+930:     # on top.
+931:     filename = tmp_path / "test_simple.fits"
+932:     name, col = name_col
+933:     Table([col], names=[name]).write(filename, format="fits")
+934: 
+935: 
+936: def test_info_attributes_with_no_mixins(tmp_path):
+937:     """Even if there are no mixin columns, if there is metadata that would be lost it still
+938:     gets serialized
+939:     """
+940:     filename = tmp_path / "test.fits"
+941:     t = Table([[1.0, 2.0]])
+942:     t["col0"].description = "hello" * 40
+943:     t["col0"].format = "{:8.4f}"
+944:     t["col0"].meta["a"] = {"b": "c"}
+945:     t.write(filename, overwrite=True)
+946: 
+947:     t2 = Table.read(filename)
+948:     assert t2["col0"].description == "hello" * 40
+949:     assert t2["col0"].format == "{:8.4f}"
+950:     assert t2["col0"].meta["a"] == {"b": "c"}
+951: 
+952: 
+953: @pytest.mark.parametrize("method", ["set_cols", "names", "class"])
+954: def test_round_trip_masked_table_serialize_mask(tmp_path, method):
+955:     """
+956:     Same as previous test but set the serialize_method to 'data_mask' so mask is
+957:     written out and the behavior is all correct.
+958:     """
+959:     filename = tmp_path / "test.fits"
+960: 
+961:     t = simple_table(masked=True)  # int, float, and str cols with one masked element
+962: 
+963:     # MaskedColumn but no masked elements.  See table the MaskedColumnInfo class
+964:     # _represent_as_dict() method for info about we test a column with no masked elements.
+965:     t["d"] = [1, 2, 3]
+966: 
+967:     if method == "set_cols":
+968:         for col in t.itercols():
+969:             col.info.serialize_method["fits"] = "data_mask"
+970:         t.write(filename)
+971:     elif method == "names":
+972:         t.write(
+973:             filename,
+974:             serialize_method={
+975:                 "a": "data_mask",
+976:                 "b": "data_mask",
+977:                 "c": "data_mask",
+978:                 "d": "data_mask",
+979:             },
+980:         )
+981:     elif method == "class":
+982:         t.write(filename, serialize_method="data_mask")
+983: 
+984:     t2 = Table.read(filename)
+985:     assert t2.masked is False
+986:     assert t2.colnames == t.colnames
+987:     for name in t2.colnames:
+988:         assert np.all(t2[name].mask == t[name].mask)
+989:         assert np.all(t2[name] == t[name])
+990: 
+991:         # Data under the mask round-trips also (unmask data to show this).
+992:         t[name].mask = False
+993:         t2[name].mask = False
+994:         assert np.all(t2[name] == t[name])
+995: 
+996: 
+997: def test_meta_not_modified(tmp_path):
+998:     filename = tmp_path / "test.fits"
+999:     t = Table(data=[Column([1, 2], "a", description="spam")])
+1000:     t.meta["comments"] = ["a", "b"]
+1001:     assert len(t.meta) == 1
+1002:     t.write(filename)
+1003:     assert len(t.meta) == 1
+1004:     assert t.meta["comments"] == ["a", "b"]
+
+(End of file - total 1004 lines)
+</content>

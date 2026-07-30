@@ -1,0 +1,8 @@
+401317268 Merge pull request #20113 from ericpre/interactive_span_selector
+8eeea0290 Privatize interactive in RectangleSelector and EllipseSelector
+bc3808b0c Use @_api.rename_parameter instead of @_api.delete_parameter to rename `span_stays` to `interactive`.
+afa875f2b Add interactive option to SpanSelector to change it interactively after release. Deprecate span_stays
+fca742026 Merge pull request #10097 from lkjell/rectangle_selector_reset_extents
+3a5019032 Reset extents in RectangleSelector when not interactive on press.
+50aa28a81 Removed unused kwarg 'interactive' from PolygonSelector init.
+86f28fa1b TST : ensure canvas drawn before testing widets

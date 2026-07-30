@@ -1,0 +1,2 @@
+I've been investigating the issue where evalf does not call _imp_ recursively in SymPy. Let me continue with my investigation.
+

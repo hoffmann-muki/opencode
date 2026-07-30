@@ -1,0 +1,55 @@
+<task id="ses_0592e9cfbffecw92LC9rPyYz75" state="completed">
+<task_result>
+I apologize for the error. Let me provide you with the information I've gathered so far.
+
+## Summary of Investigation
+
+I've successfully identified the issue with UsernameValidator allowing trailing newlines in usernames. Here's what I found:
+
+### Files Containing the Validators
+
+**Main implementation file:**
+- `/testbed/django/contrib/auth/validators.py` (lines 9-25)
+
+**Test file:**
+- `/testbed/tests/auth_tests/test_validators.py` (lines 234-261)
+
+### Current Implementation
+
+The `ASCIIUsernameValidator` and `UnicodeUsernameValidator` classes currently use:
+
+```python
+regex = r'^[\w.@+-]+$'
+```
+
+**Line 10** in `/testbed/django/contrib/auth/validators.py` (ASCIIUsernameValidator):
+```python
+regex = r'^[\w.@+-]+$'
+```
+
+**Line 20** in `/testbed/django/contrib/auth/validators.py` (UnicodeUsernameValidator):
+```python
+regex = r'^[\w.@+-]+$'
+```
+
+### The Problem
+
+As stated in the issue, the `$` anchor in Python regex matches before a trailing newline, which means:
+- `'validuser\n'` would pass validation with `^[\w.@+-]+$`
+- The regex should use `\A` (start of string) and `\Z` (end of string) instead
+
+### Evidence of Correct Pattern Usage Elsewhere
+
+I found that Django's own validators already use `\A` and `\Z` in other parts of the codebase:
+- `/testbed/django/core/validators.py` lines 101, 153, 168-169, 173, 177, 235, 243, 296 all use `\Z` for proper string anchoring
+
+### Remaining Tasks
+
+1. Verify the exact behavior of `^` and `$` vs `\A` and `\Z` with trailing newlines
+2. Confirm all occurrences of the problematic pattern need to be fixed
+3. Update the regex patterns in both validators
+4. Add tests to verify the fix works correctly
+
+The fix is straightforward: replace `r'^[\w.@+-]+$'` with `r'\A[\w.@+-]+\Z'` in both validator classes.
+</task_result>
+</task>

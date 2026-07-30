@@ -1,0 +1,21 @@
+{
+  "complete": true,
+  "sources": {
+    "task-container": {
+      "complete": true,
+      "diagnosticsByType": {},
+      "events": 6196,
+      "eventsBySource": {
+        "diagnostic": 1,
+        "http_parser": 32,
+        "process": 5803,
+        "sse_processor": 14,
+        "ssl": 334,
+        "system": 12
+      },
+      "status": "completed",
+      "writeErrors": 0
+    }
+  },
+  "status": "completed"
+}

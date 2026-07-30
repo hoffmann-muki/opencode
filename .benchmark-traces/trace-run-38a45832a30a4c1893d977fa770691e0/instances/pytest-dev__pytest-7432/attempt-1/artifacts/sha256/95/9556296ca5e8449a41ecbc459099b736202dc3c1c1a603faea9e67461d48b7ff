@@ -1,0 +1,1 @@
+{"output_format":"files","path":"/testbed/testing","pattern":"runxfail.*skip|skip.*runxfail"}

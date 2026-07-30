@@ -1,0 +1,29 @@
+Traceback (most recent call last):
+  File "<string>", line 28, in <module>
+  File "/testbed/astropy/io/votable/connect.py", line 41, in is_votable
+    return is_votable(filepath)
+  File "/testbed/astropy/io/votable/table.py", line 406, in is_votable
+    with iterparser.get_xml_iterator(source) as iterator:
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/contextlib.py", line 119, in __enter__
+    return next(self.gen)
+  File "/testbed/astropy/utils/xml/iterparser.py", line 165, in get_xml_iterator
+    with _convert_to_fd_or_read_function(source) as fd:
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/contextlib.py", line 119, in __enter__
+    return next(self.gen)
+  File "/testbed/astropy/utils/xml/iterparser.py", line 62, in _convert_to_fd_or_read_function
+    with data.get_readable_fileobj(fd, encoding="binary") as new_fd:
+  File "/opt/miniconda3/envs/testbed/lib/python3.9/contextlib.py", line 119, in __enter__
+    return next(self.gen)
+  File "/testbed/astropy/utils/data.py", line 352, in get_readable_fileobj
+    fileobj = io.FileIO(name_or_obj, "r")
+FileNotFoundError: [Errno 2] No such file or directory: 'test.xml'
+Testing is_fits with filepath only:
+  is_fits("read", "test.fits", None) = True
+Testing is_fits with non-FITS filepath:
+  is_fits("read", "test.ecsv", None) = False
+Testing is_fits with HDUList:
+  is_fits("read", None, None, HDUList()) = True
+Testing is_fits with no args:
+  is_fits("read", None, None) = False
+
+Testing is_votable with filepath only:

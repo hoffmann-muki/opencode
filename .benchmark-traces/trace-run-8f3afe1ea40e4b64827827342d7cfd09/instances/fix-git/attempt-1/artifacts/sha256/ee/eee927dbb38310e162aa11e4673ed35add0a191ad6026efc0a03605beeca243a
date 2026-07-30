@@ -1,0 +1,1 @@
+{"command":"cd /app/personal-site && git show HEAD:_includes/about.md"}

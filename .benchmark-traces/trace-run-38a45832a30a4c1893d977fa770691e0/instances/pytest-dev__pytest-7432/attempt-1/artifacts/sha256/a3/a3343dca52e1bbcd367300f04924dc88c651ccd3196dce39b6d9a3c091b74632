@@ -1,0 +1,63 @@
+Testing skip location reporting with and without --runxfail...
+
+================================================================================
+OUTPUT WITH --runxfail:
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1
+rootdir: /tmp/tmp2y0ryhjg
+collected 5 items
+
+test_example.py sssF.                                                    [100%]
+
+=================================== FAILURES ===================================
+______________________________ test_xfail_line_20 ______________________________
+
+    @pytest.mark.xfail
+    def test_xfail_line_20():
+        """Xfail on line 21."""
+>       assert False
+E       assert False
+
+test_example.py:21: AssertionError
+=========================== short test summary info ============================
+SKIPPED [1] test_example.py:6: skip reason 1
+SKIPPED [1] ../../testbed/src/_pytest/skipping.py:239: skip reason 2
+SKIPPED [1] ../../testbed/src/_pytest/skipping.py:239: skip reason 3
+==================== 1 failed, 1 passed, 3 skipped in 0.02s ====================
+
+================================================================================
+
+Found 3 skip entries:
+  SKIPPED [1] test_example.py:6: skip reason 1
+  SKIPPED [1] ../../testbed/src/_pytest/skipping.py:239: skip reason 2
+  SKIPPED [1] ../../testbed/src/_pytest/skipping.py:239: skip reason 3
+
+✗ FAILURE: Some skip entries point to skipping.py
+
+================================================================================
+OUTPUT WITHOUT --runxfail (baseline):
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1
+rootdir: /tmp/tmpxxfune71
+collected 2 items
+
+test_example.py ss                                                       [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] test_example.py:6: skip reason 1
+SKIPPED [1] test_example.py:8: skip reason 2
+============================== 2 skipped in 0.00s ==============================
+
+================================================================================
+
+Found 2 skip entries:
+  SKIPPED [1] test_example.py:6: skip reason 1
+  SKIPPED [1] test_example.py:8: skip reason 2
+
+================================================================================
+SUMMARY:
+  Skip location with --runxfail: FAILED
+  Skip location without --runxfail: PASSED
+================================================================================
+
+✗ Some tests failed!

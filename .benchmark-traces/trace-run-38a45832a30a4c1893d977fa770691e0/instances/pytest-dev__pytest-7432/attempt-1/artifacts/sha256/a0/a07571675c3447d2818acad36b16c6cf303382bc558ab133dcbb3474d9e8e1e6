@@ -1,0 +1,12 @@
+/testbed/src/_pytest/junitxml.py:264:            if skipreason.startswith("Skipped: "):
+/testbed/src/_pytest/outcomes.py:54:class Skipped(OutcomeException):
+/testbed/src/_pytest/outcomes.py:56:    # in order to have Skipped exception printing shorter/nicer
+/testbed/src/_pytest/outcomes.py:122:@_with_exception(Skipped)
+/testbed/src/_pytest/outcomes.py:143:    raise Skipped(msg=msg, allow_module_level=allow_module_level)
+/testbed/src/_pytest/outcomes.py:212:            raise Skipped(reason, allow_module_level=True) from None
+/testbed/src/_pytest/outcomes.py:222:            raise Skipped(
+/testbed/src/_pytest/python.py:584:        except _pytest.runner.Skipped as e:
+/testbed/src/_pytest/runner.py:31:from _pytest.outcomes import Skipped
+/testbed/src/_pytest/runner.py:220:        or call.excinfo.errisinstance(Skipped)
+/testbed/src/_pytest/runner.py:323:        skip_exceptions = [Skipped]
+/testbed/src/_pytest/terminal.py:1123:                if reason.startswith("Skipped: "):

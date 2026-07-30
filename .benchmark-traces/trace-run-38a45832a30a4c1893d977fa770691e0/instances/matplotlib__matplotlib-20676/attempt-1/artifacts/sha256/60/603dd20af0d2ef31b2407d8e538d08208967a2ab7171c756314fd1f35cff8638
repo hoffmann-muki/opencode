@@ -1,0 +1,256 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+1768: class _SelectorWidget(AxesWidget):
+1769: 
+1770:     def __init__(self, ax, onselect, useblit=False, button=None,
+1771:                  state_modifier_keys=None):
+1772:         super().__init__(ax)
+1773: 
+1774:         self.visible = True
+1775:         self.onselect = onselect
+1776:         self.useblit = useblit and self.canvas.supports_blit
+1777:         self.connect_default_events()
+1778: 
+1779:         self.state_modifier_keys = dict(move=' ', clear='escape',
+1780:                                         square='shift', center='control')
+1781:         self.state_modifier_keys.update(state_modifier_keys or {})
+1782: 
+1783:         self.background = None
+1784:         self.artists = []
+1785: 
+1786:         if isinstance(button, Integral):
+1787:             self.validButtons = [button]
+1788:         else:
+1789:             self.validButtons = button
+1790: 
+1791:         # will save the data (position at mouseclick)
+1792:         self._eventpress = None
+1793:         # will save the data (pos. at mouserelease)
+1794:         self._eventrelease = None
+1795:         self._prev_event = None
+1796:         self._state = set()
+1797: 
+1798:     eventpress = _api.deprecate_privatize_attribute("3.5")
+1799:     eventrelease = _api.deprecate_privatize_attribute("3.5")
+1800:     state = _api.deprecate_privatize_attribute("3.5")
+1801: 
+1802:     def set_active(self, active):
+1803:         super().set_active(active)
+1804:         if active:
+1805:             self.update_background(None)
+1806: 
+1807:     def update_background(self, event):
+1808:         """Force an update of the background."""
+1809:         # If you add a call to `ignore` here, you'll want to check edge case:
+1810:         # `release` can call a draw event even when `ignore` is True.
+1811:         if not self.useblit:
+1812:             return
+1813:         # Make sure that widget artists don't get accidentally included in the
+1814:         # background, by re-rendering the background if needed (and then
+1815:         # re-re-rendering the canvas with the visible widget artists).
+1816:         needs_redraw = any(artist.get_visible() for artist in self.artists)
+1817:         with ExitStack() as stack:
+1818:             if needs_redraw:
+1819:                 for artist in self.artists:
+1820:                     stack.enter_context(artist._cm_set(visible=False))
+1821:                 self.canvas.draw()
+1822:             self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+1823:         if needs_redraw:
+1824:             for artist in self.artists:
+1825:                 self.ax.draw_artist(artist)
+1826: 
+1827:     def connect_default_events(self):
+1828:         """Connect the major canvas events to methods."""
+1829:         self.connect_event('motion_notify_event', self.onmove)
+1830:         self.connect_event('button_press_event', self.press)
+1831:         self.connect_event('button_release_event', self.release)
+1832:         self.connect_event('draw_event', self.update_background)
+1833:         self.connect_event('key_press_event', self.on_key_press)
+1834:         self.connect_event('key_release_event', self.on_key_release)
+1835:         self.connect_event('scroll_event', self.on_scroll)
+1836: 
+1837:     def ignore(self, event):
+1838:         # docstring inherited
+1839:         if not self.active or not self.ax.get_visible():
+1840:             return True
+1841:         # If canvas was locked
+1842:         if not self.canvas.widgetlock.available(self):
+1843:             return True
+1844:         if not hasattr(event, 'button'):
+1845:             event.button = None
+1846:         # Only do rectangle selection if event was triggered
+1847:         # with a desired button
+1848:         if (self.validButtons is not None
+1849:                 and event.button not in self.validButtons):
+1850:             return True
+1851:         # If no button was pressed yet ignore the event if it was out
+1852:         # of the axes
+1853:         if self._eventpress is None:
+1854:             return event.inaxes != self.ax
+1855:         # If a button was pressed, check if the release-button is the same.
+1856:         if event.button == self._eventpress.button:
+1857:             return False
+1858:         # If a button was pressed, check if the release-button is the same.
+1859:         return (event.inaxes != self.ax or
+1860:                 event.button != self._eventpress.button)
+1861: 
+1862:     def update(self):
+1863:         """Draw using blit() or draw_idle(), depending on ``self.useblit``."""
+1864:         if not self.ax.get_visible() or self.ax.figure._cachedRenderer is None:
+1865:             return False
+1866:         if self.useblit:
+1867:             if self.background is not None:
+1868:                 self.canvas.restore_region(self.background)
+1869:             else:
+1870:                 self.update_background(None)
+1871:             for artist in self.artists:
+1872:                 self.ax.draw_artist(artist)
+1873:             self.canvas.blit(self.ax.bbox)
+1874:         else:
+1875:             self.canvas.draw_idle()
+1876:         return False
+1877: 
+1878:     def _get_data(self, event):
+1879:         """Get the xdata and ydata for event, with limits."""
+1880:         if event.xdata is None:
+1881:             return None, None
+1882:         xdata = np.clip(event.xdata, *self.ax.get_xbound())
+1883:         ydata = np.clip(event.ydata, *self.ax.get_ybound())
+1884:         return xdata, ydata
+1885: 
+1886:     def _clean_event(self, event):
+1887:         """
+1888:         Preprocess an event:
+1889: 
+1890:         - Replace *event* by the previous event if *event* has no ``xdata``.
+1891:         - Clip ``xdata`` and ``ydata`` to the axes limits.
+1892:         - Update the previous event.
+1893:         """
+1894:         if event.xdata is None:
+1895:             event = self._prev_event
+1896:         else:
+1897:             event = copy.copy(event)
+1898:         event.xdata, event.ydata = self._get_data(event)
+1899:         self._prev_event = event
+1900:         return event
+1901: 
+1902:     def press(self, event):
+1903:         """Button press handler and validator."""
+1904:         if not self.ignore(event):
+1905:             event = self._clean_event(event)
+1906:             self._eventpress = event
+1907:             self._prev_event = event
+1908:             key = event.key or ''
+1909:             key = key.replace('ctrl', 'control')
+1910:             # move state is locked in on a button press
+1911:             if key == self.state_modifier_keys['move']:
+1912:                 self._state.add('move')
+1913:             self._press(event)
+1914:             return True
+1915:         return False
+1916: 
+1917:     def _press(self, event):
+1918:         """Button press event handler."""
+1919: 
+1920:     def release(self, event):
+1921:         """Button release event handler and validator."""
+1922:         if not self.ignore(event) and self._eventpress:
+1923:             event = self._clean_event(event)
+1924:             self._eventrelease = event
+1925:             self._release(event)
+1926:             self._eventpress = None
+1927:             self._eventrelease = None
+1928:             self._state.discard('move')
+1929:             return True
+1930:         return False
+1931: 
+1932:     def _release(self, event):
+1933:         """Button release event handler."""
+1934: 
+1935:     def onmove(self, event):
+1936:         """Cursor move event handler and validator."""
+1937:         if not self.ignore(event) and self._eventpress:
+1938:             event = self._clean_event(event)
+1939:             self._onmove(event)
+1940:             return True
+1941:         return False
+1942: 
+1943:     def _onmove(self, event):
+1944:         """Cursor move event handler."""
+1945: 
+1946:     def on_scroll(self, event):
+1947:         """Mouse scroll event handler and validator."""
+1948:         if not self.ignore(event):
+1949:             self._on_scroll(event)
+1950: 
+1951:     def _on_scroll(self, event):
+1952:         """Mouse scroll event handler."""
+1953: 
+1954:     def on_key_press(self, event):
+1955:         """Key press event handler and validator for all selection widgets."""
+1956:         if self.active:
+1957:             key = event.key or ''
+1958:             key = key.replace('ctrl', 'control')
+1959:             if key == self.state_modifier_keys['clear']:
+1960:                 for artist in self.artists:
+1961:                     artist.set_visible(False)
+1962:                 self.update()
+1963:                 return
+1964:             for (state, modifier) in self.state_modifier_keys.items():
+1965:                 if modifier in key:
+1966:                     self._state.add(state)
+1967:             self._on_key_press(event)
+1968: 
+1969:     def _on_key_press(self, event):
+1970:         """Key press event handler - for widget-specific key press actions."""
+1971: 
+1972:     def on_key_release(self, event):
+1973:         """Key release event handler and validator."""
+1974:         if self.active:
+1975:             key = event.key or ''
+1976:             for (state, modifier) in self.state_modifier_keys.items():
+1977:                 if modifier in key:
+1978:                     self._state.discard(state)
+1979:             self._on_key_release(event)
+1980: 
+1981:     def _on_key_release(self, event):
+1982:         """Key release event handler."""
+1983: 
+1984:     def set_visible(self, visible):
+1985:         """Set the visibility of our artists."""
+1986:         self.visible = visible
+1987:         for artist in self.artists:
+1988:             artist.set_visible(visible)
+1989: 
+1990: 
+1991: class SpanSelector(_SelectorWidget):
+1992:     """
+1993:     Visually select a min/max range on a single axis and call a function with
+1994:     those values.
+1995: 
+1996:     To guarantee that the selector remains responsive, keep a reference to it.
+1997: 
+1998:     In order to turn off the SpanSelector, set ``span_selector.active`` to
+1999:     False.  To turn it back on, set it to True.
+2000: 
+2001:     Parameters
+2002:     ----------
+2003:     ax : `matplotlib.axes.Axes`
+2004: 
+2005:     onselect : callable
+2006:         A callback function to be called when the selection is completed.
+2007:         It must have the signature::
+2008: 
+2009:             def on_select(min: float, max: float) -> Any
+2010: 
+2011:     direction : {"horizontal", "vertical"}
+2012:         The direction along which to draw the span selector.
+2013: 
+2014:     minspan : float, default: 0
+2015:         If selection is less than or equal to *minspan*, do not call
+2016:         *onselect*.
+2017: 
+
+(Showing lines 1768-2017 of 3409. Use offset=2018 to continue.)
+</content>

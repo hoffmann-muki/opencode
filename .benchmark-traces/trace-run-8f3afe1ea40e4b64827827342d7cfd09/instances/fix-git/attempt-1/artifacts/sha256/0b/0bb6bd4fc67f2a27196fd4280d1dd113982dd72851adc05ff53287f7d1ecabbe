@@ -1,0 +1,5 @@
+d7d3e4b HEAD@{0}: checkout: moving from c499730ae050deb27e5d22972ea28daf778060f2 to master
+c499730 HEAD@{1}: commit: Move to Stanford
+c4e38a1 HEAD@{2}: checkout: moving from master to HEAD~1
+d7d3e4b HEAD@{3}: reset: moving to d7d3e4b
+19b5d10 HEAD@{4}: clone: from https://github.com/TheMikeMerrill/personal-site.git

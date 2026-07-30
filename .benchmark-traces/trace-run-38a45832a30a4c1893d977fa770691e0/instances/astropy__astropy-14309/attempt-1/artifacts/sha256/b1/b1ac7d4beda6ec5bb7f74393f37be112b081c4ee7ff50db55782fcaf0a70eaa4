@@ -1,0 +1,57 @@
+I've identified the issue in the `is_fits` function. Let me provide my findings:
+
+## Issue Summary
+
+**Location**: `/testbed/astropy/io/fits/connect.py`, line 72 in the `is_fits` function
+
+**Problem**: The function raises `IndexError: tuple index out of range` when `args` is empty, which occurs when a filepath string without a FITS extension is passed (e.g., "bububu.ecsv").
+
+## Current Implementation
+
+The `is_fits` function (lines 48-72) currently:
+1. Checks if `fileobj` is provided and reads the signature
+2. Checks if `filepath` ends with FITS extensions (`.fits`, `.fit`, etc.)
+3. **Line 72**: `return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))`
+
+The issue is at line 72: when the filepath doesn't have a FITS extension, the function tries to access `args[0]` without checking if `args` has any elements.
+
+## Root Cause
+
+When `identify_format` is called through the registry, it passes arguments as a sequence. The function signature is:
+```python
+def is_fits(origin, filepath, fileobj, *args, **kwargs)
+```
+
+When a non-FITS file (like "bububu.ecsv") is passed:
+- `filepath` = "bububu.ecsv"
+- `fileobj` = None
+- `args` = () (empty tuple)
+- The function returns `False` from line 71 (no FITS extension match)
+- But then line 72 tries to access `args[0]` which doesn't exist
+
+## Fix Required
+
+The function should return `False` when `args` is empty, instead of trying to access `args[0]`. The fix should be:
+
+```python
+# Line 72 should be changed from:
+return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+
+# To something like:
+return len(args) > 0 and isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+```
+
+Or more explicitly:
+```python
+if len(args) > 0:
+    return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+return False
+```
+
+## Test Files
+
+The test file `/testbed/astropy/io/fits/tests/test_connect.py` exists but doesn't appear to have tests for the specific edge case of non-FITS file extensions with empty args.
+
+## Context
+
+The `is_fits` function is registered as an identifier for the "fits" format with the Table class at line 454. When the registry's `identify_format` method calls this function (line 313-315 in base.py), it unpacks args as `*args`, which can be empty when only the filepath is provided.

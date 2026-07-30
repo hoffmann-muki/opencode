@@ -1,0 +1,78 @@
+<path>/testbed/examples/widgets/span_selector.py</path>
+<type>file</type>
+<content>
+1: """
+2: =============
+3: Span Selector
+4: =============
+5: 
+6: The SpanSelector is a mouse widget to select a xmin/xmax range and plot the
+7: detail view of the selected region in the lower axes
+8: """
+9: import numpy as np
+10: import matplotlib.pyplot as plt
+11: from matplotlib.widgets import SpanSelector
+12: 
+13: # Fixing random state for reproducibility
+14: np.random.seed(19680801)
+15: 
+16: fig, (ax1, ax2) = plt.subplots(2, figsize=(8, 6))
+17: 
+18: x = np.arange(0.0, 5.0, 0.01)
+19: y = np.sin(2 * np.pi * x) + 0.5 * np.random.randn(len(x))
+20: 
+21: ax1.plot(x, y)
+22: ax1.set_ylim(-2, 2)
+23: ax1.set_title('Press left mouse button and drag '
+24:               'to select a region in the top graph')
+25: 
+26: line2, = ax2.plot([], [])
+27: 
+28: 
+29: def onselect(xmin, xmax):
+30:     indmin, indmax = np.searchsorted(x, (xmin, xmax))
+31:     indmax = min(len(x) - 1, indmax)
+32: 
+33:     region_x = x[indmin:indmax]
+34:     region_y = y[indmin:indmax]
+35: 
+36:     if len(region_x) >= 2:
+37:         line2.set_data(region_x, region_y)
+38:         ax2.set_xlim(region_x[0], region_x[-1])
+39:         ax2.set_ylim(region_y.min(), region_y.max())
+40:         fig.canvas.draw_idle()
+41: 
+42: 
+43: #############################################################################
+44: # .. note::
+45: #
+46: #    If the SpanSelector object is garbage collected you will lose the
+47: #    interactivity.  You must keep a hard reference to it to prevent this.
+48: #
+49: 
+50: 
+51: span = SpanSelector(
+52:     ax1,
+53:     onselect,
+54:     "horizontal",
+55:     useblit=True,
+56:     rectprops=dict(alpha=0.5, facecolor="tab:blue"),
+57:     interactive=True,
+58:     drag_from_anywhere=True
+59: )
+60: # Set useblit=True on most backends for enhanced performance.
+61: 
+62: 
+63: plt.show()
+64: 
+65: #############################################################################
+66: #
+67: # .. admonition:: References
+68: #
+69: #    The use of the following functions, methods, classes and modules is shown
+70: #    in this example:
+71: #
+72: #    - `matplotlib.widgets.SpanSelector`
+
+(End of file - total 72 lines)
+</content>

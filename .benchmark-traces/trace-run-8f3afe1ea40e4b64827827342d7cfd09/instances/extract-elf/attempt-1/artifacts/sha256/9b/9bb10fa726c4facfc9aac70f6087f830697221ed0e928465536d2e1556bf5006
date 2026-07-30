@@ -1,0 +1,1 @@
+{"command":"readelf -x .data /app/a.out"}

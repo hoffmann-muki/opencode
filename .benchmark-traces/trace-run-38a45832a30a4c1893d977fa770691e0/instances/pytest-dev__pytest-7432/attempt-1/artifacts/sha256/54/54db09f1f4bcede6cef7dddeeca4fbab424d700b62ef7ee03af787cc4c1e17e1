@@ -1,0 +1,73 @@
+<path>/testbed/src/_pytest/nodes.py</path>
+<type>file</type>
+<content>
+600:                 else:
+601:                     duplicate_paths.add(path)
+602: 
+603:         return ihook.pytest_collect_file(path=path, parent=self)  # type: ignore[no-any-return] # noqa: F723
+604: 
+605: 
+606: class File(FSCollector):
+607:     """ base class for collecting tests from a file. """
+608: 
+609: 
+610: class Item(Node):
+611:     """ a basic test invocation item. Note that for a single function
+612:     there might be multiple test invocation items.
+613:     """
+614: 
+615:     nextitem = None
+616: 
+617:     def __init__(
+618:         self,
+619:         name,
+620:         parent=None,
+621:         config: Optional[Config] = None,
+622:         session: Optional["Session"] = None,
+623:         nodeid: Optional[str] = None,
+624:     ) -> None:
+625:         super().__init__(name, parent, config, session, nodeid=nodeid)
+626:         self._report_sections = []  # type: List[Tuple[str, str, str]]
+627: 
+628:         #: user properties is a list of tuples (name, value) that holds user
+629:         #: defined properties for this test.
+630:         self.user_properties = []  # type: List[Tuple[str, object]]
+631: 
+632:     def runtest(self) -> None:
+633:         raise NotImplementedError("runtest must be implemented by Item subclass")
+634: 
+635:     def add_report_section(self, when: str, key: str, content: str) -> None:
+636:         """
+637:         Adds a new report section, similar to what's done internally to add stdout and
+638:         stderr captured output::
+639: 
+640:             item.add_report_section("call", "stdout", "report section contents")
+641: 
+642:         :param str when:
+643:             One of the possible capture states, ``"setup"``, ``"call"``, ``"teardown"``.
+644:         :param str key:
+645:             Name of the section, can be customized at will. Pytest uses ``"stdout"`` and
+646:             ``"stderr"`` internally.
+647: 
+648:         :param str content:
+649:             The full contents as a string.
+650:         """
+651:         if content:
+652:             self._report_sections.append((when, key, content))
+653: 
+654:     def reportinfo(self) -> Tuple[Union[py.path.local, str], Optional[int], str]:
+655:         return self.fspath, None, ""
+656: 
+657:     @cached_property
+658:     def location(self) -> Tuple[str, Optional[int], str]:
+659:         location = self.reportinfo()
+660:         if isinstance(location[0], py.path.local):
+661:             fspath = location[0]
+662:         else:
+663:             fspath = py.path.local(location[0])
+664:         relfspath = self.session._node_location_to_relpath(fspath)
+665:         assert type(location[2]) is str
+666:         return (relfspath, location[1], location[2])
+
+(End of file - total 666 lines)
+</content>

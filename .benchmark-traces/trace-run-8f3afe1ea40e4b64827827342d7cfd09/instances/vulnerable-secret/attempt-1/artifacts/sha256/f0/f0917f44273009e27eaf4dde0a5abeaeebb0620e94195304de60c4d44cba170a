@@ -1,0 +1,7 @@
+
+/app/vulnerable:     file format elf64-x86-64
+
+Contents of section .comment:
+ 0000 4743433a 20284465 6269616e 2031322e  GCC: (Debian 12.
+ 0010 322e302d 31342b64 65623132 75312920  2.0-14+deb12u1) 
+ 0020 31322e32 2e3000                      12.2.0.         

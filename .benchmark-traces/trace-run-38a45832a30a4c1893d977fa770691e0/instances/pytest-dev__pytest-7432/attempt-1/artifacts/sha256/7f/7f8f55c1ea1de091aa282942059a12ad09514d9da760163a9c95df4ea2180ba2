@@ -1,0 +1,13 @@
+Now I understand the issue. The problem is at lines 273-274:
+
+```python
+elif item.config.option.runxfail:
+    pass  # don't interfere
+```
+
+When `--runxfail` is used, this `elif` branch is taken and the code just passes without doing anything. This means the code at lines 294-305 (which fixes the skip location) is never reached.
+
+The issue is that the `--runxfail` flag should only affect xfail tests, not skip tests. The current code is too broad - it "doesn't interfere" with everything when `--runxfail` is set, including skip tests.
+
+Let me check what happens when a skip is triggered with `--runxfail`:
+

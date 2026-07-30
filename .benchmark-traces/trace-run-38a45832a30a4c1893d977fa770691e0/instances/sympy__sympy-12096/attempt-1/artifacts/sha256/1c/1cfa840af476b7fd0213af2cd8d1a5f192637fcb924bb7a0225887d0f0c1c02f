@@ -1,0 +1,56 @@
+<path>/testbed/sympy/core/function.py</path>
+<type>file</type>
+<content>
+490:     @property
+491:     def is_commutative(self):
+492:         """
+493:         Returns whether the functon is commutative.
+494:         """
+495:         if all(getattr(t, 'is_commutative') for t in self.args):
+496:             return True
+497:         else:
+498:             return False
+499: 
+500:     def _eval_evalf(self, prec):
+501:         # Lookup mpmath function based on name
+502:         fname = self.func.__name__
+503:         try:
+504:             if not hasattr(mpmath, fname):
+505:                 from sympy.utilities.lambdify import MPMATH_TRANSLATIONS
+506:                 fname = MPMATH_TRANSLATIONS[fname]
+507:             func = getattr(mpmath, fname)
+508:         except (AttributeError, KeyError):
+509:             try:
+510:                 return Float(self._imp_(*self.args), prec)
+511:             except (AttributeError, TypeError, ValueError):
+512:                 return
+513: 
+514:         # Convert all args to mpf or mpc
+515:         # Convert the arguments to *higher* precision than requested for the
+516:         # final result.
+517:         # XXX + 5 is a guess, it is similar to what is used in evalf.py. Should
+518:         #     we be more intelligent about it?
+519:         try:
+520:             args = [arg._to_mpmath(prec + 5) for arg in self.args]
+521:             def bad(m):
+522:                 from mpmath import mpf, mpc
+523:                 # the precision of an mpf value is the last element
+524:                 # if that is 1 (and m[1] is not 1 which would indicate a
+525:                 # power of 2), then the eval failed; so check that none of
+526:                 # the arguments failed to compute to a finite precision.
+527:                 # Note: An mpc value has two parts, the re and imag tuple;
+528:                 # check each of those parts, too. Anything else is allowed to
+529:                 # pass
+530:                 if isinstance(m, mpf):
+531:                     m = m._mpf_
+532:                     return m[1] !=1 and m[-1] == 1
+533:                 elif isinstance(m, mpc):
+534:                     m, n = m._mpc_
+535:                     return m[1] !=1 and m[-1] == 1 and \
+536:                         n[1] !=1 and n[-1] == 1
+537:                 else:
+538:                     return False
+539:             if any(bad(a) for a in args):
+
+(Showing lines 490-539 of 2650. Use offset=540 to continue.)
+</content>

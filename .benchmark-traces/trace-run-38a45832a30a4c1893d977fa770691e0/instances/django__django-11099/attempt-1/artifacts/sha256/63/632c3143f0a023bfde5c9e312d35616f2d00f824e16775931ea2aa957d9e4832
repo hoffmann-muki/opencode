@@ -1,0 +1,31 @@
+Found 13 matches
+/testbed/django/utils/http.py:
+  Line 22:     \A(      # start of string and capture group
+
+  Line 27:     )\Z      # end of string and capture group
+
+
+/testbed/django/core/validators.py:
+  Line 101:         r'\Z', re.IGNORECASE)
+
+  Line 153:     _lazy_re_compile(r'^-?\d+\Z'),
+
+  Line 168:         r"(^[-!#$%&'*+/=?^_`{}|~0-9A-Z]+(\.[-!#$%&'*+/=?^_`{}|~0-9A-Z]+)*\Z"  # dot-atom
+
+  Line 169:         r'|^"([\001-\010\013\014\016-\037!#-\[\]-\177]|\\[\001-\011\013\014\016-\177])*"\Z)',  # quoted-string
+
+  Line 173:         r'((?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+)(?:[A-Z0-9-]{2,63}(?<!-))\Z',
+
+  Line 177:         r'\[([A-f0-9:\.]+)\]\Z',
+
+  Line 235: slug_re = _lazy_re_compile(r'^[-a-zA-Z0-9_]+\Z')
+
+  Line 243: slug_unicode_re = _lazy_re_compile(r'^[-\w]+\Z')
+
+  Line 296:     regexp = _lazy_re_compile(r'^%(neg)s\d+(?:%(sep)s%(neg)s\d+)*\Z' % {
+
+
+/testbed/tests/migrations/test_autodetector.py:
+  Line 1277:                     re.compile('^[-a-zA-Z0-9_]+\\Z'),
+
+  Line 1294:                     re.compile('^[a-z]+\\Z', 32),

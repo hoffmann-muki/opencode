@@ -1,0 +1,2 @@
+I've identified the SpanSelector implementation and the issue. Let me search for where axis limits might be forced to include 0:
+

@@ -1,0 +1,14 @@
+{
+  "schema": "benchmark-agentsight-profile/v1",
+  "profileId": "trace-b5038c350e8041cca3c829ccfdebe60b",
+  "status": "completed",
+  "topology": "docker-pid-host-sidecar",
+  "targetContainer": "opencode-swe-swe-verified-five-live-20260727-astropy__astropy-14309-attempt-1",
+  "sourceScopes": [
+    "task-container"
+  ],
+  "image": "agentsight:play",
+  "imageId": "sha256:e7041a719bee18136e47a5ff3a656aeaae647dfd9ddf83f383b1d2df6821cd74",
+  "startedAt": "2026-07-28T03:27:13.542Z",
+  "stoppedAt": "2026-07-28T03:42:18.826Z"
+}

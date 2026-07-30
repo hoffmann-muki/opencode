@@ -1,0 +1,30 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            74:3c:92:ae:fe:5d:a2:9c:b1:d4:37:31:c4:1d:32:4b:cc:7a:f5:bd
+        Signature Algorithm: sha256WithRSAEncryption
+        Issuer: O = DevOps Team, CN = dev-internal.company.local
+        Validity
+            Not Before: Jul 28 00:08:42 2026 GMT
+            Not After : Jul 28 00:08:42 2027 GMT
+        Subject: O = DevOps Team, CN = dev-internal.company.local
+        Subject Public Key Info:
+            Public Key Algorithm: rsaEncryption
+                Public-Key: (2048 bit)
+                Modulus:
+                    00:95:41:c4:4a:68:42:fb:b3:96:cb:2a:6a:c5:1a:
+                    47:ea:24:8c:d6:e2:bb:22:5f:58:bd:2f:66:01:67:
+                    a9:39:19:31:b3:80:7d:9e:68:b2:e2:e6:56:66:41:
+                    e2:ba:74:c3:4b:94:1a:a6:a8:85:27:4a:6b:58:30:
+                    ef:f8:d3:2f:c1:31:38:10:fb:2c:5c:78:59:49:d5:
+                    05:2e:d0:2f:14:c8:57:20:c5:13:9f:12:12:c4:ce:
+                    ca:6d:8c:77:e5:a1:c9:f3:3b:e5:7c:85:14:42:1c:
+                    af:44:eb:c6:2e:2a:71:c6:e2:03:e0:6c:6a:54:8c:
+                    0f:92:47:7e:39:24:0b:b0:47:e5:94:99:16:68:2e:
+                    9f:d7:59:ec:e3:7c:da:45:47:53:77:cf:21:f2:95:
+                    25:e2:74:02:ac:a6:4e:85:af:cf:16:f7:d9:70:02:
+                    2f:53:a9:b6:e2:56:9b:12:f7:c0:72:cf:51:cd:1f:
+                    d5:61:49:62:9e:13:7a:b9:c9:c8:48:54:0d:cf:fe:
+                    49:e6:2d:a3:39:05:85:be:ea:47:92:1d:0c:27:67:
+                    b5:d7:9c:6f:a4:89:42:bd:1b:7f:ef:cb:90:34:08:

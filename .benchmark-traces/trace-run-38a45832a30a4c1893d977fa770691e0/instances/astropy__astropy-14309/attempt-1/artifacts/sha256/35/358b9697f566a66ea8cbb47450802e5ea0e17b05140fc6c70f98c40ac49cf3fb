@@ -1,0 +1,1 @@
+{"filePath":"/testbed/astropy/io/votable/connect.py","newString":"        elif filepath is not None:\n            return is_votable(filepath)\n        return len(args) > 0 and isinstance(args[0], (VOTableFile, VOTable))","oldString":"        elif filepath is not None:\n            return is_votable(filepath)\n        return isinstance(args[0], (VOTableFile, VOTable))"}

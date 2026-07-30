@@ -1,0 +1,26 @@
+  401211:	e8 5a fe ff ff       	call   401070 <ptrace@plt>
+  401216:	48 83 f8 ff          	cmp    $0xffffffffffffffff,%rax
+  40121a:	74 6c                	je     401288 <exit@plt+0x208>
+  40121c:	31 c9                	xor    %ecx,%ecx
+  40121e:	31 d2                	xor    %edx,%edx
+  401220:	31 f6                	xor    %esi,%esi
+  401222:	bf 11 00 00 00       	mov    $0x11,%edi
+  401227:	31 c0                	xor    %eax,%eax
+  401229:	e8 42 fe ff ff       	call   401070 <ptrace@plt>
+  40122e:	0f b6 05 2b 2e 00 00 	movzbl 0x2e2b(%rip),%eax        # 404060 <exit@plt+0x2fe0>
+  401235:	3c 42                	cmp    $0x42,%al
+  401237:	74 65                	je     40129e <exit@plt+0x21e>
+  401239:	ba 01 00 00 00       	mov    $0x1,%edx
+  40123e:	48 8d 7c 24 ff       	lea    -0x1(%rsp),%rdi
+  401243:	48 8d 35 15 2e 00 00 	lea    0x2e15(%rip),%rsi        # 40405f <exit@plt+0x2fdf>
+  40124a:	66 0f 1f 44 00 00    	nopw   0x0(%rax,%rax,1)
+  401250:	83 f0 42             	xor    $0x42,%eax
+  401253:	48 89 d1             	mov    %rdx,%rcx
+  401256:	88 04 17             	mov    %al,(%rdi,%rdx,1)
+  401259:	48 83 c2 01          	add    $0x1,%rdx
+  40125d:	0f b6 04 16          	movzbl (%rsi,%rdx,1),%eax
+  401261:	3c 42                	cmp    $0x42,%al
+  401263:	75 eb                	jne    401250 <exit@plt+0x1d0>
+  401265:	48 63 c9             	movslq %ecx,%rcx
+  401268:	48 89 e6             	mov    %rsp,%rsi
+  40126b:	48 8d 3d 3c 0e 00 00 	lea    0xe3c(%rip),%rdi        # 4020ae <exit@plt+0x102e>

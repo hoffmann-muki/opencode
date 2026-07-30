@@ -1,0 +1,17 @@
+Testing ASCIIUsernameValidator pattern:
+  OK: "valid_user" -> True (expected True)
+  OK: "user.name" -> True (expected True)
+  OK: "user@domain" -> True (expected True)
+  OK: "user+tag" -> True (expected True)
+  FAIL: "user-123" -> True (expected False)
+  OK: "user name" -> False (expected False)
+  OK: "" -> False (expected False)
+
+Testing UnicodeUsernameValidator pattern:
+  OK: "valid_user" -> True (expected True)
+  OK: "user.name" -> True (expected True)
+  OK: "user@domain" -> True (expected True)
+  OK: "user+tag" -> True (expected True)
+  FAIL: "user-123" -> True (expected False)
+  OK: "user name" -> False (expected False)
+  OK: "" -> False (expected False)

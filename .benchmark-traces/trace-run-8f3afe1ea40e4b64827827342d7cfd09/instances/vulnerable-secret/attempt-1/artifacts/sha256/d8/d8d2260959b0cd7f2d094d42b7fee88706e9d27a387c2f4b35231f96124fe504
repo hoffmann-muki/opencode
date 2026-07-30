@@ -1,0 +1,1 @@
+{"command":"objdump -s /app/vulnerable 2>/dev/null | grep -A 5 -B 5 \"4040\""}

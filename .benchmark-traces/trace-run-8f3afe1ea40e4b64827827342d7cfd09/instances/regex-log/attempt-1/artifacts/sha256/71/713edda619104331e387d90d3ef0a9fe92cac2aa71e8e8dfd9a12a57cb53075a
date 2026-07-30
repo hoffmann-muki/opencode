@@ -1,0 +1,1 @@
+{"command":"which python3 || which python || ls /usr/bin/python*"}

@@ -1,0 +1,56 @@
+<path>/testbed/src/_pytest/skipping.py</path>
+<type>file</type>
+<content>
+232: @hookimpl(tryfirst=True)
+233: def pytest_runtest_setup(item: Item) -> None:
+234:     item._store[skipped_by_mark_key] = False
+235: 
+236:     skipped = evaluate_skip_marks(item)
+237:     if skipped:
+238:         item._store[skipped_by_mark_key] = True
+239:         skip(skipped.reason)
+240: 
+241:     if not item.config.option.runxfail:
+242:         item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)
+243:         if xfailed and not xfailed.run:
+244:             xfail("[NOTRUN] " + xfailed.reason)
+245: 
+246: 
+247: @hookimpl(hookwrapper=True)
+248: def pytest_runtest_call(item: Item) -> Generator[None, None, None]:
+249:     xfailed = item._store.get(xfailed_key, None)
+250:     if xfailed is None:
+251:         item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)
+252: 
+253:     if not item.config.option.runxfail:
+254:         if xfailed and not xfailed.run:
+255:             xfail("[NOTRUN] " + xfailed.reason)
+256: 
+257:     yield
+258: 
+259: 
+260: @hookimpl(hookwrapper=True)
+261: def pytest_runtest_makereport(item: Item, call: CallInfo[None]):
+262:     outcome = yield
+263:     rep = outcome.get_result()
+264:     xfailed = item._store.get(xfailed_key, None)
+265:     # unittest special case, see setting of unexpectedsuccess_key
+266:     if unexpectedsuccess_key in item._store and rep.when == "call":
+267:         reason = item._store[unexpectedsuccess_key]
+268:         if reason:
+269:             rep.longrepr = "Unexpected success: {}".format(reason)
+270:         else:
+271:             rep.longrepr = "Unexpected success"
+272:         rep.outcome = "failed"
+273:     elif item.config.option.runxfail:
+274:         pass  # don't interfere
+275:     elif call.excinfo and isinstance(call.excinfo.value, xfail.Exception):
+276:         assert call.excinfo.value.msg is not None
+277:         rep.wasxfail = "reason: " + call.excinfo.value.msg
+278:         rep.outcome = "skipped"
+279:     elif not rep.skipped and xfailed:
+280:         if call.excinfo:
+281:             raises = xfailed.raises
+
+(Showing lines 232-281 of 314. Use offset=282 to continue.)
+</content>

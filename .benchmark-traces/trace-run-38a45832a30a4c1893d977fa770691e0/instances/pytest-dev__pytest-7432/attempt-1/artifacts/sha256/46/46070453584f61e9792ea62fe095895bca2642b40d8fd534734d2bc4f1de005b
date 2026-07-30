@@ -1,0 +1,10 @@
+7d8d1b444 skipping: better links in --markers output
+c9737ae91 skipping: simplify xfail handling during call phase
+3e6fe92b7 skipping: refactor skipif/xfail mark evaluation
+6072c9950 skipping: move MarkEvaluator from _pytest.mark.evaluate to _pytest.skipping
+a1f841d5d skipping: use pytest_runtest_call instead of pytest_pyfunc_call
+2b05faff0 Improve types around repr_failure()
+90e58f896 Type annotate some parts related to runner & reports
+247c4c048 Type annotate some more hooks & impls
+0fb081aec Type annotate some hookspecs & impls
+16a44823e Use reportinfo() instead of location in skipping message

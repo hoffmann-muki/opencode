@@ -1,0 +1,2 @@
+The secret=<redacted:assignment> isn't directly visible in strings. Let me try running with different inputs and also use objdump to examine the binary more closely.
+

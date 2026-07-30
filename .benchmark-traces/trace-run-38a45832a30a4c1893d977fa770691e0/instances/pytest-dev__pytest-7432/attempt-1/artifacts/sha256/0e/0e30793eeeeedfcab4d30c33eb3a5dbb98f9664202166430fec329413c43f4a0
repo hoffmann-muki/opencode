@@ -1,0 +1,37 @@
+I see the issue now. Looking at the test output, the skip location is still broken for decorator-based skips (`@pytest.mark.skip` and `@pytest.mark.skipif`) when using `--runxfail`. The problem is that the skip location fix code (lines 296-307) only runs when certain conditions are met, but it's not being reached for decorator-based skips with `--runxfail`.
+
+Let me trace through the logic more carefully. The issue is that when `--runxfail` is used:
+
+1. For direct `pytest.skip()` calls: The skip happens during test execution (call phase), and the location fix works
+2. For decorator-based skips: The skip happens during setup phase (line 239), and the location fix doesn't work properly
+
+Looking at the code flow:
+- Lines 273-276: When `--runxfail` is set and it's NOT an xfail exception, it passes (doesn't interfere)
+- Lines 296-307: The skip location fix code that should update the location
+
+The problem is that the condition at line 296-299 checks:
+```python
+elif (
+    item._store.get(skipped_by_mark_key, True)
+    and rep.skipped
+    and type(rep.longrepr) is tuple
+):
+```
+
+This should catch skip tests, but it seems like it's not being reached. Let me check if the issue is that the condition at line 273-276 is preventing the code from reaching the skip location fix.
+
+Actually, looking at the condition more carefully:
+- Line 273-276: `elif item.config.option.runxfail and (not call.excinfo or not isinstance(call.excinfo.value, xfail.Exception))`
+
+This means: if `--runxfail` is set AND (there's no exception OR the exception is not xfail.Exception), then pass.
+
+For a skip test with `--runxfail`:
+- `call.excinfo` will have the skip exception
+- `isinstance(call.excinfo.value, xfail.Exception)` will be False (it's a skip.Exception, not xfail.Exception)
+- So `not isinstance(call.excinfo.value, xfail.Exception)` will be True
+- Therefore, the condition is True and it will pass
+
+This means the code at lines 296-307 should NOT be reached for skip tests when `--runxfail` is used!
+
+The fix needs to be different. The condition should allow skip tests to continue to the skip location fix code. Let me check what the actual issue is by looking at the git diff again:
+

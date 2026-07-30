@@ -1,0 +1,6 @@
+total 20
+drwxr-xr-x 2 root root 4096 Jul 28 00:08 .
+drwxr-xr-x 1 root root 4096 Jul 28 00:08 ..
+-rw-r--r-- 1 root root 1220 Jul 28 00:08 server.crt
+-rw------- 1 root root 1704 Jul 28 00:08 server.key
+-rw-r--r-- 1 root root 2924 Jul 28 00:08 server.pem

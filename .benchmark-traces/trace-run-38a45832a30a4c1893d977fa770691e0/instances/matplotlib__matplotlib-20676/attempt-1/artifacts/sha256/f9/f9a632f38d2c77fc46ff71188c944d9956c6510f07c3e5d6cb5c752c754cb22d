@@ -1,0 +1,256 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+1991: class SpanSelector(_SelectorWidget):
+1992:     """
+1993:     Visually select a min/max range on a single axis and call a function with
+1994:     those values.
+1995: 
+1996:     To guarantee that the selector remains responsive, keep a reference to it.
+1997: 
+1998:     In order to turn off the SpanSelector, set ``span_selector.active`` to
+1999:     False.  To turn it back on, set it to True.
+2000: 
+2001:     Parameters
+2002:     ----------
+2003:     ax : `matplotlib.axes.Axes`
+2004: 
+2005:     onselect : callable
+2006:         A callback function to be called when the selection is completed.
+2007:         It must have the signature::
+2008: 
+2009:             def on_select(min: float, max: float) -> Any
+2010: 
+2011:     direction : {"horizontal", "vertical"}
+2012:         The direction along which to draw the span selector.
+2013: 
+2014:     minspan : float, default: 0
+2015:         If selection is less than or equal to *minspan*, do not call
+2016:         *onselect*.
+2017: 
+2018:     useblit : bool, default: False
+2019:         If True, use the backend-dependent blitting features for faster
+2020:         canvas updates.
+2021: 
+2022:     rectprops : dict, default: None
+2023:         Dictionary of `matplotlib.patches.Patch` properties.
+2024: 
+2025:     onmove_callback : func(min, max), min/max are floats, default: None
+2026:         Called on mouse move while the span is being selected.
+2027: 
+2028:     span_stays : bool, default: False
+2029:         If True, the span stays visible after the mouse is released.
+2030:         Deprecated, use interactive instead.
+2031: 
+2032:     interactive : bool, default: False
+2033:         Whether to draw a set of handles that allow interaction with the
+2034:         widget after it is drawn.
+2035: 
+2036:     button : `.MouseButton` or list of `.MouseButton`, default: all buttons
+2037:         The mouse buttons which activate the span selector.
+2038: 
+2039:     handle_props : dict, default: None
+2040:         Properties of the handle lines at the edges of the span. Only used
+2041:         when *interactive* is True. See `~matplotlib.lines.Line2D` for valid
+2042:         properties.
+2043: 
+2044:     handle_grab_distance : float, default: 10
+2045:         Distance in pixels within which the interactive tool handles can be
+2046:         activated.
+2047: 
+2048:     drag_from_anywhere : bool, default: False
+2049:         If `True`, the widget can be moved by clicking anywhere within
+2050:         its bounds.
+2051: 
+2052:     Examples
+2053:     --------
+2054:     >>> import matplotlib.pyplot as plt
+2055:     >>> import matplotlib.widgets as mwidgets
+2056:     >>> fig, ax = plt.subplots()
+2057:     >>> ax.plot([1, 2, 3], [10, 50, 100])
+2058:     >>> def onselect(vmin, vmax):
+2059:     ...     print(vmin, vmax)
+2060:     >>> rectprops = dict(facecolor='blue', alpha=0.5)
+2061:     >>> span = mwidgets.SpanSelector(ax, onselect, 'horizontal',
+2062:     ...                              rectprops=rectprops)
+2063:     >>> fig.show()
+2064: 
+2065:     See also: :doc:`/gallery/widgets/span_selector`
+2066:     """
+2067: 
+2068:     @_api.rename_parameter("3.5", "span_stays", "interactive")
+2069:     def __init__(self, ax, onselect, direction, minspan=0, useblit=False,
+2070:                  rectprops=None, onmove_callback=None, interactive=False,
+2071:                  button=None, handle_props=None, handle_grab_distance=10,
+2072:                  drag_from_anywhere=False):
+2073: 
+2074:         super().__init__(ax, onselect, useblit=useblit, button=button)
+2075: 
+2076:         if rectprops is None:
+2077:             rectprops = dict(facecolor='red', alpha=0.5)
+2078: 
+2079:         rectprops['animated'] = self.useblit
+2080: 
+2081:         self.direction = direction
+2082: 
+2083:         self._rect = None
+2084:         self.visible = True
+2085:         self._extents_on_press = None
+2086: 
+2087:         # self._pressv is deprecated and we don't use it internally anymore
+2088:         # but we maintain it until it is removed
+2089:         self._pressv = None
+2090: 
+2091:         self._rectprops = rectprops
+2092:         self.onmove_callback = onmove_callback
+2093:         self.minspan = minspan
+2094: 
+2095:         self.handle_grab_distance = handle_grab_distance
+2096:         self._interactive = interactive
+2097:         self.drag_from_anywhere = drag_from_anywhere
+2098: 
+2099:         # Reset canvas so that `new_axes` connects events.
+2100:         self.canvas = None
+2101:         self.artists = []
+2102:         self.new_axes(ax)
+2103: 
+2104:         # Setup handles
+2105:         props = dict(color=rectprops.get('facecolor', 'r'))
+2106:         props.update(cbook.normalize_kwargs(handle_props, Line2D._alias_map))
+2107: 
+2108:         if self._interactive:
+2109:             self._edge_order = ['min', 'max']
+2110:             self._setup_edge_handle(props)
+2111: 
+2112:         self._active_handle = None
+2113: 
+2114:         # prev attribute is deprecated but we still need to maintain it
+2115:         self._prev = (0, 0)
+2116: 
+2117:     rect = _api.deprecate_privatize_attribute("3.5")
+2118: 
+2119:     rectprops = _api.deprecate_privatize_attribute("3.5")
+2120: 
+2121:     active_handle = _api.deprecate_privatize_attribute("3.5")
+2122: 
+2123:     pressv = _api.deprecate_privatize_attribute("3.5")
+2124: 
+2125:     span_stays = _api.deprecated("3.5")(
+2126:         property(lambda self: self._interactive)
+2127:         )
+2128: 
+2129:     prev = _api.deprecate_privatize_attribute("3.5")
+2130: 
+2131:     def new_axes(self, ax):
+2132:         """Set SpanSelector to operate on a new Axes."""
+2133:         self.ax = ax
+2134:         if self.canvas is not ax.figure.canvas:
+2135:             if self.canvas is not None:
+2136:                 self.disconnect_events()
+2137: 
+2138:             self.canvas = ax.figure.canvas
+2139:             self.connect_default_events()
+2140: 
+2141:         if self.direction == 'horizontal':
+2142:             trans = ax.get_xaxis_transform()
+2143:             w, h = 0, 1
+2144:         else:
+2145:             trans = ax.get_yaxis_transform()
+2146:             w, h = 1, 0
+2147:         self._rect = Rectangle((0, 0), w, h,
+2148:                                transform=trans,
+2149:                                visible=False,
+2150:                                **self._rectprops)
+2151: 
+2152:         self.ax.add_patch(self._rect)
+2153:         if len(self.artists) > 0:
+2154:             self.artists[0] = self._rect
+2155:         else:
+2156:             self.artists.append(self._rect)
+2157: 
+2158:     def _setup_edge_handle(self, props):
+2159:         self._edge_handles = ToolLineHandles(self.ax, self.extents,
+2160:                                              direction=self.direction,
+2161:                                              line_props=props,
+2162:                                              useblit=self.useblit)
+2163:         self.artists.extend([line for line in self._edge_handles.artists])
+2164: 
+2165:     def _press(self, event):
+2166:         """Button press event handler."""
+2167:         if self._interactive and self._rect.get_visible():
+2168:             self._set_active_handle(event)
+2169:         else:
+2170:             self._active_handle = None
+2171: 
+2172:         if self._active_handle is None or not self._interactive:
+2173:             # Clear previous rectangle before drawing new rectangle.
+2174:             self.update()
+2175: 
+2176:         v = event.xdata if self.direction == 'horizontal' else event.ydata
+2177:         # self._pressv and self._prev are deprecated but we still need to
+2178:         # maintain them
+2179:         self._pressv = v
+2180:         self._prev = self._get_data(event)
+2181: 
+2182:         if self._active_handle is None:
+2183:             # when the press event outside the span, we initially set the
+2184:             # visibility to False and extents to (v, v)
+2185:             # update will be called when setting the extents
+2186:             self.visible = False
+2187:             self.extents = v, v
+2188:             # We need to set the visibility back, so the span selector will be
+2189:             # drawn when necessary (span width > 0)
+2190:             self.visible = True
+2191:         else:
+2192:             self.set_visible(True)
+2193: 
+2194:         return False
+2195: 
+2196:     @property
+2197:     def direction(self):
+2198:         """Direction of the span selector: 'vertical' or 'horizontal'."""
+2199:         return self._direction
+2200: 
+2201:     @direction.setter
+2202:     def direction(self, direction):
+2203:         """Set the direction of the span selector."""
+2204:         _api.check_in_list(['horizontal', 'vertical'], direction=direction)
+2205:         if hasattr(self, '_direction') and direction != self._direction:
+2206:             # remove previous artists
+2207:             self._rect.remove()
+2208:             if self._interactive:
+2209:                 self._edge_handles.remove()
+2210:                 for artist in self._edge_handles.artists:
+2211:                     self.artists.remove(artist)
+2212:             self._direction = direction
+2213:             self.new_axes(self.ax)
+2214:             if self._interactive:
+2215:                 self._setup_edge_handle(self._edge_handles._line_props)
+2216:         else:
+2217:             self._direction = direction
+2218: 
+2219:     def _release(self, event):
+2220:         """Button release event handler."""
+2221:         if not self._interactive:
+2222:             self._rect.set_visible(False)
+2223: 
+2224:         vmin, vmax = self.extents
+2225:         span = vmax - vmin
+2226:         if span <= self.minspan:
+2227:             self.set_visible(False)
+2228:             self.update()
+2229:             return
+2230: 
+2231:         self.onselect(vmin, vmax)
+2232:         self.update()
+2233: 
+2234:         # self._pressv is deprecated but we still need to maintain it
+2235:         self._pressv = None
+2236: 
+2237:         return False
+2238: 
+2239:     def _onmove(self, event):
+2240:         """Motion notify event handler."""
+
+(Showing lines 1991-2240 of 3409. Use offset=2241 to continue.)
+</content>

@@ -1,0 +1,2 @@
+Now let me understand what happens when skip is called. The `skip()` function raises a `pytest.skip.Exception`. Let me check what type of exception that is:
+

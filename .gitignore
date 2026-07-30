@@ -3,6 +3,8 @@ node_modules
 .worktrees
 .benchmark-runs
 .benchmark-traces
+!.benchmark-traces/
+!.benchmark-traces/**
 .sst
 .env
 .env.local

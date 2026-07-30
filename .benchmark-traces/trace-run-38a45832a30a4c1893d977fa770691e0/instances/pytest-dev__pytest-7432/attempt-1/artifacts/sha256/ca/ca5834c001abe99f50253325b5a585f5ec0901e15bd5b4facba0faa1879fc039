@@ -1,0 +1,56 @@
+<path>/testbed/src/_pytest/outcomes.py</path>
+<type>file</type>
+<content>
+1: """
+2: exception classes and constants handling test outcomes
+3: as well as functions creating them
+4: """
+5: import sys
+6: from typing import Any
+7: from typing import Callable
+8: from typing import cast
+9: from typing import Optional
+10: from typing import TypeVar
+11: 
+12: TYPE_CHECKING = False  # avoid circular import through compat
+13: 
+14: if TYPE_CHECKING:
+15:     from typing import NoReturn
+16:     from typing import Type  # noqa: F401 (used in type string)
+17:     from typing_extensions import Protocol
+18: else:
+19:     # typing.Protocol is only available starting from Python 3.8. It is also
+20:     # available from typing_extensions, but we don't want a runtime dependency
+21:     # on that. So use a dummy runtime implementation.
+22:     from typing import Generic
+23: 
+24:     Protocol = Generic
+25: 
+26: 
+27: class OutcomeException(BaseException):
+28:     """ OutcomeException and its subclass instances indicate and
+29:         contain info about test and collection outcomes.
+30:     """
+31: 
+32:     def __init__(self, msg: Optional[str] = None, pytrace: bool = True) -> None:
+33:         if msg is not None and not isinstance(msg, str):
+34:             error_msg = (
+35:                 "{} expected string as 'msg' parameter, got '{}' instead.\n"
+36:                 "Perhaps you meant to use a mark?"
+37:             )
+38:             raise TypeError(error_msg.format(type(self).__name__, type(msg).__name__))
+39:         BaseException.__init__(self, msg)
+40:         self.msg = msg
+41:         self.pytrace = pytrace
+42: 
+43:     def __repr__(self) -> str:
+44:         if self.msg:
+45:             return self.msg
+46:         return "<{} instance>".format(self.__class__.__name__)
+47: 
+48:     __str__ = __repr__
+49: 
+50: 
+
+(Showing lines 1-50 of 227. Use offset=51 to continue.)
+</content>

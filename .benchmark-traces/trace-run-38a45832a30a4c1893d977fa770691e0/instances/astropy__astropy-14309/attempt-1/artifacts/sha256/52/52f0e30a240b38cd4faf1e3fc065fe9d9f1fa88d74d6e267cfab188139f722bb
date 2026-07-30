@@ -1,0 +1,4 @@
+I'll fix the IndexError in the `is_votable` function by adding a check for empty args before accessing `args[0]`.
+
+Let me first read the file to see the current state:
+

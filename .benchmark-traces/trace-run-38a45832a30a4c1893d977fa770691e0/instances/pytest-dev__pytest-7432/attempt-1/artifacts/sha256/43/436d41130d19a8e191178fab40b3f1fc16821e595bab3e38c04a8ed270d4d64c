@@ -1,0 +1,1 @@
+{"command":"git show e6e300e72:src/_pytest/skipping.py | sed -n '270,280p'"}

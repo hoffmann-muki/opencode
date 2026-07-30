@@ -1,0 +1,2 @@
+Wait, I'm still not handling the "last date" requirement correctly. The `.*?` is non-greedy, so it will match from the start to the first date. I need to use `.*` (greedy) to match as much as possible, which will leave only the last date to be matched.
+

@@ -1,0 +1,9 @@
+Perfect! I've successfully found and merged your changes into master. 
+
+**Summary:**
+- Your changes were in commit `c499730` ("Move to Stanford") which existed in your git history but wasn't on the master branch
+- The commit updated your affiliation from University of Washington to Stanford CS
+- There was a merge conflict in `_includes/about.md` which I resolved by accepting the Stanford version
+- The merge is now complete and your changes are on master
+
+Your site now reflects your move to Stanford!

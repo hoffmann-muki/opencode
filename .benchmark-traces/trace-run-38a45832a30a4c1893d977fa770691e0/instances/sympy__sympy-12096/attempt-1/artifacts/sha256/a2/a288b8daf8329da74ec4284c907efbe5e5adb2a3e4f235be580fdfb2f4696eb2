@@ -1,0 +1,106 @@
+<path>/testbed/sympy/utilities/tests/test_lambdify.py</path>
+<type>file</type>
+<content>
+590:     if2 = lambdify(x, g(x), modules=(n2, "sympy"))
+591:     # previously gave 'second f'
+592:     assert if1(1) == 'first f'
+593: 
+594: 
+595: def test_imps():
+596:     # Here we check if the default returned functions are anonymous - in
+597:     # the sense that we can have more than one function with the same name
+598:     f = implemented_function('f', lambda x: 2*x)
+599:     g = implemented_function('f', lambda x: math.sqrt(x))
+600:     l1 = lambdify(x, f(x))
+601:     l2 = lambdify(x, g(x))
+602:     assert str(f(x)) == str(g(x))
+603:     assert l1(3) == 6
+604:     assert l2(3) == math.sqrt(3)
+605:     # check that we can pass in a Function as input
+606:     func = sympy.Function('myfunc')
+607:     assert not hasattr(func, '_imp_')
+608:     my_f = implemented_function(func, lambda x: 2*x)
+609:     assert hasattr(func, '_imp_')
+610:     # Error for functions with same name and different implementation
+611:     f2 = implemented_function("f", lambda x: x + 101)
+612:     raises(ValueError, lambda: lambdify(x, f(f2(x))))
+613: 
+614: 
+615: def test_imps_errors():
+616:     # Test errors that implemented functions can return, and still be able to
+617:     # form expressions.
+618:     # See: https://github.com/sympy/sympy/issues/10810
+619:     for val, error_class in product((0, 0., 2, 2.0),
+620:                                     (AttributeError, TypeError, ValueError)):
+621: 
+622:         def myfunc(a):
+623:             if a == 0:
+624:                 raise error_class
+625:             return 1
+626: 
+627:         f = implemented_function('f', myfunc)
+628:         expr = f(val)
+629:         assert expr == f(val)
+630: 
+631: 
+632: def test_imps_wrong_args():
+633:     raises(ValueError, lambda: implemented_function(sin, lambda x: x))
+634: 
+635: 
+636: def test_lambdify_imps():
+637:     # Test lambdify with implemented functions
+638:     # first test basic (sympy) lambdify
+639:     f = sympy.cos
+640:     assert lambdify(x, f(x))(0) == 1
+641:     assert lambdify(x, 1 + f(x))(0) == 2
+642:     assert lambdify((x, y), y + f(x))(0, 1) == 2
+643:     # make an implemented function and test
+644:     f = implemented_function("f", lambda x: x + 100)
+645:     assert lambdify(x, f(x))(0) == 100
+646:     assert lambdify(x, 1 + f(x))(0) == 101
+647:     assert lambdify((x, y), y + f(x))(0, 1) == 101
+648:     # Can also handle tuples, lists, dicts as expressions
+649:     lam = lambdify(x, (f(x), x))
+650:     assert lam(3) == (103, 3)
+651:     lam = lambdify(x, [f(x), x])
+652:     assert lam(3) == [103, 3]
+653:     lam = lambdify(x, [f(x), (f(x), x)])
+654:     assert lam(3) == [103, (103, 3)]
+655:     lam = lambdify(x, {f(x): x})
+656:     assert lam(3) == {103: 3}
+657:     lam = lambdify(x, {f(x): x})
+658:     assert lam(3) == {103: 3}
+659:     lam = lambdify(x, {x: f(x)})
+660:     assert lam(3) == {3: 103}
+661:     # Check that imp preferred to other namespaces by default
+662:     d = {'f': lambda x: x + 99}
+663:     lam = lambdify(x, f(x), d)
+664:     assert lam(3) == 103
+665:     # Unless flag passed
+666:     lam = lambdify(x, f(x), d, use_imps=False)
+667:     assert lam(3) == 102
+668: 
+669: def test_dummification():
+670:     t = symbols('t')
+671:     F = Function('F')
+672:     G = Function('G')
+673:     #"\alpha" is not a valid python variable name
+674:     #lambdify should sub in a dummy for it, and return
+675:     #without a syntax error
+676:     alpha = symbols(r'\alpha')
+677:     some_expr = 2 * F(t)**2 / G(t)
+678:     lam = lambdify((F(t), G(t)), some_expr)
+679:     assert lam(3, 9) == 2
+680:     lam = lambdify(sin(t), 2 * sin(t)**2)
+681:     assert lam(F(t)) == 2 * F(t)**2
+682:     #Test that \alpha was properly dummified
+683:     lam = lambdify((alpha, t), 2*alpha + t)
+684:     assert lam(2, 1) == 5
+685:     raises(SyntaxError, lambda: lambdify(F(t) * G(t), F(t) * G(t) + 5))
+686:     raises(SyntaxError, lambda: lambdify(2 * F(t), 2 * F(t) + 5))
+687:     raises(SyntaxError, lambda: lambdify(2 * F(t), 4 * F(t) + 5))
+688: 
+689: def test_python_keywords():
+
+(Showing lines 590-689 of 773. Use offset=690 to continue.)
+</content>

@@ -1,0 +1,56 @@
+<path>/testbed/astropy/io/votable/connect.py</path>
+<type>file</type>
+<content>
+1: # Licensed under a 3-clause BSD style license - see LICENSE.rst
+2: 
+3: 
+4: import os
+5: 
+6: from astropy.io import registry as io_registry
+7: from astropy.table import Table
+8: from astropy.table.column import BaseColumn
+9: from astropy.units import Quantity
+10: from astropy.utils.misc import NOT_OVERWRITING_MSG
+11: 
+12: from . import from_table, parse
+13: from .tree import Table as VOTable
+14: from .tree import VOTableFile
+15: 
+16: 
+17: def is_votable(origin, filepath, fileobj, *args, **kwargs):
+18:     """
+19:     Reads the header of a file to determine if it is a VOTable file.
+20: 
+21:     Parameters
+22:     ----------
+23:     origin : str or readable file-like
+24:         Path or file object containing a VOTABLE_ xml file.
+25: 
+26:     Returns
+27:     -------
+28:     is_votable : bool
+29:         Returns `True` if the given file is a VOTable file.
+30:     """
+31:     from . import is_votable
+32: 
+33:     if origin == "read":
+34:         if fileobj is not None:
+35:             try:
+36:                 result = is_votable(fileobj)
+37:             finally:
+38:                 fileobj.seek(0)
+39:             return result
+40:         elif filepath is not None:
+41:             return is_votable(filepath)
+42:         return len(args) > 0 and isinstance(args[0], (VOTableFile, VOTable))
+43: 
+44:     else:
+45:         return False
+46: 
+47: 
+48: def read_table_votable(
+49:     input, table_id=None, use_names_over_ids=False, verify=None, **kwargs
+50: ):
+
+(Showing lines 1-50 of 181. Use offset=51 to continue.)
+</content>

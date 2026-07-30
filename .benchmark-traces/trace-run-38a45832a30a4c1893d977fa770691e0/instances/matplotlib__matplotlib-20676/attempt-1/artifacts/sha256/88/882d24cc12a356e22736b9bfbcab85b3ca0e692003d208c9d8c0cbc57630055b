@@ -1,0 +1,8 @@
+commit afa875f2be2c7e9ae3e6cbf529f0dd417b960a27
+Author: Eric Prestat <eric.prestat@gmail.com>
+Date:   Sun Apr 25 18:21:05 2021 +0100
+
+    Add interactive option to SpanSelector to change it interactively after release. Deprecate span_stays
+
+ lib/matplotlib/widgets.py | 207 ++++++++++++++++++++++++++++++++++++++--------
+ 1 file changed, 173 insertions(+), 34 deletions(-)

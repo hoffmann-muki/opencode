@@ -1,0 +1,36 @@
+<path>/testbed/src/_pytest/runner.py</path>
+<type>file</type>
+<content>
+215: 
+216: 
+217: def check_interactive_exception(call: "CallInfo", report: BaseReport) -> bool:
+218:     return call.excinfo is not None and not (
+219:         hasattr(report, "wasxfail")
+220:         or call.excinfo.errisinstance(Skipped)
+221:         or call.excinfo.errisinstance(bdb.BdbQuit)
+222:     )
+223: 
+224: 
+225: def call_runtest_hook(
+226:     item: Item, when: "Literal['setup', 'call', 'teardown']", **kwds
+227: ) -> "CallInfo[None]":
+228:     if when == "setup":
+229:         ihook = item.ihook.pytest_runtest_setup  # type: Callable[..., None]
+230:     elif when == "call":
+231:         ihook = item.ihook.pytest_runtest_call
+232:     elif when == "teardown":
+233:         ihook = item.ihook.pytest_runtest_teardown
+234:     else:
+235:         assert False, "Unhandled runtest hook case: {}".format(when)
+236:     reraise = (Exit,)  # type: Tuple[Type[BaseException], ...]
+237:     if not item.config.getoption("usepdb", False):
+238:         reraise += (KeyboardInterrupt,)
+239:     return CallInfo.from_call(
+240:         lambda: ihook(item=item, **kwds), when=when, reraise=reraise
+241:     )
+242: 
+243: 
+244: _T = TypeVar("_T")
+
+(Showing lines 215-244 of 438. Use offset=245 to continue.)
+</content>

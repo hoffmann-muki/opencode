@@ -1,0 +1,23 @@
+Testing ASCIIUsernameValidator:
+  OK: 'validuser' expected=True, got=PASS
+  OK: 'valid.user' expected=True, got=PASS
+  OK: 'valid_user' expected=True, got=PASS
+  OK: 'valid+user' expected=True, got=PASS
+  OK: 'valid@user' expected=True, got=PASS
+  OK: 'validuser123' expected=True, got=PASS
+  OK: 'valid\nuser' expected=False, got=FAIL
+  OK: 'validuser\n' expected=False, got=FAIL
+  OK: 'validuser\r' expected=False, got=FAIL
+  OK: 'validuser\n\r' expected=False, got=FAIL
+
+Testing UnicodeUsernameValidator:
+  OK: 'validuser' expected=True, got=PASS
+  OK: 'valid.user' expected=True, got=PASS
+  OK: 'valid_user' expected=True, got=PASS
+  OK: 'valid+user' expected=True, got=PASS
+  OK: 'valid@user' expected=True, got=PASS
+  OK: 'validuser123' expected=True, got=PASS
+  OK: 'valid\nuser' expected=False, got=FAIL
+  OK: 'validuser\n' expected=False, got=FAIL
+  OK: 'validuser\r' expected=False, got=FAIL
+  OK: 'validuser\n\r' expected=False, got=FAIL

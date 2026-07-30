@@ -1,0 +1,1510 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+1: """
+2: GUI neutral widgets
+3: ===================
+4: 
+5: Widgets that are designed to work for any of the GUI backends.
+6: All of these widgets require you to predefine a `matplotlib.axes.Axes`
+7: instance and pass that as the first parameter.  Matplotlib doesn't try to
+8: be too smart with respect to layout -- you will have to figure out how
+9: wide and tall you want your Axes to be to accommodate your widget.
+10: """
+11: 
+12: from contextlib import ExitStack
+13: import copy
+14: from numbers import Integral, Number
+15: 
+16: import numpy as np
+17: 
+18: import matplotlib as mpl
+19: from . import _api, cbook, colors, ticker
+20: from .lines import Line2D
+21: from .patches import Circle, Rectangle, Ellipse
+22: 
+23: 
+24: class LockDraw:
+25:     """
+26:     Some widgets, like the cursor, draw onto the canvas, and this is not
+27:     desirable under all circumstances, like when the toolbar is in zoom-to-rect
+28:     mode and drawing a rectangle.  To avoid this, a widget can acquire a
+29:     canvas' lock with ``canvas.widgetlock(widget)`` before drawing on the
+30:     canvas; this will prevent other widgets from doing so at the same time (if
+31:     they also try to acquire the lock first).
+32:     """
+33: 
+34:     def __init__(self):
+35:         self._owner = None
+36: 
+37:     def __call__(self, o):
+38:         """Reserve the lock for *o*."""
+39:         if not self.available(o):
+40:             raise ValueError('already locked')
+41:         self._owner = o
+42: 
+43:     def release(self, o):
+44:         """Release the lock from *o*."""
+45:         if not self.available(o):
+46:             raise ValueError('you do not own this lock')
+47:         self._owner = None
+48: 
+49:     def available(self, o):
+50:         """Return whether drawing is available to *o*."""
+51:         return not self.locked() or self.isowner(o)
+52: 
+53:     def isowner(self, o):
+54:         """Return whether *o* owns this lock."""
+55:         return self._owner is o
+56: 
+57:     def locked(self):
+58:         """Return whether the lock is currently held by an owner."""
+59:         return self._owner is not None
+60: 
+61: 
+62: class Widget:
+63:     """
+64:     Abstract base class for GUI neutral widgets.
+65:     """
+66:     drawon = True
+67:     eventson = True
+68:     _active = True
+69: 
+70:     def set_active(self, active):
+71:         """Set whether the widget is active."""
+72:         self._active = active
+73: 
+74:     def get_active(self):
+75:         """Get whether the widget is active."""
+76:         return self._active
+77: 
+78:     # set_active is overridden by SelectorWidgets.
+79:     active = property(get_active, set_active, doc="Is the widget active?")
+80: 
+81:     def ignore(self, event):
+82:         """
+83:         Return whether *event* should be ignored.
+84: 
+85:         This method should be called at the beginning of any event callback.
+86:         """
+87:         return not self.active
+88: 
+89: 
+90: class AxesWidget(Widget):
+91:     """
+92:     Widget connected to a single `~matplotlib.axes.Axes`.
+93: 
+94:     To guarantee that the widget remains responsive and not garbage-collected,
+95:     a reference to the object should be maintained by the user.
+96: 
+97:     This is necessary because the callback registry
+98:     maintains only weak-refs to the functions, which are member
+99:     functions of the widget.  If there are no references to the widget
+100:     object it may be garbage collected which will disconnect the callbacks.
+101: 
+102:     Attributes
+103:     ----------
+104:     ax : `~matplotlib.axes.Axes`
+105:         The parent axes for the widget.
+106:     canvas : `~matplotlib.backend_bases.FigureCanvasBase`
+107:         The parent figure canvas for the widget.
+108:     active : bool
+109:         If False, the widget does not respond to events.
+110:     """
+111: 
+112:     cids = _api.deprecated("3.4")(property(lambda self: self._cids))
+113: 
+114:     def __init__(self, ax):
+115:         self.ax = ax
+116:         self.canvas = ax.figure.canvas
+117:         self._cids = []
+118: 
+119:     def connect_event(self, event, callback):
+120:         """
+121:         Connect a callback function with an event.
+122: 
+123:         This should be used in lieu of ``figure.canvas.mpl_connect`` since this
+124:         function stores callback ids for later clean up.
+125:         """
+126:         cid = self.canvas.mpl_connect(event, callback)
+127:         self._cids.append(cid)
+128: 
+129:     def disconnect_events(self):
+130:         """Disconnect all events created by this widget."""
+131:         for c in self._cids:
+132:             self.canvas.mpl_disconnect(c)
+133: 
+134: 
+135: class Button(AxesWidget):
+136:     """
+137:     A GUI neutral button.
+138: 
+139:     For the button to remain responsive you must keep a reference to it.
+140:     Call `.on_clicked` to connect to the button.
+141: 
+142:     Attributes
+143:     ----------
+144:     ax
+145:         The `matplotlib.axes.Axes` the button renders into.
+146:     label
+147:         A `matplotlib.text.Text` instance.
+148:     color
+149:         The color of the button when not hovering.
+150:     hovercolor
+151:         The color of the button when hovering.
+152:     """
+153: 
+154:     cnt = _api.deprecated("3.4")(property(  # Not real, but close enough.
+155:         lambda self: len(self._observers.callbacks['clicked'])))
+156:     observers = _api.deprecated("3.4")(property(
+157:         lambda self: self._observers.callbacks['clicked']))
+158: 
+159:     def __init__(self, ax, label, image=None,
+160:                  color='0.85', hovercolor='0.95'):
+161:         """
+162:         Parameters
+163:         ----------
+164:         ax : `~matplotlib.axes.Axes`
+165:             The `~.axes.Axes` instance the button will be placed into.
+166:         label : str
+167:             The button text.
+168:         image : array-like or PIL Image
+169:             The image to place in the button, if not *None*.  The parameter is
+170:             directly forwarded to `~matplotlib.axes.Axes.imshow`.
+171:         color : color
+172:             The color of the button when not activated.
+173:         hovercolor : color
+174:             The color of the button when the mouse is over it.
+175:         """
+176:         super().__init__(ax)
+177: 
+178:         if image is not None:
+179:             ax.imshow(image)
+180:         self.label = ax.text(0.5, 0.5, label,
+181:                              verticalalignment='center',
+182:                              horizontalalignment='center',
+183:                              transform=ax.transAxes)
+184: 
+185:         self._observers = cbook.CallbackRegistry()
+186: 
+187:         self.connect_event('button_press_event', self._click)
+188:         self.connect_event('button_release_event', self._release)
+189:         self.connect_event('motion_notify_event', self._motion)
+190:         ax.set_navigate(False)
+191:         ax.set_facecolor(color)
+192:         ax.set_xticks([])
+193:         ax.set_yticks([])
+194:         self.color = color
+195:         self.hovercolor = hovercolor
+196: 
+197:     def _click(self, event):
+198:         if self.ignore(event) or event.inaxes != self.ax or not self.eventson:
+199:             return
+200:         if event.canvas.mouse_grabber != self.ax:
+201:             event.canvas.grab_mouse(self.ax)
+202: 
+203:     def _release(self, event):
+204:         if self.ignore(event) or event.canvas.mouse_grabber != self.ax:
+205:             return
+206:         event.canvas.release_mouse(self.ax)
+207:         if self.eventson and event.inaxes == self.ax:
+208:             self._observers.process('clicked', event)
+209: 
+210:     def _motion(self, event):
+211:         if self.ignore(event):
+212:             return
+213:         c = self.hovercolor if event.inaxes == self.ax else self.color
+214:         if not colors.same_color(c, self.ax.get_facecolor()):
+215:             self.ax.set_facecolor(c)
+216:             if self.drawon:
+217:                 self.ax.figure.canvas.draw()
+218: 
+219:     def on_clicked(self, func):
+220:         """
+221:         Connect the callback function *func* to button click events.
+222: 
+223:         Returns a connection id, which can be used to disconnect the callback.
+224:         """
+225:         return self._observers.connect('clicked', lambda event: func(event))
+226: 
+227:     def disconnect(self, cid):
+228:         """Remove the callback function with connection id *cid*."""
+229:         self._observers.disconnect(cid)
+230: 
+231: 
+232: class SliderBase(AxesWidget):
+233:     """
+234:     The base class for constructing Slider widgets. Not intended for direct
+235:     usage.
+236: 
+237:     For the slider to remain responsive you must maintain a reference to it.
+238:     """
+239:     def __init__(self, ax, orientation, closedmin, closedmax,
+240:                  valmin, valmax, valfmt, dragging, valstep):
+241:         if ax.name == '3d':
+242:             raise ValueError('Sliders cannot be added to 3D Axes')
+243: 
+244:         super().__init__(ax)
+245:         _api.check_in_list(['horizontal', 'vertical'], orientation=orientation)
+246: 
+247:         self.orientation = orientation
+248:         self.closedmin = closedmin
+249:         self.closedmax = closedmax
+250:         self.valmin = valmin
+251:         self.valmax = valmax
+252:         self.valstep = valstep
+253:         self.drag_active = False
+254:         self.valfmt = valfmt
+255: 
+256:         if orientation == "vertical":
+257:             ax.set_ylim((valmin, valmax))
+258:             axis = ax.yaxis
+259:         else:
+260:             ax.set_xlim((valmin, valmax))
+261:             axis = ax.xaxis
+262: 
+263:         self._fmt = axis.get_major_formatter()
+264:         if not isinstance(self._fmt, ticker.ScalarFormatter):
+265:             self._fmt = ticker.ScalarFormatter()
+266:             self._fmt.set_axis(axis)
+267:         self._fmt.set_useOffset(False)  # No additive offset.
+268:         self._fmt.set_useMathText(True)  # x sign before multiplicative offset.
+269: 
+270:         ax.set_axis_off()
+271:         ax.set_navigate(False)
+272: 
+273:         self.connect_event("button_press_event", self._update)
+274:         self.connect_event("button_release_event", self._update)
+275:         if dragging:
+276:             self.connect_event("motion_notify_event", self._update)
+277:         self._observers = cbook.CallbackRegistry()
+278: 
+279:     def _stepped_value(self, val):
+280:         """Return *val* coerced to closest number in the ``valstep`` grid."""
+281:         if isinstance(self.valstep, Number):
+282:             val = (self.valmin
+283:                    + round((val - self.valmin) / self.valstep) * self.valstep)
+284:         elif self.valstep is not None:
+285:             valstep = np.asanyarray(self.valstep)
+286:             if valstep.ndim != 1:
+287:                 raise ValueError(
+288:                     f"valstep must have 1 dimension but has {valstep.ndim}"
+289:                 )
+290:             val = valstep[np.argmin(np.abs(valstep - val))]
+291:         return val
+292: 
+293:     def disconnect(self, cid):
+294:         """
+295:         Remove the observer with connection id *cid*.
+296: 
+297:         Parameters
+298:         ----------
+299:         cid : int
+300:             Connection id of the observer to be removed.
+301:         """
+302:         self._observers.disconnect(cid)
+303: 
+304:     def reset(self):
+305:         """Reset the slider to the initial value."""
+306:         if self.val != self.valinit:
+307:             self.set_val(self.valinit)
+308: 
+309: 
+310: class Slider(SliderBase):
+311:     """
+312:     A slider representing a floating point range.
+313: 
+314:     Create a slider from *valmin* to *valmax* in axes *ax*. For the slider to
+315:     remain responsive you must maintain a reference to it. Call
+316:     :meth:`on_changed` to connect to the slider event.
+317: 
+318:     Attributes
+319:     ----------
+320:     val : float
+321:         Slider value.
+322:     """
+323: 
+324:     cnt = _api.deprecated("3.4")(property(  # Not real, but close enough.
+325:         lambda self: len(self._observers.callbacks['changed'])))
+326:     observers = _api.deprecated("3.4")(property(
+327:         lambda self: self._observers.callbacks['changed']))
+328: 
+329:     def __init__(self, ax, label, valmin, valmax, valinit=0.5, valfmt=None,
+330:                  closedmin=True, closedmax=True, slidermin=None,
+331:                  slidermax=None, dragging=True, valstep=None,
+332:                  orientation='horizontal', *, initcolor='r',
+333:                  track_color='lightgrey', handle_style=None, **kwargs):
+334:         """
+335:         Parameters
+336:         ----------
+337:         ax : Axes
+338:             The Axes to put the slider in.
+339: 
+340:         label : str
+341:             Slider label.
+342: 
+343:         valmin : float
+344:             The minimum value of the slider.
+345: 
+346:         valmax : float
+347:             The maximum value of the slider.
+348: 
+349:         valinit : float, default: 0.5
+350:             The slider initial position.
+351: 
+352:         valfmt : str, default: None
+353:             %-format string used to format the slider value.  If None, a
+354:             `.ScalarFormatter` is used instead.
+355: 
+356:         closedmin : bool, default: True
+357:             Whether the slider interval is closed on the bottom.
+358: 
+359:         closedmax : bool, default: True
+360:             Whether the slider interval is closed on the top.
+361: 
+362:         slidermin : Slider, default: None
+363:             Do not allow the current slider to have a value less than
+364:             the value of the Slider *slidermin*.
+365: 
+366:         slidermax : Slider, default: None
+367:             Do not allow the current slider to have a value greater than
+368:             the value of the Slider *slidermax*.
+369: 
+370:         dragging : bool, default: True
+371:             If True the slider can be dragged by the mouse.
+372: 
+373:         valstep : float or array-like, default: None
+374:             If a float, the slider will snap to multiples of *valstep*.
+375:             If an array the slider will snap to the values in the array.
+376: 
+377:         orientation : {'horizontal', 'vertical'}, default: 'horizontal'
+378:             The orientation of the slider.
+379: 
+380:         initcolor : color, default: 'r'
+381:             The color of the line at the *valinit* position. Set to ``'none'``
+382:             for no line.
+383: 
+384:         track_color : color, default: 'lightgrey'
+385:             The color of the background track. The track is accessible for
+386:             further styling via the *track* attribute.
+387: 
+388:         handle_style : dict
+389:             Properties of the slider handle. Default values are
+390: 
+391:             ========= ===== ======= ========================================
+392:             Key       Value Default Description
+393:             ========= ===== ======= ========================================
+394:             facecolor color 'white' The facecolor of the slider handle.
+395:             edgecolor color '.75'   The edgecolor of the slider handle.
+396:             size      int   10      The size of the slider handle in points.
+397:             ========= ===== ======= ========================================
+398: 
+399:             Other values will be transformed as marker{foo} and passed to the
+400:             `~.Line2D` constructor. e.g. ``handle_style = {'style'='x'}`` will
+401:             result in ``markerstyle = 'x'``.
+402: 
+403:         Notes
+404:         -----
+405:         Additional kwargs are passed on to ``self.poly`` which is the
+406:         `~matplotlib.patches.Polygon` that draws the slider knob.  See the
+407:         `.Polygon` documentation for valid property names (``facecolor``,
+408:         ``edgecolor``, ``alpha``, etc.).
+409:         """
+410:         super().__init__(ax, orientation, closedmin, closedmax,
+411:                          valmin, valmax, valfmt, dragging, valstep)
+412: 
+413:         if slidermin is not None and not hasattr(slidermin, 'val'):
+414:             raise ValueError(
+415:                 f"Argument slidermin ({type(slidermin)}) has no 'val'")
+416:         if slidermax is not None and not hasattr(slidermax, 'val'):
+417:             raise ValueError(
+418:                 f"Argument slidermax ({type(slidermax)}) has no 'val'")
+419:         self.slidermin = slidermin
+420:         self.slidermax = slidermax
+421:         valinit = self._value_in_bounds(valinit)
+422:         if valinit is None:
+423:             valinit = valmin
+424:         self.val = valinit
+425:         self.valinit = valinit
+426: 
+427:         defaults = {'facecolor': 'white', 'edgecolor': '.75', 'size': 10}
+428:         handle_style = {} if handle_style is None else handle_style
+429:         marker_props = {
+430:             f'marker{k}': v for k, v in {**defaults, **handle_style}.items()
+431:         }
+432: 
+433:         if orientation == 'vertical':
+434:             self.track = Rectangle(
+435:                 (.25, 0), .5, 1,
+436:                 transform=ax.transAxes,
+437:                 facecolor=track_color
+438:             )
+439:             ax.add_patch(self.track)
+440:             self.poly = ax.axhspan(valmin, valinit, .25, .75, **kwargs)
+441:             self.hline = ax.axhline(valinit, .15, .85, color=initcolor, lw=1)
+442:             handleXY = [[0.5], [valinit]]
+443:         else:
+444:             self.track = Rectangle(
+445:                 (0, .25), 1, .5,
+446:                 transform=ax.transAxes,
+447:                 facecolor=track_color
+448:             )
+449:             ax.add_patch(self.track)
+450:             self.poly = ax.axvspan(valmin, valinit, .25, .75, **kwargs)
+451:             # These asymmetric limits (.2, .9) minimize the asymmetry
+452:             # above and below the *poly* when rendered to pixels.
+453:             # This seems to be different for Horizontal and Vertical lines.
+454:             # For discussion see:
+455:             # https://github.com/matplotlib/matplotlib/pull/19265
+456:             self.vline = ax.axvline(valinit, .2, .9, color=initcolor, lw=1)
+457:             handleXY = [[valinit], [0.5]]
+458:         self._handle, = ax.plot(
+459:             *handleXY,
+460:             "o",
+461:             **marker_props,
+462:             clip_on=False
+463:         )
+464: 
+465:         if orientation == 'vertical':
+466:             self.label = ax.text(0.5, 1.02, label, transform=ax.transAxes,
+467:                                  verticalalignment='bottom',
+468:                                  horizontalalignment='center')
+469: 
+470:             self.valtext = ax.text(0.5, -0.02, self._format(valinit),
+471:                                    transform=ax.transAxes,
+472:                                    verticalalignment='top',
+473:                                    horizontalalignment='center')
+474:         else:
+475:             self.label = ax.text(-0.02, 0.5, label, transform=ax.transAxes,
+476:                                  verticalalignment='center',
+477:                                  horizontalalignment='right')
+478: 
+479:             self.valtext = ax.text(1.02, 0.5, self._format(valinit),
+480:                                    transform=ax.transAxes,
+481:                                    verticalalignment='center',
+482:                                    horizontalalignment='left')
+483: 
+484:         self.set_val(valinit)
+485: 
+486:     def _value_in_bounds(self, val):
+487:         """Makes sure *val* is with given bounds."""
+488:         val = self._stepped_value(val)
+489: 
+490:         if val <= self.valmin:
+491:             if not self.closedmin:
+492:                 return
+493:             val = self.valmin
+494:         elif val >= self.valmax:
+495:             if not self.closedmax:
+496:                 return
+497:             val = self.valmax
+498: 
+499:         if self.slidermin is not None and val <= self.slidermin.val:
+500:             if not self.closedmin:
+501:                 return
+502:             val = self.slidermin.val
+503: 
+504:         if self.slidermax is not None and val >= self.slidermax.val:
+505:             if not self.closedmax:
+506:                 return
+507:             val = self.slidermax.val
+508:         return val
+509: 
+510:     def _update(self, event):
+511:         """Update the slider position."""
+512:         if self.ignore(event) or event.button != 1:
+513:             return
+514: 
+515:         if event.name == 'button_press_event' and event.inaxes == self.ax:
+516:             self.drag_active = True
+517:             event.canvas.grab_mouse(self.ax)
+518: 
+519:         if not self.drag_active:
+520:             return
+521: 
+522:         elif ((event.name == 'button_release_event') or
+523:               (event.name == 'button_press_event' and
+524:                event.inaxes != self.ax)):
+525:             self.drag_active = False
+526:             event.canvas.release_mouse(self.ax)
+527:             return
+528:         if self.orientation == 'vertical':
+529:             val = self._value_in_bounds(event.ydata)
+530:         else:
+531:             val = self._value_in_bounds(event.xdata)
+532:         if val not in [None, self.val]:
+533:             self.set_val(val)
+534: 
+535:     def _format(self, val):
+536:         """Pretty-print *val*."""
+537:         if self.valfmt is not None:
+538:             return self.valfmt % val
+539:         else:
+540:             _, s, _ = self._fmt.format_ticks([self.valmin, val, self.valmax])
+541:             # fmt.get_offset is actually the multiplicative factor, if any.
+542:             return s + self._fmt.get_offset()
+543: 
+544:     def set_val(self, val):
+545:         """
+546:         Set slider value to *val*.
+547: 
+548:         Parameters
+549:         ----------
+550:         val : float
+551:         """
+552:         xy = self.poly.xy
+553:         if self.orientation == 'vertical':
+554:             xy[1] = .25, val
+555:             xy[2] = .75, val
+556:             self._handle.set_ydata([val])
+557:         else:
+558:             xy[2] = val, .75
+559:             xy[3] = val, .25
+560:             self._handle.set_xdata([val])
+561:         self.poly.xy = xy
+562:         self.valtext.set_text(self._format(val))
+563:         if self.drawon:
+564:             self.ax.figure.canvas.draw_idle()
+565:         self.val = val
+566:         if self.eventson:
+567:             self._observers.process('changed', val)
+568: 
+569:     def on_changed(self, func):
+570:         """
+571:         Connect *func* as callback function to changes of the slider value.
+572: 
+573:         Parameters
+574:         ----------
+575:         func : callable
+576:             Function to call when slider is changed.
+577:             The function must accept a single float as its arguments.
+578: 
+579:         Returns
+580:         -------
+581:         int
+582:             Connection id (which can be used to disconnect *func*).
+583:         """
+584:         return self._observers.connect('changed', lambda val: func(val))
+585: 
+586: 
+587: class RangeSlider(SliderBase):
+588:     """
+589:     A slider representing a range of floating point values. Defines the min and
+590:     max of the range via the *val* attribute as a tuple of (min, max).
+591: 
+592:     Create a slider that defines a range contained within [*valmin*, *valmax*]
+593:     in axes *ax*. For the slider to remain responsive you must maintain a
+594:     reference to it. Call :meth:`on_changed` to connect to the slider event.
+595: 
+596:     Attributes
+597:     ----------
+598:     val : tuple of float
+599:         Slider value.
+600:     """
+601: 
+602:     def __init__(
+603:         self,
+604:         ax,
+605:         label,
+606:         valmin,
+607:         valmax,
+608:         valinit=None,
+609:         valfmt=None,
+610:         closedmin=True,
+611:         closedmax=True,
+612:         dragging=True,
+613:         valstep=None,
+614:         orientation="horizontal",
+615:         track_color='lightgrey',
+616:         handle_style=None,
+617:         **kwargs,
+618:     ):
+619:         """
+620:         Parameters
+621:         ----------
+622:         ax : Axes
+623:             The Axes to put the slider in.
+624: 
+625:         label : str
+626:             Slider label.
+627: 
+628:         valmin : float
+629:             The minimum value of the slider.
+630: 
+631:         valmax : float
+632:             The maximum value of the slider.
+633: 
+634:         valinit : tuple of float or None, default: None
+635:             The initial positions of the slider. If None the initial positions
+636:             will be at the 25th and 75th percentiles of the range.
+637: 
+638:         valfmt : str, default: None
+639:             %-format string used to format the slider values.  If None, a
+640:             `.ScalarFormatter` is used instead.
+641: 
+642:         closedmin : bool, default: True
+643:             Whether the slider interval is closed on the bottom.
+644: 
+645:         closedmax : bool, default: True
+646:             Whether the slider interval is closed on the top.
+647: 
+648:         dragging : bool, default: True
+649:             If True the slider can be dragged by the mouse.
+650: 
+651:         valstep : float, default: None
+652:             If given, the slider will snap to multiples of *valstep*.
+653: 
+654:         orientation : {'horizontal', 'vertical'}, default: 'horizontal'
+655:             The orientation of the slider.
+656: 
+657:         track_color : color, default: 'lightgrey'
+658:             The color of the background track. The track is accessible for
+659:             further styling via the *track* attribute.
+660: 
+661:         handle_style : dict
+662:             Properties of the slider handles. Default values are
+663: 
+664:             ========= ===== ======= =========================================
+665:             Key       Value Default Description
+666:             ========= ===== ======= =========================================
+667:             facecolor color 'white' The facecolor of the slider handles.
+668:             edgecolor color '.75'   The edgecolor of the slider handles.
+669:             size      int   10      The size of the slider handles in points.
+670:             ========= ===== ======= =========================================
+671: 
+672:             Other values will be transformed as marker{foo} and passed to the
+673:             `~.Line2D` constructor. e.g. ``handle_style = {'style'='x'}`` will
+674:             result in ``markerstyle = 'x'``.
+675: 
+676:         Notes
+677:         -----
+678:         Additional kwargs are passed on to ``self.poly`` which is the
+679:         `~matplotlib.patches.Polygon` that draws the slider knob.  See the
+680:         `.Polygon` documentation for valid property names (``facecolor``,
+681:         ``edgecolor``, ``alpha``, etc.).
+682:         """
+683:         super().__init__(ax, orientation, closedmin, closedmax,
+684:                          valmin, valmax, valfmt, dragging, valstep)
+685: 
+686:         # Set a value to allow _value_in_bounds() to work.
+687:         self.val = [valmin, valmax]
+688:         if valinit is None:
+689:             # Place at the 25th and 75th percentiles
+690:             extent = valmax - valmin
+691:             valinit = np.array([valmin + extent * 0.25,
+692:                                 valmin + extent * 0.75])
+693:         else:
+694:             valinit = self._value_in_bounds(valinit)
+695:         self.val = valinit
+696:         self.valinit = valinit
+697: 
+698:         defaults = {'facecolor': 'white', 'edgecolor': '.75', 'size': 10}
+699:         handle_style = {} if handle_style is None else handle_style
+700:         marker_props = {
+701:             f'marker{k}': v for k, v in {**defaults, **handle_style}.items()
+702:         }
+703: 
+704:         if orientation == "vertical":
+705:             self.track = Rectangle(
+706:                 (.25, 0), .5, 2,
+707:                 transform=ax.transAxes,
+708:                 facecolor=track_color
+709:             )
+710:             ax.add_patch(self.track)
+711:             self.poly = ax.axhspan(valinit[0], valinit[1], 0, 1, **kwargs)
+712:             handleXY_1 = [.5, valinit[0]]
+713:             handleXY_2 = [.5, valinit[1]]
+714:         else:
+715:             self.track = Rectangle(
+716:                 (0, .25), 1, .5,
+717:                 transform=ax.transAxes,
+718:                 facecolor=track_color
+719:             )
+720:             ax.add_patch(self.track)
+721:             self.poly = ax.axvspan(valinit[0], valinit[1], 0, 1, **kwargs)
+722:             handleXY_1 = [valinit[0], .5]
+723:             handleXY_2 = [valinit[1], .5]
+724:         self._handles = [
+725:             ax.plot(
+726:                 *handleXY_1,
+727:                 "o",
+728:                 **marker_props,
+729:                 clip_on=False
+730:             )[0],
+731:             ax.plot(
+732:                 *handleXY_2,
+733:                 "o",
+734:                 **marker_props,
+735:                 clip_on=False
+736:             )[0]
+737:         ]
+738: 
+739:         if orientation == "vertical":
+740:             self.label = ax.text(
+741:                 0.5,
+742:                 1.02,
+743:                 label,
+744:                 transform=ax.transAxes,
+745:                 verticalalignment="bottom",
+746:                 horizontalalignment="center",
+747:             )
+748: 
+749:             self.valtext = ax.text(
+750:                 0.5,
+751:                 -0.02,
+752:                 self._format(valinit),
+753:                 transform=ax.transAxes,
+754:                 verticalalignment="top",
+755:                 horizontalalignment="center",
+756:             )
+757:         else:
+758:             self.label = ax.text(
+759:                 -0.02,
+760:                 0.5,
+761:                 label,
+762:                 transform=ax.transAxes,
+763:                 verticalalignment="center",
+764:                 horizontalalignment="right",
+765:             )
+766: 
+767:             self.valtext = ax.text(
+768:                 1.02,
+769:                 0.5,
+770:                 self._format(valinit),
+771:                 transform=ax.transAxes,
+772:                 verticalalignment="center",
+773:                 horizontalalignment="left",
+774:             )
+775: 
+776:         self._active_handle = None
+777:         self.set_val(valinit)
+778: 
+779:     def _min_in_bounds(self, min):
+780:         """Ensure the new min value is between valmin and self.val[1]."""
+781:         if min <= self.valmin:
+782:             if not self.closedmin:
+783:                 return self.val[0]
+784:             min = self.valmin
+785: 
+786:         if min > self.val[1]:
+787:             min = self.val[1]
+788:         return self._stepped_value(min)
+789: 
+790:     def _max_in_bounds(self, max):
+791:         """Ensure the new max value is between valmax and self.val[0]."""
+792:         if max >= self.valmax:
+793:             if not self.closedmax:
+794:                 return self.val[1]
+795:             max = self.valmax
+796: 
+797:         if max <= self.val[0]:
+798:             max = self.val[0]
+799:         return self._stepped_value(max)
+800: 
+801:     def _value_in_bounds(self, vals):
+802:         """Clip min, max values to the bounds."""
+803:         return (self._min_in_bounds(vals[0]), self._max_in_bounds(vals[1]))
+804: 
+805:     def _update_val_from_pos(self, pos):
+806:         """Update the slider value based on a given position."""
+807:         idx = np.argmin(np.abs(self.val - pos))
+808:         if idx == 0:
+809:             val = self._min_in_bounds(pos)
+810:             self.set_min(val)
+811:         else:
+812:             val = self._max_in_bounds(pos)
+813:             self.set_max(val)
+814:         if self._active_handle:
+815:             self._active_handle.set_xdata([val])
+816: 
+817:     def _update(self, event):
+818:         """Update the slider position."""
+819:         if self.ignore(event) or event.button != 1:
+820:             return
+821: 
+822:         if event.name == "button_press_event" and event.inaxes == self.ax:
+823:             self.drag_active = True
+824:             event.canvas.grab_mouse(self.ax)
+825: 
+826:         if not self.drag_active:
+827:             return
+828: 
+829:         elif (event.name == "button_release_event") or (
+830:             event.name == "button_press_event" and event.inaxes != self.ax
+831:         ):
+832:             self.drag_active = False
+833:             event.canvas.release_mouse(self.ax)
+834:             self._active_handle = None
+835:             return
+836: 
+837:         # determine which handle was grabbed
+838:         handle = self._handles[
+839:             np.argmin(
+840:                 np.abs([h.get_xdata()[0] - event.xdata for h in self._handles])
+841:             )
+842:         ]
+843:         # these checks ensure smooth behavior if the handles swap which one
+844:         # has a higher value. i.e. if one is dragged over and past the other.
+845:         if handle is not self._active_handle:
+846:             self._active_handle = handle
+847: 
+848:         if self.orientation == "vertical":
+849:             self._update_val_from_pos(event.ydata)
+850:         else:
+851:             self._update_val_from_pos(event.xdata)
+852: 
+853:     def _format(self, val):
+854:         """Pretty-print *val*."""
+855:         if self.valfmt is not None:
+856:             return f"({self.valfmt % val[0]}, {self.valfmt % val[1]})"
+857:         else:
+858:             _, s1, s2, _ = self._fmt.format_ticks(
+859:                 [self.valmin, *val, self.valmax]
+860:             )
+861:             # fmt.get_offset is actually the multiplicative factor, if any.
+862:             s1 += self._fmt.get_offset()
+863:             s2 += self._fmt.get_offset()
+864:             # Use f string to avoid issues with backslashes when cast to a str
+865:             return f"({s1}, {s2})"
+866: 
+867:     def set_min(self, min):
+868:         """
+869:         Set the lower value of the slider to *min*.
+870: 
+871:         Parameters
+872:         ----------
+873:         min : float
+874:         """
+875:         self.set_val((min, self.val[1]))
+876: 
+877:     def set_max(self, max):
+878:         """
+879:         Set the lower value of the slider to *max*.
+880: 
+881:         Parameters
+882:         ----------
+883:         max : float
+884:         """
+885:         self.set_val((self.val[0], max))
+886: 
+887:     def set_val(self, val):
+888:         """
+889:         Set slider value to *val*.
+890: 
+891:         Parameters
+892:         ----------
+893:         val : tuple or array-like of float
+894:         """
+895:         val = np.sort(np.asanyarray(val))
+896:         if val.shape != (2,):
+897:             raise ValueError(
+898:                 f"val must have shape (2,) but has shape {val.shape}"
+899:             )
+900:         val[0] = self._min_in_bounds(val[0])
+901:         val[1] = self._max_in_bounds(val[1])
+902:         xy = self.poly.xy
+903:         if self.orientation == "vertical":
+904:             xy[0] = .25, val[0]
+905:             xy[1] = .25, val[1]
+906:             xy[2] = .75, val[1]
+907:             xy[3] = .75, val[0]
+908:             xy[4] = .25, val[0]
+909:         else:
+910:             xy[0] = val[0], .25
+911:             xy[1] = val[0], .75
+912:             xy[2] = val[1], .75
+913:             xy[3] = val[1], .25
+914:             xy[4] = val[0], .25
+915:         self.poly.xy = xy
+916:         self.valtext.set_text(self._format(val))
+917:         if self.drawon:
+918:             self.ax.figure.canvas.draw_idle()
+919:         self.val = val
+920:         if self.eventson:
+921:             self._observers.process("changed", val)
+922: 
+923:     def on_changed(self, func):
+924:         """
+925:         Connect *func* as callback function to changes of the slider value.
+926: 
+927:         Parameters
+928:         ----------
+929:         func : callable
+930:             Function to call when slider is changed. The function
+931:             must accept a numpy array with shape (2,) as its argument.
+932: 
+933:         Returns
+934:         -------
+935:         int
+936:             Connection id (which can be used to disconnect *func*).
+937:         """
+938:         return self._observers.connect('changed', lambda val: func(val))
+939: 
+940: 
+941: class CheckButtons(AxesWidget):
+942:     r"""
+943:     A GUI neutral set of check buttons.
+944: 
+945:     For the check buttons to remain responsive you must keep a
+946:     reference to this object.
+947: 
+948:     Connect to the CheckButtons with the `.on_clicked` method.
+949: 
+950:     Attributes
+951:     ----------
+952:     ax : `~matplotlib.axes.Axes`
+953:         The parent axes for the widget.
+954:     labels : list of `.Text`
+955: 
+956:     rectangles : list of `.Rectangle`
+957: 
+958:     lines : list of (`.Line2D`, `.Line2D`) pairs
+959:         List of lines for the x's in the check boxes.  These lines exist for
+960:         each box, but have ``set_visible(False)`` when its box is not checked.
+961:     """
+962: 
+963:     cnt = _api.deprecated("3.4")(property(  # Not real, but close enough.
+964:         lambda self: len(self._observers.callbacks['clicked'])))
+965:     observers = _api.deprecated("3.4")(property(
+966:         lambda self: self._observers.callbacks['clicked']))
+967: 
+968:     def __init__(self, ax, labels, actives=None):
+969:         """
+970:         Add check buttons to `matplotlib.axes.Axes` instance *ax*.
+971: 
+972:         Parameters
+973:         ----------
+974:         ax : `~matplotlib.axes.Axes`
+975:             The parent axes for the widget.
+976: 
+977:         labels : list of str
+978:             The labels of the check buttons.
+979: 
+980:         actives : list of bool, optional
+981:             The initial check states of the buttons. The list must have the
+982:             same length as *labels*. If not given, all buttons are unchecked.
+983:         """
+984:         super().__init__(ax)
+985: 
+986:         ax.set_xticks([])
+987:         ax.set_yticks([])
+988:         ax.set_navigate(False)
+989: 
+990:         if actives is None:
+991:             actives = [False] * len(labels)
+992: 
+993:         if len(labels) > 1:
+994:             dy = 1. / (len(labels) + 1)
+995:             ys = np.linspace(1 - dy, dy, len(labels))
+996:         else:
+997:             dy = 0.25
+998:             ys = [0.5]
+999: 
+1000:         axcolor = ax.get_facecolor()
+1001: 
+1002:         self.labels = []
+1003:         self.lines = []
+1004:         self.rectangles = []
+1005: 
+1006:         lineparams = {'color': 'k', 'linewidth': 1.25,
+1007:                       'transform': ax.transAxes, 'solid_capstyle': 'butt'}
+1008:         for y, label, active in zip(ys, labels, actives):
+1009:             t = ax.text(0.25, y, label, transform=ax.transAxes,
+1010:                         horizontalalignment='left',
+1011:                         verticalalignment='center')
+1012: 
+1013:             w, h = dy / 2, dy / 2
+1014:             x, y = 0.05, y - h / 2
+1015: 
+1016:             p = Rectangle(xy=(x, y), width=w, height=h, edgecolor='black',
+1017:                           facecolor=axcolor, transform=ax.transAxes)
+1018: 
+1019:             l1 = Line2D([x, x + w], [y + h, y], **lineparams)
+1020:             l2 = Line2D([x, x + w], [y, y + h], **lineparams)
+1021: 
+1022:             l1.set_visible(active)
+1023:             l2.set_visible(active)
+1024:             self.labels.append(t)
+1025:             self.rectangles.append(p)
+1026:             self.lines.append((l1, l2))
+1027:             ax.add_patch(p)
+1028:             ax.add_line(l1)
+1029:             ax.add_line(l2)
+1030: 
+1031:         self.connect_event('button_press_event', self._clicked)
+1032: 
+1033:         self._observers = cbook.CallbackRegistry()
+1034: 
+1035:     def _clicked(self, event):
+1036:         if self.ignore(event) or event.button != 1 or event.inaxes != self.ax:
+1037:             return
+1038:         for i, (p, t) in enumerate(zip(self.rectangles, self.labels)):
+1039:             if (t.get_window_extent().contains(event.x, event.y) or
+1040:                     p.get_window_extent().contains(event.x, event.y)):
+1041:                 self.set_active(i)
+1042:                 break
+1043: 
+1044:     def set_active(self, index):
+1045:         """
+1046:         Toggle (activate or deactivate) a check button by index.
+1047: 
+1048:         Callbacks will be triggered if :attr:`eventson` is True.
+1049: 
+1050:         Parameters
+1051:         ----------
+1052:         index : int
+1053:             Index of the check button to toggle.
+1054: 
+1055:         Raises
+1056:         ------
+1057:         ValueError
+1058:             If *index* is invalid.
+1059:         """
+1060:         if index not in range(len(self.labels)):
+1061:             raise ValueError(f'Invalid CheckButton index: {index}')
+1062: 
+1063:         l1, l2 = self.lines[index]
+1064:         l1.set_visible(not l1.get_visible())
+1065:         l2.set_visible(not l2.get_visible())
+1066: 
+1067:         if self.drawon:
+1068:             self.ax.figure.canvas.draw()
+1069: 
+1070:         if self.eventson:
+1071:             self._observers.process('clicked', self.labels[index].get_text())
+1072: 
+1073:     def get_status(self):
+1074:         """
+1075:         Return a tuple of the status (True/False) of all of the check buttons.
+1076:         """
+1077:         return [l1.get_visible() for (l1, l2) in self.lines]
+1078: 
+1079:     def on_clicked(self, func):
+1080:         """
+1081:         Connect the callback function *func* to button click events.
+1082: 
+1083:         Returns a connection id, which can be used to disconnect the callback.
+1084:         """
+1085:         return self._observers.connect('clicked', lambda text: func(text))
+1086: 
+1087:     def disconnect(self, cid):
+1088:         """Remove the observer with connection id *cid*."""
+1089:         self._observers.disconnect(cid)
+1090: 
+1091: 
+1092: class TextBox(AxesWidget):
+1093:     """
+1094:     A GUI neutral text input box.
+1095: 
+1096:     For the text box to remain responsive you must keep a reference to it.
+1097: 
+1098:     Call `.on_text_change` to be updated whenever the text changes.
+1099: 
+1100:     Call `.on_submit` to be updated whenever the user hits enter or
+1101:     leaves the text entry field.
+1102: 
+1103:     Attributes
+1104:     ----------
+1105:     ax : `~matplotlib.axes.Axes`
+1106:         The parent axes for the widget.
+1107:     label : `.Text`
+1108: 
+1109:     color : color
+1110:         The color of the text box when not hovering.
+1111:     hovercolor : color
+1112:         The color of the text box when hovering.
+1113:     """
+1114: 
+1115:     cnt = _api.deprecated("3.4")(property(  # Not real, but close enough.
+1116:         lambda self: sum(len(d) for d in self._observers.callbacks.values())))
+1117:     change_observers = _api.deprecated("3.4")(property(
+1118:         lambda self: self._observers.callbacks['change']))
+1119:     submit_observers = _api.deprecated("3.4")(property(
+1120:         lambda self: self._observers.callbacks['submit']))
+1121: 
+1122:     def __init__(self, ax, label, initial='',
+1123:                  color='.95', hovercolor='1', label_pad=.01):
+1124:         """
+1125:         Parameters
+1126:         ----------
+1127:         ax : `~matplotlib.axes.Axes`
+1128:             The `~.axes.Axes` instance the button will be placed into.
+1129:         label : str
+1130:             Label for this text box.
+1131:         initial : str
+1132:             Initial value in the text box.
+1133:         color : color
+1134:             The color of the box.
+1135:         hovercolor : color
+1136:             The color of the box when the mouse is over it.
+1137:         label_pad : float
+1138:             The distance between the label and the right side of the textbox.
+1139:         """
+1140:         super().__init__(ax)
+1141: 
+1142:         self.DIST_FROM_LEFT = .05
+1143: 
+1144:         self.label = ax.text(
+1145:             -label_pad, 0.5, label, transform=ax.transAxes,
+1146:             verticalalignment='center', horizontalalignment='right')
+1147: 
+1148:         # TextBox's text object should not parse mathtext at all.
+1149:         self.text_disp = self.ax.text(
+1150:             self.DIST_FROM_LEFT, 0.5, initial,
+1151:             transform=self.ax.transAxes, verticalalignment='center',
+1152:             horizontalalignment='left', parse_math=False)
+1153: 
+1154:         self._observers = cbook.CallbackRegistry()
+1155: 
+1156:         ax.set(
+1157:             xlim=(0, 1), ylim=(0, 1),  # s.t. cursor appears from first click.
+1158:             navigate=False, facecolor=color,
+1159:             xticks=[], yticks=[])
+1160: 
+1161:         self.cursor_index = 0
+1162: 
+1163:         self.cursor = ax.vlines(0, 0, 0, visible=False, color="k", lw=1,
+1164:                                 transform=mpl.transforms.IdentityTransform())
+1165: 
+1166:         self.connect_event('button_press_event', self._click)
+1167:         self.connect_event('button_release_event', self._release)
+1168:         self.connect_event('motion_notify_event', self._motion)
+1169:         self.connect_event('key_press_event', self._keypress)
+1170:         self.connect_event('resize_event', self._resize)
+1171: 
+1172:         self.color = color
+1173:         self.hovercolor = hovercolor
+1174: 
+1175:         self.capturekeystrokes = False
+1176: 
+1177:     @property
+1178:     def text(self):
+1179:         return self.text_disp.get_text()
+1180: 
+1181:     def _rendercursor(self):
+1182:         # this is a hack to figure out where the cursor should go.
+1183:         # we draw the text up to where the cursor should go, measure
+1184:         # and save its dimensions, draw the real text, then put the cursor
+1185:         # at the saved dimensions
+1186: 
+1187:         # This causes a single extra draw if the figure has never been rendered
+1188:         # yet, which should be fine as we're going to repeatedly re-render the
+1189:         # figure later anyways.
+1190:         if self.ax.figure._cachedRenderer is None:
+1191:             self.ax.figure.canvas.draw()
+1192: 
+1193:         text = self.text_disp.get_text()  # Save value before overwriting it.
+1194:         widthtext = text[:self.cursor_index]
+1195:         self.text_disp.set_text(widthtext or ",")
+1196:         bb = self.text_disp.get_window_extent()
+1197:         if not widthtext:  # Use the comma for the height, but keep width to 0.
+1198:             bb.x1 = bb.x0
+1199:         self.cursor.set(
+1200:             segments=[[(bb.x1, bb.y0), (bb.x1, bb.y1)]], visible=True)
+1201:         self.text_disp.set_text(text)
+1202: 
+1203:         self.ax.figure.canvas.draw()
+1204: 
+1205:     def _release(self, event):
+1206:         if self.ignore(event):
+1207:             return
+1208:         if event.canvas.mouse_grabber != self.ax:
+1209:             return
+1210:         event.canvas.release_mouse(self.ax)
+1211: 
+1212:     def _keypress(self, event):
+1213:         if self.ignore(event):
+1214:             return
+1215:         if self.capturekeystrokes:
+1216:             key = event.key
+1217:             text = self.text
+1218:             if len(key) == 1:
+1219:                 text = (text[:self.cursor_index] + key +
+1220:                         text[self.cursor_index:])
+1221:                 self.cursor_index += 1
+1222:             elif key == "right":
+1223:                 if self.cursor_index != len(text):
+1224:                     self.cursor_index += 1
+1225:             elif key == "left":
+1226:                 if self.cursor_index != 0:
+1227:                     self.cursor_index -= 1
+1228:             elif key == "home":
+1229:                 self.cursor_index = 0
+1230:             elif key == "end":
+1231:                 self.cursor_index = len(text)
+1232:             elif key == "backspace":
+1233:                 if self.cursor_index != 0:
+1234:                     text = (text[:self.cursor_index - 1] +
+1235:                             text[self.cursor_index:])
+1236:                     self.cursor_index -= 1
+1237:             elif key == "delete":
+1238:                 if self.cursor_index != len(self.text):
+1239:                     text = (text[:self.cursor_index] +
+1240:                             text[self.cursor_index + 1:])
+1241:             self.text_disp.set_text(text)
+1242:             self._rendercursor()
+1243:             if self.eventson:
+1244:                 self._observers.process('change', self.text)
+1245:                 if key in ["enter", "return"]:
+1246:                     self._observers.process('submit', self.text)
+1247: 
+1248:     def set_val(self, val):
+1249:         newval = str(val)
+1250:         if self.text == newval:
+1251:             return
+1252:         self.text_disp.set_text(newval)
+1253:         self._rendercursor()
+1254:         if self.eventson:
+1255:             self._observers.process('change', self.text)
+1256:             self._observers.process('submit', self.text)
+1257: 
+1258:     def begin_typing(self, x):
+1259:         self.capturekeystrokes = True
+1260:         # Disable keypress shortcuts, which may otherwise cause the figure to
+1261:         # be saved, closed, etc., until the user stops typing.  The way to
+1262:         # achieve this depends on whether toolmanager is in use.
+1263:         stack = ExitStack()  # Register cleanup actions when user stops typing.
+1264:         self._on_stop_typing = stack.close
+1265:         toolmanager = getattr(
+1266:             self.ax.figure.canvas.manager, "toolmanager", None)
+1267:         if toolmanager is not None:
+1268:             # If using toolmanager, lock keypresses, and plan to release the
+1269:             # lock when typing stops.
+1270:             toolmanager.keypresslock(self)
+1271:             stack.push(toolmanager.keypresslock.release, self)
+1272:         else:
+1273:             # If not using toolmanager, disable all keypress-related rcParams.
+1274:             # Avoid spurious warnings if keymaps are getting deprecated.
+1275:             with _api.suppress_matplotlib_deprecation_warning():
+1276:                 stack.enter_context(mpl.rc_context(
+1277:                     {k: [] for k in mpl.rcParams if k.startswith("keymap.")}))
+1278: 
+1279:     def stop_typing(self):
+1280:         if self.capturekeystrokes:
+1281:             self._on_stop_typing()
+1282:             self._on_stop_typing = None
+1283:             notifysubmit = True
+1284:         else:
+1285:             notifysubmit = False
+1286:         self.capturekeystrokes = False
+1287:         self.cursor.set_visible(False)
+1288:         self.ax.figure.canvas.draw()
+1289:         if notifysubmit and self.eventson:
+1290:             # Because process() might throw an error in the user's code, only
+1291:             # call it once we've already done our cleanup.
+1292:             self._observers.process('submit', self.text)
+1293: 
+1294:     def position_cursor(self, x):
+1295:         # now, we have to figure out where the cursor goes.
+1296:         # approximate it based on assuming all characters the same length
+1297:         if len(self.text) == 0:
+1298:             self.cursor_index = 0
+1299:         else:
+1300:             bb = self.text_disp.get_window_extent()
+1301:             ratio = np.clip((x - bb.x0) / bb.width, 0, 1)
+1302:             self.cursor_index = int(len(self.text) * ratio)
+1303:         self._rendercursor()
+1304: 
+1305:     def _click(self, event):
+1306:         if self.ignore(event):
+1307:             return
+1308:         if event.inaxes != self.ax:
+1309:             self.stop_typing()
+1310:             return
+1311:         if not self.eventson:
+1312:             return
+1313:         if event.canvas.mouse_grabber != self.ax:
+1314:             event.canvas.grab_mouse(self.ax)
+1315:         if not self.capturekeystrokes:
+1316:             self.begin_typing(event.x)
+1317:         self.position_cursor(event.x)
+1318: 
+1319:     def _resize(self, event):
+1320:         self.stop_typing()
+1321: 
+1322:     def _motion(self, event):
+1323:         if self.ignore(event):
+1324:             return
+1325:         c = self.hovercolor if event.inaxes == self.ax else self.color
+1326:         if not colors.same_color(c, self.ax.get_facecolor()):
+1327:             self.ax.set_facecolor(c)
+1328:             if self.drawon:
+1329:                 self.ax.figure.canvas.draw()
+1330: 
+1331:     def on_text_change(self, func):
+1332:         """
+1333:         When the text changes, call this *func* with event.
+1334: 
+1335:         A connection id is returned which can be used to disconnect.
+1336:         """
+1337:         return self._observers.connect('change', lambda text: func(text))
+1338: 
+1339:     def on_submit(self, func):
+1340:         """
+1341:         When the user hits enter or leaves the submission box, call this
+1342:         *func* with event.
+1343: 
+1344:         A connection id is returned which can be used to disconnect.
+1345:         """
+1346:         return self._observers.connect('submit', lambda text: func(text))
+1347: 
+1348:     def disconnect(self, cid):
+1349:         """Remove the observer with connection id *cid*."""
+1350:         self._observers.disconnect(cid)
+1351: 
+1352: 
+1353: class RadioButtons(AxesWidget):
+1354:     """
+1355:     A GUI neutral radio button.
+1356: 
+1357:     For the buttons to remain responsive you must keep a reference to this
+1358:     object.
+1359: 
+1360:     Connect to the RadioButtons with the `.on_clicked` method.
+1361: 
+1362:     Attributes
+1363:     ----------
+1364:     ax : `~matplotlib.axes.Axes`
+1365:         The parent axes for the widget.
+1366:     activecolor : color
+1367:         The color of the selected button.
+1368:     labels : list of `.Text`
+1369:         The button labels.
+1370:     circles : list of `~.patches.Circle`
+1371:         The buttons.
+1372:     value_selected : str
+1373:         The label text of the currently selected button.
+1374:     """
+1375: 
+1376:     def __init__(self, ax, labels, active=0, activecolor='blue'):
+1377:         """
+1378:         Add radio buttons to an `~.axes.Axes`.
+1379: 
+1380:         Parameters
+1381:         ----------
+1382:         ax : `~matplotlib.axes.Axes`
+1383:             The axes to add the buttons to.
+1384:         labels : list of str
+1385:             The button labels.
+1386:         active : int
+1387:             The index of the initially selected button.
+1388:         activecolor : color
+1389:             The color of the selected button.
+1390:         """
+1391:         super().__init__(ax)
+1392:         self.activecolor = activecolor
+1393:         self.value_selected = None
+1394: 
+1395:         ax.set_xticks([])
+1396:         ax.set_yticks([])
+1397:         ax.set_navigate(False)
+1398:         dy = 1. / (len(labels) + 1)
+1399:         ys = np.linspace(1 - dy, dy, len(labels))
+1400:         cnt = 0
+1401:         axcolor = ax.get_facecolor()
+1402: 
+1403:         # scale the radius of the circle with the spacing between each one
+1404:         circle_radius = dy / 2 - 0.01
+1405:         # default to hard-coded value if the radius becomes too large
+1406:         circle_radius = min(circle_radius, 0.05)
+1407: 
+1408:         self.labels = []
+1409:         self.circles = []
+1410:         for y, label in zip(ys, labels):
+1411:             t = ax.text(0.25, y, label, transform=ax.transAxes,
+1412:                         horizontalalignment='left',
+1413:                         verticalalignment='center')
+1414: 
+1415:             if cnt == active:
+1416:                 self.value_selected = label
+1417:                 facecolor = activecolor
+1418:             else:
+1419:                 facecolor = axcolor
+1420: 
+1421:             p = Circle(xy=(0.15, y), radius=circle_radius, edgecolor='black',
+1422:                        facecolor=facecolor, transform=ax.transAxes)
+1423: 
+1424:             self.labels.append(t)
+1425:             self.circles.append(p)
+1426:             ax.add_patch(p)
+1427:             cnt += 1
+1428: 
+1429:         self.connect_event('button_press_event', self._clicked)
+1430: 
+1431:         self._observers = cbook.CallbackRegistry()
+1432: 
+1433:     cnt = _api.deprecated("3.4")(property(  # Not real, but close enough.
+1434:         lambda self: len(self._observers.callbacks['clicked'])))
+1435:     observers = _api.deprecated("3.4")(property(
+1436:         lambda self: self._observers.callbacks['clicked']))
+1437: 
+1438:     def _clicked(self, event):
+1439:         if self.ignore(event) or event.button != 1 or event.inaxes != self.ax:
+1440:             return
+1441:         pclicked = self.ax.transAxes.inverted().transform((event.x, event.y))
+1442:         distances = {}
+1443:         for i, (p, t) in enumerate(zip(self.circles, self.labels)):
+1444:             if (t.get_window_extent().contains(event.x, event.y)
+1445:                     or np.linalg.norm(pclicked - p.center) < p.radius):
+1446:                 distances[i] = np.linalg.norm(pclicked - p.center)
+1447:         if len(distances) > 0:
+1448:             closest = min(distances, key=distances.get)
+1449:             self.set_active(closest)
+1450: 
+1451:     def set_active(self, index):
+1452:         """
+1453:         Select button with number *index*.
+1454: 
+1455:         Callbacks will be triggered if :attr:`eventson` is True.
+1456:         """
+1457:         if index not in range(len(self.labels)):
+1458:             raise ValueError(f'Invalid RadioButton index: {index}')
+1459: 
+1460:         self.value_selected = self.labels[index].get_text()
+1461: 
+1462:         for i, p in enumerate(self.circles):
+1463:             if i == index:
+1464:                 color = self.activecolor
+1465:             else:
+1466:                 color = self.ax.get_facecolor()
+1467:             p.set_facecolor(color)
+1468: 
+1469:         if self.drawon:
+1470:             self.ax.figure.canvas.draw()
+1471: 
+1472:         if self.eventson:
+1473:             self._observers.process('clicked', self.labels[index].get_text())
+1474: 
+1475:     def on_clicked(self, func):
+1476:         """
+1477:         Connect the callback function *func* to button click events.
+1478: 
+1479:         Returns a connection id, which can be used to disconnect the callback.
+1480:         """
+1481:         return self._observers.connect('clicked', func)
+1482: 
+1483:     def disconnect(self, cid):
+1484:         """Remove the observer with connection id *cid*."""
+1485:         self._observers.disconnect(cid)
+1486: 
+1487: 
+1488: class SubplotTool(Widget):
+1489:     """
+1490:     A tool to adjust the subplot params of a `matplotlib.figure.Figure`.
+1491:     """
+1492: 
+1493:     def __init__(self, targetfig, toolfig):
+1494:         """
+1495:         Parameters
+1496:         ----------
+1497:         targetfig : `.Figure`
+1498:             The figure instance to adjust.
+1499:         toolfig : `.Figure`
+1500:             The figure instance to embed the subplot tool into.
+1501:         """
+1502: 
+1503:         self.figure = toolfig
+1504:         self.targetfig = targetfig
+
+(Output capped at 50 KB. Showing lines 1-1504. Use offset=1505 to continue.)
+</content>

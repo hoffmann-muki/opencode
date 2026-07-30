@@ -1,0 +1,1 @@
+{"command":"grep -rn \"is_fits\" /testbed/astropy/io/fits/tests/ --include=\"*.py\""}

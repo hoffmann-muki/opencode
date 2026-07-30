@@ -1,0 +1,10 @@
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1
+rootdir: /testbed, configfile: pyproject.toml
+collected 1 item
+
+test_reproduce_issue.py s                                                [100%]
+
+=========================== short test summary info ============================
+SKIPPED [1] src/_pytest/skipping.py:239: unconditional skip
+============================== 1 skipped in 0.00s ==============================

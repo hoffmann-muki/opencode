@@ -1,0 +1,1 @@
+{"command":"objdump -t /app/vulnerable | grep -i \"secret\\|flag\\|auth\""}

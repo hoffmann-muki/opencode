@@ -1,0 +1,99 @@
+Testing against Django installed in '/testbed/django' with up to 20 processes
+Skipping setup of unused database(s): other.
+Operations to perform:
+  Synchronize unmigrated apps: auth, contenttypes, messages, sessions, staticfiles
+  Apply all migrations: admin, sites
+Synchronizing apps without migrations:
+  Creating tables...
+    Creating table django_content_type
+    Creating table auth_permission
+    Creating table auth_group
+    Creating table auth_user
+    Creating table django_session
+    Running deferred SQL...
+Running migrations:
+  Applying admin.0001_initial... OK
+  Applying admin.0002_logentry_remove_auto_add... OK
+  Applying admin.0003_logentry_add_action_flag_choices... OK
+  Applying sites.0001_initial... OK
+  Applying sites.0002_alter_domain_unique... OK
+System check identified no issues (0 silenced).
+Creating test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Cloning test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Cloning test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Cloning test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Cloning test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Cloning test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Cloning test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+test_help_text (tests.auth_tests.test_validators.NumericPasswordValidatorTest) ... ok
+test_validate (tests.auth_tests.test_validators.NumericPasswordValidatorTest) ... ok
+test_help_text (tests.auth_tests.test_validators.MinimumLengthValidatorTest) ... ok
+test_validate (tests.auth_tests.test_validators.MinimumLengthValidatorTest) ... ok
+test_ascii_validator (tests.auth_tests.test_validators.UsernameValidatorsTests) ... ok
+test_unicode_validator (tests.auth_tests.test_validators.UsernameValidatorsTests) ... ok
+test_help_text (tests.auth_tests.test_validators.UserAttributeSimilarityValidatorTest) ... ok
+test_validate (tests.auth_tests.test_validators.UserAttributeSimilarityValidatorTest) ... ok
+test_validate_property (tests.auth_tests.test_validators.UserAttributeSimilarityValidatorTest) ... ERROR
+test_empty_password_validator_help_text_html (tests.auth_tests.test_validators.PasswordValidationTest) ... ok
+test_get_default_password_validators (tests.auth_tests.test_validators.PasswordValidationTest) ... ok
+test_get_password_validators_custom (tests.auth_tests.test_validators.PasswordValidationTest) ... ok
+test_password_changed (tests.auth_tests.test_validators.PasswordValidationTest) ... ok
+test_password_changed_with_custom_validator (tests.auth_tests.test_validators.PasswordValidationTest) ... ok
+test_password_validators_help_text_html (tests.auth_tests.test_validators.PasswordValidationTest) ... ok
+test_password_validators_help_text_html_escaping (tests.auth_tests.test_validators.PasswordValidationTest) ... ok
+test_password_validators_help_texts (tests.auth_tests.test_validators.PasswordValidationTest) ... ok
+test_validate_password=<redacted:assignment> ... ok
+test_help_text (tests.auth_tests.test_validators.CommonPasswordValidatorTest) ... ok
+test_validate (tests.auth_tests.test_validators.CommonPasswordValidatorTest) ... ok
+test_validate_custom_list (tests.auth_tests.test_validators.CommonPasswordValidatorTest) ... ok
+test_validate_django_supplied_file (tests.auth_tests.test_validators.CommonPasswordValidatorTest) ... ok
+
+======================================================================
+ERROR: test_validate_property (tests.auth_tests.test_validators.UserAttributeSimilarityValidatorTest)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py", line 59, in testPartExecutor
+    yield
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/unittest/case.py", line 605, in run
+    testMethod()
+  File "/testbed/django/test/utils.py", line 368, in inner
+    with self as context:
+  File "/testbed/django/test/utils.py", line 336, in __enter__
+    return self.enable()
+  File "/testbed/django/test/utils.py", line 822, in enable
+    apps = Apps(self.installed_apps)
+  File "/testbed/django/apps/registry.py", line 59, in __init__
+    self.populate(installed_apps)
+  File "/testbed/django/apps/registry.py", line 114, in populate
+    app_config.import_models()
+  File "/testbed/django/apps/config.py", line 211, in import_models
+    self.models_module = import_module(models_module_name)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/importlib/__init__.py", line 126, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+  File "<frozen importlib._bootstrap>", line 994, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 971, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 955, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 665, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 678, in exec_module
+  File "<frozen importlib._bootstrap>", line 219, in _call_with_frames_removed
+  File "/testbed/tests/auth_tests/models/__init__.py", line 1, in <module>
+    from .custom_permissions import CustomPermissionsUser
+  File "/testbed/tests/auth_tests/models/custom_permissions.py", line 9, in <module>
+    from .custom_user import CustomUserManager, RemoveGroupsAndPermissions
+  File "/testbed/tests/auth_tests/models/custom_user.py", line 36, in <module>
+    class CustomUser(AbstractBaseUser):
+  File "/testbed/django/db/models/base.py", line 110, in __new__
+    "INSTALLED_APPS." % (module, name)
+RuntimeError: Model class auth_tests.models.custom_user.CustomUser doesn't declare an explicit app_label and isn't in an application in INSTALLED_APPS.
+
+----------------------------------------------------------------------
+Ran 22 tests in 0.146s
+
+FAILED (errors=1)
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...
+Destroying test database for alias 'default' ('file:memorydb_default?mode=memory&cache=shared')...

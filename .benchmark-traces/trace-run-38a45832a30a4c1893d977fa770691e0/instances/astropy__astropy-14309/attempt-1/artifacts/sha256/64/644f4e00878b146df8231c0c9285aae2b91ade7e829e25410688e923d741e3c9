@@ -1,0 +1,56 @@
+<path>/testbed/astropy/io/votable/connect.py</path>
+<type>file</type>
+<content>
+30:     """
+31:     from . import is_votable
+32: 
+33:     if origin == "read":
+34:         if fileobj is not None:
+35:             try:
+36:                 result = is_votable(fileobj)
+37:             finally:
+38:                 fileobj.seek(0)
+39:             return result
+40:         elif filepath is not None:
+41:             return is_votable(filepath)
+42:         return isinstance(args[0], (VOTableFile, VOTable))
+43: 
+44:     else:
+45:         return False
+46: 
+47: 
+48: def read_table_votable(
+49:     input, table_id=None, use_names_over_ids=False, verify=None, **kwargs
+50: ):
+51:     """
+52:     Read a Table object from an VO table file.
+53: 
+54:     Parameters
+55:     ----------
+56:     input : str or `~astropy.io.votable.tree.VOTableFile` or `~astropy.io.votable.tree.Table`
+57:         If a string, the filename to read the table from. If a
+58:         :class:`~astropy.io.votable.tree.VOTableFile` or
+59:         :class:`~astropy.io.votable.tree.Table` object, the object to extract
+60:         the table from.
+61: 
+62:     table_id : str or int, optional
+63:         The table to read in.  If a `str`, it is an ID corresponding
+64:         to the ID of the table in the file (not all VOTable files
+65:         assign IDs to their tables).  If an `int`, it is the index of
+66:         the table in the file, starting at 0.
+67: 
+68:     use_names_over_ids : bool, optional
+69:         When `True` use the ``name`` attributes of columns as the names
+70:         of columns in the `~astropy.table.Table` instance.  Since names
+71:         are not guaranteed to be unique, this may cause some columns
+72:         to be renamed by appending numbers to the end.  Otherwise
+73:         (default), use the ID attributes as the column names.
+74: 
+75:     verify : {'ignore', 'warn', 'exception'}, optional
+76:         When ``'exception'``, raise an error when the file violates the spec,
+77:         otherwise either issue a warning (``'warn'``) or silently continue
+78:         (``'ignore'``). Warnings may be controlled using the standard Python
+79:         mechanisms.  See the `warnings` module in the Python standard library
+
+(Showing lines 30-79 of 181. Use offset=80 to continue.)
+</content>

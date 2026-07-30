@@ -1,0 +1,7 @@
+Now I can see the issue clearly. The function checks:
+1. If `fileobj` is not None, it checks the signature
+2. Elif `filepath` is not None, it checks the extension
+3. But if both `fileobj` and `filepath` are None/empty, it falls through to line 72 which tries to access `args[0]` without checking if `args` is empty
+
+The fix is to check if `args` is not empty before accessing `args[0]`. Let me make this minimal fix:
+

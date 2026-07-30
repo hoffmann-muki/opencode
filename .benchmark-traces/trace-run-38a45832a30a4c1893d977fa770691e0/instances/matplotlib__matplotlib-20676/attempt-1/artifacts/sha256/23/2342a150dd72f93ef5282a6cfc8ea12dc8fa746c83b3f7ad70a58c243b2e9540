@@ -1,0 +1,2 @@
+So `_setup_edge_handle` is called at line 2110, after `new_axes` at line 2102. Let me check what `self.extents` returns when it's first accessed:
+

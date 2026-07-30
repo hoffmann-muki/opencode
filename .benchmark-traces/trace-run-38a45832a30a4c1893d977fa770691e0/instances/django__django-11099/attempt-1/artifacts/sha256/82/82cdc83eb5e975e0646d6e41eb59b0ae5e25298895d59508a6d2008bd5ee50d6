@@ -1,0 +1,1 @@
+{"command":"find /testbed -name \"*.py\" -path \"*/contrib/auth/*\" -exec grep -l \"regex.*\\\\^\" {} \\; 2>/dev/null | head -20"}

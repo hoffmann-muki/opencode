@@ -1,0 +1,106 @@
+<path>/testbed/sympy/core/numbers.py</path>
+<type>file</type>
+<content>
+604: class Float(Number):
+605:     """Represent a floating-point number of arbitrary precision.
+606: 
+607:     Examples
+608:     ========
+609: 
+610:     >>> from sympy import Float
+611:     >>> Float(3.5)
+612:     3.50000000000000
+613:     >>> Float(3)
+614:     3.00000000000000
+615: 
+616:     Creating Floats from strings (and Python ``int`` and ``long``
+617:     types) will give a minimum precision of 15 digits, but the
+618:     precision will automatically increase to capture all digits
+619:     entered.
+620: 
+621:     >>> Float(1)
+622:     1.00000000000000
+623:     >>> Float(10**20)
+624:     100000000000000000000.
+625:     >>> Float('1e20')
+626:     100000000000000000000.
+627: 
+628:     However, *floating-point* numbers (Python ``float`` types) retain
+629:     only 15 digits of precision:
+630: 
+631:     >>> Float(1e20)
+632:     1.00000000000000e+20
+633:     >>> Float(1.23456789123456789)
+634:     1.23456789123457
+635: 
+636:     It may be preferable to enter high-precision decimal numbers
+637:     as strings:
+638: 
+639:     Float('1.23456789123456789')
+640:     1.23456789123456789
+641: 
+642:     The desired number of digits can also be specified:
+643: 
+644:     >>> Float('1e-3', 3)
+645:     0.00100
+646:     >>> Float(100, 4)
+647:     100.0
+648: 
+649:     Float can automatically count significant figures if a null string
+650:     is sent for the precision; space are also allowed in the string. (Auto-
+651:     counting is only allowed for strings, ints and longs).
+652: 
+653:     >>> Float('123 456 789 . 123 456', '')
+654:     123456789.123456
+655:     >>> Float('12e-3', '')
+656:     0.012
+657:     >>> Float(3, '')
+658:     3.
+659: 
+660:     If a number is written in scientific notation, only the digits before the
+661:     exponent are considered significant if a decimal appears, otherwise the
+662:     "e" signifies only how to move the decimal:
+663: 
+664:     >>> Float('60.e2', '')  # 2 digits significant
+665:     6.0e+3
+666:     >>> Float('60e2', '')  # 4 digits significant
+667:     6000.
+668:     >>> Float('600e-2', '')  # 3 digits significant
+669:     6.00
+670: 
+671:     Notes
+672:     =====
+673: 
+674:     Floats are inexact by their nature unless their value is a binary-exact
+675:     value.
+676: 
+677:     >>> approx, exact = Float(.1, 1), Float(.125, 1)
+678: 
+679:     For calculation purposes, evalf needs to be able to change the precision
+680:     but this will not increase the accuracy of the inexact value. The
+681:     following is the most accurate 5-digit approximation of a value of 0.1
+682:     that had only 1 digit of precision:
+683: 
+684:     >>> approx.evalf(5)
+685:     0.099609
+686: 
+687:     By contrast, 0.125 is exact in binary (as it is in base 10) and so it
+688:     can be passed to Float or evalf to obtain an arbitrary precision with
+689:     matching accuracy:
+690: 
+691:     >>> Float(exact, 5)
+692:     0.12500
+693:     >>> exact.evalf(20)
+694:     0.12500000000000000000
+695: 
+696:     Trying to make a high-precision Float from a float is not disallowed,
+697:     but one must keep in mind that the *underlying float* (not the apparent
+698:     decimal value) is being obtained with high precision. For example, 0.3
+699:     does not have a finite binary representation. The closest rational is
+700:     the fraction 5404319552844595/2**54. So if you try to obtain a Float of
+701:     0.3 to 20 digits of precision you will not see the same thing as 0.3
+702:     followed by 19 zeros:
+703: 
+
+(Showing lines 604-703 of 3635. Use offset=704 to continue.)
+</content>

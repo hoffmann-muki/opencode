@@ -1,0 +1,320 @@
+<path>/testbed/src/_pytest/skipping.py</path>
+<type>file</type>
+<content>
+1: """ support for skip/xfail functions and markers. """
+2: import os
+3: import platform
+4: import sys
+5: import traceback
+6: from typing import Generator
+7: from typing import Optional
+8: from typing import Tuple
+9: 
+10: import attr
+11: 
+12: import _pytest._code
+13: from _pytest.compat import TYPE_CHECKING
+14: from _pytest.config import Config
+15: from _pytest.config import hookimpl
+16: from _pytest.config.argparsing import Parser
+17: from _pytest.mark.structures import Mark
+18: from _pytest.nodes import Item
+19: from _pytest.outcomes import fail
+20: from _pytest.outcomes import skip
+21: from _pytest.outcomes import xfail
+22: from _pytest.reports import BaseReport
+23: from _pytest.runner import CallInfo
+24: from _pytest.store import StoreKey
+25: 
+26: if TYPE_CHECKING:
+27:     from typing import Type
+28: 
+29: 
+30: def pytest_addoption(parser: Parser) -> None:
+31:     group = parser.getgroup("general")
+32:     group.addoption(
+33:         "--runxfail",
+34:         action="store_true",
+35:         dest="runxfail",
+36:         default=False,
+37:         help="report the results of xfail tests as if they were not marked",
+38:     )
+39: 
+40:     parser.addini(
+41:         "xfail_strict",
+42:         "default for the strict parameter of xfail "
+43:         "markers when not given explicitly (default: False)",
+44:         default=False,
+45:         type="bool",
+46:     )
+47: 
+48: 
+49: def pytest_configure(config: Config) -> None:
+50:     if config.option.runxfail:
+51:         # yay a hack
+52:         import pytest
+53: 
+54:         old = pytest.xfail
+55:         config._cleanup.append(lambda: setattr(pytest, "xfail", old))
+56: 
+57:         def nop(*args, **kwargs):
+58:             pass
+59: 
+60:         nop.Exception = xfail.Exception  # type: ignore[attr-defined] # noqa: F821
+61:         setattr(pytest, "xfail", nop)
+62: 
+63:     config.addinivalue_line(
+64:         "markers",
+65:         "skip(reason=None): skip the given test function with an optional reason. "
+66:         'Example: skip(reason="no way of currently testing this") skips the '
+67:         "test.",
+68:     )
+69:     config.addinivalue_line(
+70:         "markers",
+71:         "skipif(condition, ..., *, reason=...): "
+72:         "skip the given test function if any of the conditions evaluate to True. "
+73:         "Example: skipif(sys.platform == 'win32') skips the test if we are on the win32 platform. "
+74:         "See https://docs.pytest.org/en/stable/reference.html#pytest-mark-skipif",
+75:     )
+76:     config.addinivalue_line(
+77:         "markers",
+78:         "xfail(condition, ..., *, reason=..., run=True, raises=None, strict=xfail_strict): "
+79:         "mark the test function as an expected failure if any of the conditions "
+80:         "evaluate to True. Optionally specify a reason for better reporting "
+81:         "and run=False if you don't even want to execute the test function. "
+82:         "If only specific exception(s) are expected, you can list them in "
+83:         "raises, and if the test fails in other ways, it will be reported as "
+84:         "a true failure. See https://docs.pytest.org/en/stable/reference.html#pytest-mark-xfail",
+85:     )
+86: 
+87: 
+88: def evaluate_condition(item: Item, mark: Mark, condition: object) -> Tuple[bool, str]:
+89:     """Evaluate a single skipif/xfail condition.
+90: 
+91:     If an old-style string condition is given, it is eval()'d, otherwise the
+92:     condition is bool()'d. If this fails, an appropriately formatted pytest.fail
+93:     is raised.
+94: 
+95:     Returns (result, reason). The reason is only relevant if the result is True.
+96:     """
+97:     # String condition.
+98:     if isinstance(condition, str):
+99:         globals_ = {
+100:             "os": os,
+101:             "sys": sys,
+102:             "platform": platform,
+103:             "config": item.config,
+104:         }
+105:         if hasattr(item, "obj"):
+106:             globals_.update(item.obj.__globals__)  # type: ignore[attr-defined]
+107:         try:
+108:             condition_code = _pytest._code.compile(condition, mode="eval")
+109:             result = eval(condition_code, globals_)
+110:         except SyntaxError as exc:
+111:             msglines = [
+112:                 "Error evaluating %r condition" % mark.name,
+113:                 "    " + condition,
+114:                 "    " + " " * (exc.offset or 0) + "^",
+115:                 "SyntaxError: invalid syntax",
+116:             ]
+117:             fail("\n".join(msglines), pytrace=False)
+118:         except Exception as exc:
+119:             msglines = [
+120:                 "Error evaluating %r condition" % mark.name,
+121:                 "    " + condition,
+122:                 *traceback.format_exception_only(type(exc), exc),
+123:             ]
+124:             fail("\n".join(msglines), pytrace=False)
+125: 
+126:     # Boolean condition.
+127:     else:
+128:         try:
+129:             result = bool(condition)
+130:         except Exception as exc:
+131:             msglines = [
+132:                 "Error evaluating %r condition as a boolean" % mark.name,
+133:                 *traceback.format_exception_only(type(exc), exc),
+134:             ]
+135:             fail("\n".join(msglines), pytrace=False)
+136: 
+137:     reason = mark.kwargs.get("reason", None)
+138:     if reason is None:
+139:         if isinstance(condition, str):
+140:             reason = "condition: " + condition
+141:         else:
+142:             # XXX better be checked at collection time
+143:             msg = (
+144:                 "Error evaluating %r: " % mark.name
+145:                 + "you need to specify reason=STRING when using booleans as conditions."
+146:             )
+147:             fail(msg, pytrace=False)
+148: 
+149:     return result, reason
+150: 
+151: 
+152: @attr.s(slots=True, frozen=True)
+153: class Skip:
+154:     """The result of evaluate_skip_marks()."""
+155: 
+156:     reason = attr.ib(type=str)
+157: 
+158: 
+159: def evaluate_skip_marks(item: Item) -> Optional[Skip]:
+160:     """Evaluate skip and skipif marks on item, returning Skip if triggered."""
+161:     for mark in item.iter_markers(name="skipif"):
+162:         if "condition" not in mark.kwargs:
+163:             conditions = mark.args
+164:         else:
+165:             conditions = (mark.kwargs["condition"],)
+166: 
+167:         # Unconditional.
+168:         if not conditions:
+169:             reason = mark.kwargs.get("reason", "")
+170:             return Skip(reason)
+171: 
+172:         # If any of the conditions are true.
+173:         for condition in conditions:
+174:             result, reason = evaluate_condition(item, mark, condition)
+175:             if result:
+176:                 return Skip(reason)
+177: 
+178:     for mark in item.iter_markers(name="skip"):
+179:         if "reason" in mark.kwargs:
+180:             reason = mark.kwargs["reason"]
+181:         elif mark.args:
+182:             reason = mark.args[0]
+183:         else:
+184:             reason = "unconditional skip"
+185:         return Skip(reason)
+186: 
+187:     return None
+188: 
+189: 
+190: @attr.s(slots=True, frozen=True)
+191: class Xfail:
+192:     """The result of evaluate_xfail_marks()."""
+193: 
+194:     reason = attr.ib(type=str)
+195:     run = attr.ib(type=bool)
+196:     strict = attr.ib(type=bool)
+197:     raises = attr.ib(type=Optional[Tuple["Type[BaseException]", ...]])
+198: 
+199: 
+200: def evaluate_xfail_marks(item: Item) -> Optional[Xfail]:
+201:     """Evaluate xfail marks on item, returning Xfail if triggered."""
+202:     for mark in item.iter_markers(name="xfail"):
+203:         run = mark.kwargs.get("run", True)
+204:         strict = mark.kwargs.get("strict", item.config.getini("xfail_strict"))
+205:         raises = mark.kwargs.get("raises", None)
+206:         if "condition" not in mark.kwargs:
+207:             conditions = mark.args
+208:         else:
+209:             conditions = (mark.kwargs["condition"],)
+210: 
+211:         # Unconditional.
+212:         if not conditions:
+213:             reason = mark.kwargs.get("reason", "")
+214:             return Xfail(reason, run, strict, raises)
+215: 
+216:         # If any of the conditions are true.
+217:         for condition in conditions:
+218:             result, reason = evaluate_condition(item, mark, condition)
+219:             if result:
+220:                 return Xfail(reason, run, strict, raises)
+221: 
+222:     return None
+223: 
+224: 
+225: # Whether skipped due to skip or skipif marks.
+226: skipped_by_mark_key = StoreKey[bool]()
+227: # Saves the xfail mark evaluation. Can be refreshed during call if None.
+228: xfailed_key = StoreKey[Optional[Xfail]]()
+229: unexpectedsuccess_key = StoreKey[str]()
+230: 
+231: 
+232: @hookimpl(tryfirst=True)
+233: def pytest_runtest_setup(item: Item) -> None:
+234:     item._store[skipped_by_mark_key] = False
+235: 
+236:     skipped = evaluate_skip_marks(item)
+237:     if skipped:
+238:         item._store[skipped_by_mark_key] = True
+239:         skip(skipped.reason)
+240: 
+241:     if not item.config.option.runxfail:
+242:         item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)
+243:         if xfailed and not xfailed.run:
+244:             xfail("[NOTRUN] " + xfailed.reason)
+245: 
+246: 
+247: @hookimpl(hookwrapper=True)
+248: def pytest_runtest_call(item: Item) -> Generator[None, None, None]:
+249:     xfailed = item._store.get(xfailed_key, None)
+250:     if xfailed is None:
+251:         item._store[xfailed_key] = xfailed = evaluate_xfail_marks(item)
+252: 
+253:     if not item.config.option.runxfail:
+254:         if xfailed and not xfailed.run:
+255:             xfail("[NOTRUN] " + xfailed.reason)
+256: 
+257:     yield
+258: 
+259: 
+260: @hookimpl(hookwrapper=True)
+261: def pytest_runtest_makereport(item: Item, call: CallInfo[None]):
+262:     outcome = yield
+263:     rep = outcome.get_result()
+264:     xfailed = item._store.get(xfailed_key, None)
+265:     # unittest special case, see setting of unexpectedsuccess_key
+266:     if unexpectedsuccess_key in item._store and rep.when == "call":
+267:         reason = item._store[unexpectedsuccess_key]
+268:         if reason:
+269:             rep.longrepr = "Unexpected success: {}".format(reason)
+270:         else:
+271:             rep.longrepr = "Unexpected success"
+272:         rep.outcome = "failed"
+273:     elif item.config.option.runxfail:
+274:         pass  # don't interfere
+275:     elif call.excinfo and isinstance(call.excinfo.value, xfail.Exception):
+276:         assert call.excinfo.value.msg is not None
+277:         rep.wasxfail = "reason: " + call.excinfo.value.msg
+278:         rep.outcome = "skipped"
+279:     elif not rep.skipped and xfailed:
+280:         if call.excinfo:
+281:             raises = xfailed.raises
+282:             if raises is not None and not isinstance(call.excinfo.value, raises):
+283:                 rep.outcome = "failed"
+284:             else:
+285:                 rep.outcome = "skipped"
+286:                 rep.wasxfail = xfailed.reason
+287:         elif call.when == "call":
+288:             if xfailed.strict:
+289:                 rep.outcome = "failed"
+290:                 rep.longrepr = "[XPASS(strict)] " + xfailed.reason
+291:             else:
+292:                 rep.outcome = "passed"
+293:                 rep.wasxfail = xfailed.reason
+294:     elif (
+295:         item._store.get(skipped_by_mark_key, True)
+296:         and rep.skipped
+297:         and type(rep.longrepr) is tuple
+298:     ):
+299:         # skipped by mark.skipif; change the location of the failure
+300:         # to point to the item definition, otherwise it will display
+301:         # the location of where the skip exception was raised within pytest
+302:         _, _, reason = rep.longrepr
+303:         filename, line = item.reportinfo()[:2]
+304:         assert line is not None
+305:         rep.longrepr = str(filename), line + 1, reason
+306: 
+307: 
+308: def pytest_report_teststatus(report: BaseReport) -> Optional[Tuple[str, str, str]]:
+309:     if hasattr(report, "wasxfail"):
+310:         if report.skipped:
+311:             return "xfailed", "x", "XFAIL"
+312:         elif report.passed:
+313:             return "xpassed", "X", "XPASS"
+314:     return None
+
+(End of file - total 314 lines)
+</content>

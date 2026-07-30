@@ -1,0 +1,61 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "run_id": "trace-run-8f3afe1ea40e4b64827827342d7cfd09",
+  "benchmark": "terminal-bench-2.1",
+  "framework": "opencode",
+  "created_at": "2026-07-28T00:07:47.885Z",
+  "finalized_at": "2026-07-28T00:31:17.498Z",
+  "selection": {
+    "strategy": "explicit_ids",
+    "requested_count": 5,
+    "instance_ids": [
+      "fix-git",
+      "openssl-selfsigned-cert",
+      "regex-log",
+      "extract-elf",
+      "vulnerable-secret"
+    ]
+  },
+  "attempts": [
+    {
+      "trace_id": "trace-80b39184de7242b488f2a991c9a906f6",
+      "instance_id": "fix-git",
+      "attempt": 1,
+      "path": "instances/fix-git/attempt-1",
+      "status": "completed"
+    },
+    {
+      "trace_id": "trace-0bb45b20c50f45c5b14710304be340d2",
+      "instance_id": "openssl-selfsigned-cert",
+      "attempt": 1,
+      "path": "instances/openssl-selfsigned-cert/attempt-1",
+      "status": "completed"
+    },
+    {
+      "trace_id": "trace-4494c3420cf045658a061955dc8afb8e",
+      "instance_id": "regex-log",
+      "attempt": 1,
+      "path": "instances/regex-log/attempt-1",
+      "status": "completed"
+    },
+    {
+      "trace_id": "trace-cfabff536b5b47ffa31f07714a4581a8",
+      "instance_id": "extract-elf",
+      "attempt": 1,
+      "path": "instances/extract-elf/attempt-1",
+      "status": "completed"
+    },
+    {
+      "trace_id": "trace-93c60a59540f420bb4367fe869f76c21",
+      "instance_id": "vulnerable-secret",
+      "attempt": 1,
+      "path": "instances/vulnerable-secret/attempt-1",
+      "status": "completed"
+    }
+  ]
+}

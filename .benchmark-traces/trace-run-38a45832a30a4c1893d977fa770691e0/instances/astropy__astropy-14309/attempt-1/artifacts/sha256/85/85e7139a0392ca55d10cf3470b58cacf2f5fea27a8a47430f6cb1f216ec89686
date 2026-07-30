@@ -1,0 +1,6 @@
+Perfect! The fix has been applied. The change on line 42 now:
+1. Checks if `len(args) > 0` before accessing `args[0]`
+2. Only then performs the `isinstance` check
+3. Returns `False` if `args` is empty (due to short-circuit evaluation of `and`)
+
+This matches the pattern used in the FITS module fix from commit 2a0c5c6f5 and will prevent the IndexError when `args` is empty (which happens when `origin == "read"`, `fileobj is None`, and `filepath is None`).

@@ -1,0 +1,36 @@
+<path>/testbed/lib/matplotlib/axes/_base.py</path>
+<type>file</type>
+<content>
+2274:     def add_line(self, line):
+2275:         """
+2276:         Add a `.Line2D` to the Axes; return the line.
+2277:         """
+2278:         self._deprecate_noninstance('add_line', mlines.Line2D, line=line)
+2279:         self._set_artist_props(line)
+2280:         if line.get_clip_path() is None:
+2281:             line.set_clip_path(self.patch)
+2282: 
+2283:         self._update_line_limits(line)
+2284:         if not line.get_label():
+2285:             line.set_label(f'_child{len(self._children)}')
+2286:         self._children.append(line)
+2287:         line._remove_method = self._children.remove
+2288:         self.stale = True
+2289:         return line
+2290: 
+2291:     def _add_text(self, txt):
+2292:         """
+2293:         Add a `.Text` to the Axes; return the text.
+2294:         """
+2295:         self._deprecate_noninstance('_add_text', mtext.Text, txt=txt)
+2296:         self._set_artist_props(txt)
+2297:         self._children.append(txt)
+2298:         txt._remove_method = self._children.remove
+2299:         self.stale = True
+2300:         return txt
+2301: 
+2302:     def _update_line_limits(self, line):
+2303:         """
+
+(Showing lines 2274-2303 of 4727. Use offset=2304 to continue.)
+</content>

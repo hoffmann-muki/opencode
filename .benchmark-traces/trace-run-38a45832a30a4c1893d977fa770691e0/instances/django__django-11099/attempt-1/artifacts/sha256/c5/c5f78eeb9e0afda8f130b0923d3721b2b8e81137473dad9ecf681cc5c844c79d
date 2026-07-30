@@ -1,0 +1,51 @@
+Found 17 matches
+/testbed/docs/ref/contrib/auth.txt:
+  Line 143:         :class:`validators.UnicodeUsernameValidator`.
+
+  Line 150:             from django.contrib.auth.validators import ASCIIUsernameValidator
+
+  Line 153:                 username_validator = ASCIIUsernameValidator()
+
+  Line 396: .. class:: validators.ASCIIUsernameValidator
+
+  Line 401: .. class:: validators.UnicodeUsernameValidator
+
+
+/testbed/docs/releases/1.10.txt:
+  Line 66: :class:`~django.contrib.auth.validators.ASCIIUsernameValidator` or
+
+  Line 67: :class:`~django.contrib.auth.validators.UnicodeUsernameValidator`. Custom user
+
+
+/testbed/tests/auth_tests/test_validators.py:
+  Line 242:         v = validators.UnicodeUsernameValidator()
+
+  Line 254:         v = validators.ASCIIUsernameValidator()
+
+
+/testbed/django/contrib/auth/models.py:
+  Line 11: from .validators import UnicodeUsernameValidator
+
+  Line 292:     username_validator = UnicodeUsernameValidator()
+
+
+/testbed/django/contrib/auth/validators.py:
+  Line 9: class ASCIIUsernameValidator(validators.RegexValidator):
+
+  Line 19: class UnicodeUsernameValidator(validators.RegexValidator):
+
+
+/testbed/django/contrib/auth/migrations/0001_initial.py:
+  Line 66:                     validators=[validators.UnicodeUsernameValidator()],
+
+
+/testbed/django/contrib/auth/migrations/0007_alter_validators_add_error_messages.py:
+  Line 20:                 validators=[validators.UnicodeUsernameValidator()],
+
+
+/testbed/django/contrib/auth/migrations/0008_alter_user_username_max_length.py:
+  Line 20:                 validators=[validators.UnicodeUsernameValidator()],
+
+
+/testbed/django/contrib/auth/migrations/0004_alter_user_username_opts.py:
+  Line 18:                 validators=[validators.UnicodeUsernameValidator()],

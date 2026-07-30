@@ -1,0 +1,8 @@
+/testbed/astropy/io/registry/tests/test_registries.py
+/testbed/astropy/io/registry/tests/test_registry_help.py
+/testbed/astropy/io/registry/tests/__init__.py
+/testbed/astropy/io/registry/core.py
+/testbed/astropy/io/registry/compat.py
+/testbed/astropy/io/registry/base.py
+/testbed/astropy/io/registry/__init__.py
+/testbed/astropy/io/registry/interface.py

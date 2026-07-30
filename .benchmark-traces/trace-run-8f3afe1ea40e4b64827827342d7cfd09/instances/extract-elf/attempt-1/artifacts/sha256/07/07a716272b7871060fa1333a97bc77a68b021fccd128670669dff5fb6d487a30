@@ -1,0 +1,2 @@
+Now I understand the task. I need to create a Node.js program that extracts memory values from the ELF binary. Based on the binary analysis, I need to extract values from various sections at their virtual addresses. Let me create the extract.js program:
+

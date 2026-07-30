@@ -1,0 +1,15 @@
+/testbed/examples/widgets/buttons.py
+/testbed/examples/widgets/span_selector.py
+/testbed/examples/widgets/rectangle_selector.py
+/testbed/examples/widgets/radio_buttons.py
+/testbed/examples/widgets/menu.py
+/testbed/examples/widgets/slider_snap_demo.py
+/testbed/examples/widgets/cursor.py
+/testbed/examples/widgets/textbox.py
+/testbed/examples/widgets/multicursor.py
+/testbed/examples/widgets/slider_demo.py
+/testbed/examples/widgets/polygon_selector_demo.py
+/testbed/examples/widgets/annotated_cursor.py
+/testbed/examples/widgets/lasso_selector_demo_sgskip.py
+/testbed/examples/widgets/check_buttons.py
+/testbed/examples/widgets/range_slider.py

@@ -1,0 +1,1 @@
+{"content":"Certificate Subject: O = DevOps Team, CN = dev-internal.company.local\n\nCertificate Validity Dates:\nNot Before: Jul 28 00:08:42 2026 GMT\nNot After: Jul 28 00:08:42 2027 GMT\n\nCertificate SHA-256 Fingerprint:\n60:EE:1C:5C:41:78:07:F7:ED:10:A9:F4:21:36:37:B3:97:B3:CB:41:B8:64:3E:DA:37:95:48:70:9E:49:5D:BC\n","filePath":"/app/ssl/verification.txt"}

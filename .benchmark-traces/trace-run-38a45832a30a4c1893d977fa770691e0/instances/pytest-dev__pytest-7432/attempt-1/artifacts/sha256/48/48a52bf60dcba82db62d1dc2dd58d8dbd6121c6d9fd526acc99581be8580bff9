@@ -1,0 +1,1 @@
+{"content":"import pytest\nimport sys\n\n# Patch to debug\noriginal_makereport = pytest.hookimpl(hookwrapper=True)(lambda item, call: (yield))\n\ndef test_debug():\n    \"\"\"Test to see what exception is raised\"\"\"\n    pass\n","filePath":"/testbed/test_debug.py"}

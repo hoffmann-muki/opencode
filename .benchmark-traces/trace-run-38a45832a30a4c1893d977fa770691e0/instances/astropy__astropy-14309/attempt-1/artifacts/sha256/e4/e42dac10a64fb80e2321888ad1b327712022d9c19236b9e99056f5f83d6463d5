@@ -1,0 +1,1 @@
+{"command":"grep -n \"identify_format\" /testbed/astropy/io/registry/tests/test_registries.py | head -20"}

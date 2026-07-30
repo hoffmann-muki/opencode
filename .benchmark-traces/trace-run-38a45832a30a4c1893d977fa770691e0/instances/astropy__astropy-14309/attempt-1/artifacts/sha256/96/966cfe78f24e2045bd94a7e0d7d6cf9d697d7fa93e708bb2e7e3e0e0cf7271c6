@@ -1,0 +1,1 @@
+{"command":"find /testbed -name \"*.py\" -path \"*/io/registry/*\" -o -name \"*registry*test*.py\" | head -20"}

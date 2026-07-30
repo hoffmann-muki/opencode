@@ -1,0 +1,26 @@
+<path>/testbed/lib/matplotlib/axes/_axes.py</path>
+<type>file</type>
+<content>
+793:         self._check_no_units([ymin, ymax], ['ymin', 'ymax'])
+794:         if "transform" in kwargs:
+795:             raise ValueError("'transform' is not allowed as a keyword "
+796:                              "argument; axvline generates its own transform.")
+797:         xmin, xmax = self.get_xbound()
+798: 
+799:         # Strip away the units for comparison with non-unitized bounds.
+800:         xx, = self._process_unit_info([("x", x)], kwargs)
+801:         scalex = (xx < xmin) or (xx > xmax)
+802: 
+803:         trans = self.get_xaxis_transform(which='grid')
+804:         l = mlines.Line2D([x, x], [ymin, ymax], transform=trans, **kwargs)
+805:         self.add_line(l)
+806:         self._request_autoscale_view(scalex=scalex, scaley=False)
+807:         return l
+808: 
+809:     @staticmethod
+810:     def _check_no_units(vals, names):
+811:         # Helper method to check that vals are not unitized
+812:         for val, name in zip(vals, names):
+
+(Showing lines 793-812 of 8140. Use offset=813 to continue.)
+</content>

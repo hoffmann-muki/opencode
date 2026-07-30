@@ -1,0 +1,36 @@
+  40125d:	0f b6 04 16          	movzbl (%rsi,%rdx,1),%eax
+  401261:	3c 42                	cmp    $0x42,%al
+  401263:	75 eb                	jne    401250 <exit@plt+0x1d0>
+  401265:	48 63 c9             	movslq %ecx,%rcx
+  401268:	48 89 e6             	mov    %rsp,%rsi
+  40126b:	48 8d 3d 3c 0e 00 00 	lea    0xe3c(%rip),%rdi        # 4020ae <exit@plt+0x102e>
+  401272:	31 c0                	xor    %eax,%eax
+  401274:	c6 04 0c 00          	movb   $0x0,(%rsp,%rcx,1)
+  401278:	e8 c3 fd ff ff       	call   401040 <printf@plt>
+  40127d:	48 81 c4 08 01 00 00 	add    $0x108,%rsp
+  401284:	c3                   	ret
+  401285:	0f 1f 00             	nopl   (%rax)
+  401288:	48 8d 3d 79 0d 00 00 	lea    0xd79(%rip),%rdi        # 402008 <exit@plt+0xf88>
+  40128f:	e8 9c fd ff ff       	call   401030 <puts@plt>
+  401294:	bf 01 00 00 00       	mov    $0x1,%edi
+  401299:	e8 e2 fd ff ff       	call   401080 <exit@plt>
+  40129e:	31 c9                	xor    %ecx,%ecx
+  4012a0:	eb c3                	jmp    401265 <exit@plt+0x1e5>
+  4012a2:	66 66 2e 0f 1f 84 00 	data16 cs nopw 0x0(%rax,%rax,1)
+  4012a9:	00 00 00 00 
+  4012ad:	0f 1f 00             	nopl   (%rax)
+  4012b0:	48 83 ec 58          	sub    $0x58,%rsp
+  4012b4:	66 0f ef c0          	pxor   %xmm0,%xmm0
+  4012b8:	48 8d 3d 0b 0e 00 00 	lea    0xe0b(%rip),%rdi        # 4020ca <exit@plt+0x104a>
+  4012bf:	31 c0                	xor    %eax,%eax
+  4012c1:	0f 29 04 24          	movaps %xmm0,(%rsp)
+  4012c5:	0f 29 44 24 10       	movaps %xmm0,0x10(%rsp)
+  4012ca:	0f 29 44 24 20       	movaps %xmm0,0x20(%rsp)
+  4012cf:	0f 29 44 24 30       	movaps %xmm0,0x30(%rsp)
+  4012d4:	c7 44 24 40 00 00 00 	movl   $0x0,0x40(%rsp)
+  4012db:	00 
+  4012dc:	e8 5f fd ff ff       	call   401040 <printf@plt>
+  4012e1:	48 8b 3d a0 2d 00 00 	mov    0x2da0(%rip),%rdi        # 404088 <stdout@GLIBC_2.2.5>
+  4012e8:	e8 73 fd ff ff       	call   401060 <fflush@plt>
+  4012ed:	31 c0                	xor    %eax,%eax
+  4012ef:	48 89 e7             	mov    %rsp,%rdi

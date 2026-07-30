@@ -1,0 +1,2 @@
+/testbed/django/contrib/auth/validators.py:class ASCIIUsernameValidator(validators.RegexValidator):
+/testbed/django/contrib/auth/validators.py:class UnicodeUsernameValidator(validators.RegexValidator):

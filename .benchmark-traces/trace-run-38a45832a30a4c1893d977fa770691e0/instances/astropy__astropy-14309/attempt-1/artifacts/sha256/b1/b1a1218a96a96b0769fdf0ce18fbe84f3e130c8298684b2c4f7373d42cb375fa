@@ -1,0 +1,36 @@
+<path>/testbed/astropy/io/registry/base.py</path>
+<type>file</type>
+<content>
+300:             these must be provided as sequence.
+301:         kwargs : dict-like
+302:             Keyword arguments for the `read` or `write` function. Note that this
+303:             parameter must be `dict`-like.
+304: 
+305:         Returns
+306:         -------
+307:         valid_formats : list
+308:             List of matching formats.
+309:         """
+310:         valid_formats = []
+311:         for data_format, data_class in self._identifiers:
+312:             if self._is_best_match(data_class_required, data_class, self._identifiers):
+313:                 if self._identifiers[(data_format, data_class)](
+314:                     origin, path, fileobj, *args, **kwargs
+315:                 ):
+316:                     valid_formats.append(data_format)
+317: 
+318:         return valid_formats
+319: 
+320:     # =========================================================================
+321:     # Utils
+322: 
+323:     def _get_format_table_str(self, data_class, filter_on):
+324:         """``get_formats()``, without column "Data class", as a str."""
+325:         format_table = self.get_formats(data_class, filter_on)
+326:         format_table.remove_column("Data class")
+327:         format_table_str = "\n".join(format_table.pformat(max_lines=-1))
+328:         return format_table_str
+329: 
+
+(Showing lines 300-329 of 474. Use offset=330 to continue.)
+</content>

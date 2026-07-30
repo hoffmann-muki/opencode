@@ -1,0 +1,1 @@
+{"command":"head -c 100 /app/vulnerable | od -A x -t x1z"}

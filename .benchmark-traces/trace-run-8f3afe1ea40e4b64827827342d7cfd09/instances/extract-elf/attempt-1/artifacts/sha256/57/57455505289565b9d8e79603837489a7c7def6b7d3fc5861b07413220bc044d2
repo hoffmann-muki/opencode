@@ -1,0 +1,9 @@
+/usr/bin/objdump
+/usr/bin/readelf
+-rwxr-xr-x 1 root root       2783 Sep 18  2025 dpkg-distaddfile
+lrwxrwxrwx 1 root root          8 Apr 28  2024 lessfile -> lesspipe
+lrwxrwxrwx 1 root root         24 Oct 21  2025 objdump -> x86_64-linux-gnu-objdump
+lrwxrwxrwx 1 root root         24 Oct 21  2025 readelf -> x86_64-linux-gnu-readelf
+-rwxr-xr-x 1 root root      14648 Mar 31  2024 tempfile
+-rwxr-xr-x 1 root root     390848 Oct 21  2025 x86_64-linux-gnu-objdump
+-rwxr-xr-x 1 root root     789280 Oct 21  2025 x86_64-linux-gnu-readelf

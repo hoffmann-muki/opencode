@@ -1,0 +1,37 @@
+Found 16 matches
+/testbed/astropy/io/registry/compat.py:
+  Line 19:     "identify_format",
+
+
+/testbed/astropy/io/registry/base.py:
+  Line 282:     def identify_format(self, origin, data_class_required, path, fileobj, args, kwargs):
+
+  Line 354:         valid_formats = self.identify_format(mode, cls, path, fileobj, args, kwargs)
+
+
+/testbed/astropy/io/registry/tests/test_registries.py:
+  Line 212:     def test_identify_format(self, registry, fmtcls1):
+
+  Line 213:         """Test ``registry.identify_format()``."""
+
+  Line 218:         formats = registry.identify_format(*args)
+
+  Line 223:         formats = registry.identify_format(*args)
+
+  Line 262:     def test_compat_identify_format(self, registry, fmtcls1):
+
+  Line 268:         formats = compat.identify_format(*args, registry=registry)
+
+  Line 278:                 formats = compat.identify_format(*args)
+
+  Line 362:         """Test ``registry.identify_format()``."""
+
+  Line 366:         formats = registry.identify_format(*args)
+
+  Line 372:         formats = registry.identify_format(*args)
+
+  Line 736:         """Test ``registry.identify_format()``."""
+
+  Line 741:         formats = registry.identify_format(*args)
+
+  Line 747:         formats = registry.identify_format(*args)

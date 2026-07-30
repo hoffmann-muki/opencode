@@ -1,0 +1,2 @@
+I'll investigate the issue with UsernameValidator allowing trailing newlines in usernames. Let me start by finding the relevant files.
+

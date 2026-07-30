@@ -1,0 +1,56 @@
+<path>/testbed/astropy/io/fits/connect.py</path>
+<type>file</type>
+<content>
+1: # Licensed under a 3-clause BSD style license - see LICENSE.rst
+2: 
+3: 
+4: import os
+5: import re
+6: import warnings
+7: from copy import deepcopy
+8: 
+9: import numpy as np
+10: 
+11: from astropy import units as u
+12: from astropy.io import registry as io_registry
+13: from astropy.table import Column, MaskedColumn, Table, meta, serialize
+14: from astropy.time import Time
+15: from astropy.utils.data_info import serialize_context_as
+16: from astropy.utils.exceptions import AstropyDeprecationWarning, AstropyUserWarning
+17: from astropy.utils.misc import NOT_OVERWRITING_MSG
+18: 
+19: from . import BinTableHDU, GroupsHDU, HDUList, TableHDU
+20: from . import append as fits_append
+21: from .column import KEYWORD_NAMES, _fortran_to_python_format
+22: from .convenience import table_to_hdu
+23: from .hdu.hdulist import FITS_SIGNATURE
+24: from .hdu.hdulist import fitsopen as fits_open
+25: from .util import first
+26: 
+27: # Keywords to remove for all tables that are read in
+28: REMOVE_KEYWORDS = [
+29:     "XTENSION",
+30:     "BITPIX",
+31:     "NAXIS",
+32:     "NAXIS1",
+33:     "NAXIS2",
+34:     "PCOUNT",
+35:     "GCOUNT",
+36:     "TFIELDS",
+37:     "THEAP",
+38: ]
+39: 
+40: # Column-specific keywords regex
+41: COLUMN_KEYWORD_REGEXP = "(" + "|".join(KEYWORD_NAMES) + ")[0-9]+"
+42: 
+43: 
+44: def is_column_keyword(keyword):
+45:     return re.match(COLUMN_KEYWORD_REGEXP, keyword) is not None
+46: 
+47: 
+48: def is_fits(origin, filepath, fileobj, *args, **kwargs):
+49:     """
+50:     Determine whether `origin` is a FITS file.
+
+(Showing lines 1-50 of 454. Use offset=51 to continue.)
+</content>

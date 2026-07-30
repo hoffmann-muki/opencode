@@ -1,0 +1,21 @@
+<path>/testbed/astropy/io/votable/connect.py</path>
+<type>file</type>
+<content>
+35:             try:
+36:                 result = is_votable(fileobj)
+37:             finally:
+38:                 fileobj.seek(0)
+39:             return result
+40:         elif filepath is not None:
+41:             return is_votable(filepath)
+42:         return len(args) > 0 and isinstance(args[0], (VOTableFile, VOTable))
+43: 
+44:     else:
+45:         return False
+46: 
+47: 
+48: def read_table_votable(
+49:     input, table_id=None, use_names_over_ids=False, verify=None, **kwargs
+
+(Showing lines 35-49 of 181. Use offset=50 to continue.)
+</content>

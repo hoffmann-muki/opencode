@@ -1,0 +1,1 @@
+{"command":"python -m django test tests.auth_tests.test_validators.UsernameValidatorsTests --settings=tests.settings"}

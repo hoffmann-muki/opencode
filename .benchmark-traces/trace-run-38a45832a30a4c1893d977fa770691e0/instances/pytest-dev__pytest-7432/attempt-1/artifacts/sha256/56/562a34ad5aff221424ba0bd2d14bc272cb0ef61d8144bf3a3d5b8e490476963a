@@ -1,0 +1,1 @@
+{"command":"cd /testbed && python -m pytest testing/test_skipping.py::TestXFail::test_xfail_imperative -xvs"}

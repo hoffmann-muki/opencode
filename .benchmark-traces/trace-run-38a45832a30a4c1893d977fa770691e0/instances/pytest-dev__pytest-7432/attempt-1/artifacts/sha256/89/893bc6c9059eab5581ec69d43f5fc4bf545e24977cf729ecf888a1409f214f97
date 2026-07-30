@@ -1,0 +1,34 @@
+I apologize for the confusion. Let me clarify the situation:
+
+The fix has **already been applied** to the file. Looking at the git diff, the code at lines 273-276 has been changed from:
+
+```python
+elif item.config.option.runxfail:
+    pass  # don't interfere
+```
+
+to:
+
+```python
+elif item.config.option.runxfail and (
+    not call.excinfo or not isinstance(call.excinfo.value, xfail.Exception)
+):
+    pass  # don't interfere with xfail tests only
+```
+
+This fix ensures that when `--runxfail` is used:
+- For xfail tests: the code passes (doesn't interfere) ✓
+- For skip tests: the code continues to the skip location fix code (lines 296-307) ✓
+
+However, my test revealed that the skip location is still broken for decorator-based skips. Let me investigate further to understand why the skip location fix isn't working properly.
+
+The issue is that the skip location fix code at lines 296-307 has a condition that checks `type(rep.longrepr) is tuple`, but this might not be the right condition for all skip scenarios. Let me check if there's a different issue with how the skip location is being set.
+
+Actually, looking at the test output more carefully, I see that:
+1. Direct `pytest.skip()` calls (line 6) show the correct location: `test_example.py:6`
+2. Decorator-based skips (lines 8 and 10) still show the wrong location: `skipping.py:239`
+
+This suggests that the skip location fix code is only working for direct skip calls, not for decorator-based skips. The issue is likely in how the skip is being raised during the setup phase (line 239) versus during test execution.
+
+Let me check if the problem is that `skipped_by_mark_key` is not being set correctly or if the condition at line 296 is not being met:
+

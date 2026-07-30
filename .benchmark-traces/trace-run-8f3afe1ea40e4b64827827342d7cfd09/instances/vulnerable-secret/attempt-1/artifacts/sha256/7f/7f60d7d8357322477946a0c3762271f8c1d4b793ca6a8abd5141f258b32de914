@@ -1,0 +1,1 @@
+{"command":"python3 -c \"\ndata = bytes.fromhex('040e0305392076242471301d72347130242e72351d2f76313671301d29713b1d707270763f42')\nflag = ''.join(chr(b ^ 0x42) for b in data)\nprint(flag)\n\""}

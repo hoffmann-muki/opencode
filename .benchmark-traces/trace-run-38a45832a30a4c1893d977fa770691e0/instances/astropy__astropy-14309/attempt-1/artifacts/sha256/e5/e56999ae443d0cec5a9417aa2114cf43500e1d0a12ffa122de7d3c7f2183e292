@@ -1,0 +1,1 @@
+{"command":"python -m pytest astropy/io/fits/tests/ -xvs -k \"test\" 2>&1 | head -100"}

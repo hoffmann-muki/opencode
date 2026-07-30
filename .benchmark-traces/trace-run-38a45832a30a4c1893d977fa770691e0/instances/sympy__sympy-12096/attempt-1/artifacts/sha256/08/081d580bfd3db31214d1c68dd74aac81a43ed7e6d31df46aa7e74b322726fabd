@@ -1,0 +1,5 @@
+Found 2 matches
+/testbed/sympy/utilities/tests/test_lambdify.py:
+  Line 93:     assert -prec < f(Rational(1, 5)).evalf() - Float(str(sin02)) < prec
+
+  Line 131:     assert str(lambdify((), pi.evalf(100), 'mpmath')()) == str(pi.evalf(100))

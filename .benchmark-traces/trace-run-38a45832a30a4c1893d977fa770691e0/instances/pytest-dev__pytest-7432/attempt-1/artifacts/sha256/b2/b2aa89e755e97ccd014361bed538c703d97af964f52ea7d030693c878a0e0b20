@@ -1,0 +1,11 @@
+        else:
+            rep.longrepr = "Unexpected success"
+        rep.outcome = "failed"
+    elif item.config.option.runxfail and (
+        not call.excinfo or not isinstance(call.excinfo.value, xfail.Exception)
+    ):
+        pass  # don't interfere with xfail tests only
+    elif call.excinfo and isinstance(call.excinfo.value, xfail.Exception):
+        assert call.excinfo.value.msg is not None
+        rep.wasxfail = "reason: " + call.excinfo.value.msg
+        rep.outcome = "skipped"

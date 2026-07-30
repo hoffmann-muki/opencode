@@ -1,0 +1,8 @@
+Testing edge cases:
+  OK: '' expected=False, got=FAIL
+  OK: '   ' expected=False, got=FAIL
+  OK: 'user@domain.com' expected=True, got=PASS
+  OK: 'user.name+tag' expected=True, got=PASS
+  OK: '123' expected=True, got=PASS
+  OK: '_user_' expected=True, got=PASS
+  OK: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' expected=True, got=PASS

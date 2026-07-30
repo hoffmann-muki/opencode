@@ -1,0 +1,32 @@
+[
+  {
+    "content": "Create /app/ssl/ directory",
+    "status": "pending",
+    "priority": "high"
+  },
+  {
+    "content": "Generate 2048-bit RSA private key with proper permissions",
+    "status": "pending",
+    "priority": "high"
+  },
+  {
+    "content": "Create self-signed certificate with required details",
+    "status": "pending",
+    "priority": "high"
+  },
+  {
+    "content": "Create combined PEM file (key + certificate)",
+    "status": "pending",
+    "priority": "medium"
+  },
+  {
+    "content": "Verify certificate and create verification.txt",
+    "status": "pending",
+    "priority": "medium"
+  },
+  {
+    "content": "Create Python script to verify certificate",
+    "status": "pending",
+    "priority": "medium"
+  }
+]

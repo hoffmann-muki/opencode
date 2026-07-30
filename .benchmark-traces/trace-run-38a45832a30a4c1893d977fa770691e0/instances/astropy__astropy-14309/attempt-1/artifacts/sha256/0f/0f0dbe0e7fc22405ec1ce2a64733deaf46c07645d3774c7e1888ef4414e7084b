@@ -1,0 +1,1 @@
+{"command":"grep -n \"is_fits\" /testbed/astropy/io/fits/tests/test_connect.py"}

@@ -1,0 +1,2 @@
+I see - the addresses in the binary are virtual addresses. The example shows 4194304 which is 0x400000. Let me check if there's a base address or if the binary is position-independent:
+

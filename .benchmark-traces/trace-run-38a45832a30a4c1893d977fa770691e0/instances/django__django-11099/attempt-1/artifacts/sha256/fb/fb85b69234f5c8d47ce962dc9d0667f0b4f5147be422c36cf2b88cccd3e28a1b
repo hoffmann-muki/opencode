@@ -1,0 +1,1 @@
+{"command":"grep -r \"class.*UsernameValidator\" /testbed/django --include=\"*.py\" 2>/dev/null"}

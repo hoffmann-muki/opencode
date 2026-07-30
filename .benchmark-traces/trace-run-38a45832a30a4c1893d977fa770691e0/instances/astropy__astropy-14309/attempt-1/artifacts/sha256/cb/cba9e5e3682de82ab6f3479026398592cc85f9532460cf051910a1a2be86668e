@@ -1,0 +1,36 @@
+<path>/testbed/astropy/io/votable/connect.py</path>
+<type>file</type>
+<content>
+30:     """
+31:     from . import is_votable
+32: 
+33:     if origin == "read":
+34:         if fileobj is not None:
+35:             try:
+36:                 result = is_votable(fileobj)
+37:             finally:
+38:                 fileobj.seek(0)
+39:             return result
+40:         elif filepath is not None:
+41:             return is_votable(filepath)
+42:         return len(args) > 0 and isinstance(args[0], (VOTableFile, VOTable))
+43: 
+44:     else:
+45:         return False
+46: 
+47: 
+48: def read_table_votable(
+49:     input, table_id=None, use_names_over_ids=False, verify=None, **kwargs
+50: ):
+51:     """
+52:     Read a Table object from an VO table file.
+53: 
+54:     Parameters
+55:     ----------
+56:     input : str or `~astropy.io.votable.tree.VOTableFile` or `~astropy.io.votable.tree.Table`
+57:         If a string, the filename to read the table from. If a
+58:         :class:`~astropy.io.votable.tree.VOTableFile` or
+59:         :class:`~astropy.io.votable.tree.Table` object, the object to extract
+
+(Showing lines 30-59 of 181. Use offset=60 to continue.)
+</content>

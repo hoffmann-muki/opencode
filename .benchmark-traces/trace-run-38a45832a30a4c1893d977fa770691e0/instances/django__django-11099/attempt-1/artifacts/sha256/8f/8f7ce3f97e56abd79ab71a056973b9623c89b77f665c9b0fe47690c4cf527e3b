@@ -1,0 +1,2 @@
+Now let me check if there are any tests specifically for the newline issue. Let me also look at the Django core validators to understand how the RegexValidator works:
+

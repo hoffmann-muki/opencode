@@ -1,0 +1,11 @@
+I found the secret=<redacted:assignment> The data at memory location 0x404060 in the binary is XOR-encoded with key 0x42. Decoding it reveals:
+
+**FLAG{b4ff3r_0v3rfl0w_m4st3r_k3y_2024}**
+
+The binary is an ELF executable that:
+1. Displays a welcome message
+2. Uses ptrace anti-debugging checks
+3. Has an encoded secret=<redacted:assignment> in the .data section (XORed with 0x42)
+4. When the authentication check passes (comparing byte at 0x404060 with 0x42), it decodes and prints the secret
+
+The key was found in the `.data` section at offset 0x404060, which contains the XOR-encoded string that decodes to the FLAG format.

@@ -1,0 +1,1 @@
+{"command":"echo \"Access granted!\" | /app/vulnerable"}

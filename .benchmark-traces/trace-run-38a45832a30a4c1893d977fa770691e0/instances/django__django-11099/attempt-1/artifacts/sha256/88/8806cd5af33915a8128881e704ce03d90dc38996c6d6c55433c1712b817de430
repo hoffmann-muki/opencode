@@ -1,0 +1,1 @@
+{"command":"grep -r \"r'\\^\" /testbed/django/contrib/auth --include=\"*.py\" 2>/dev/null | grep -v \".pyc\""}

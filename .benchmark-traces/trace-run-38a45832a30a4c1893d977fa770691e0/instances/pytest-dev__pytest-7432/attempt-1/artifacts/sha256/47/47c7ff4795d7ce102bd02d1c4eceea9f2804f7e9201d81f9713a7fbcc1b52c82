@@ -1,0 +1,56 @@
+<path>/testbed/src/_pytest/outcomes.py</path>
+<type>file</type>
+<content>
+50: 
+51: TEST_OUTCOME = (OutcomeException, Exception)
+52: 
+53: 
+54: class Skipped(OutcomeException):
+55:     # XXX hackish: on 3k we fake to live in the builtins
+56:     # in order to have Skipped exception printing shorter/nicer
+57:     __module__ = "builtins"
+58: 
+59:     def __init__(
+60:         self,
+61:         msg: Optional[str] = None,
+62:         pytrace: bool = True,
+63:         allow_module_level: bool = False,
+64:     ) -> None:
+65:         OutcomeException.__init__(self, msg=msg, pytrace=pytrace)
+66:         self.allow_module_level = allow_module_level
+67: 
+68: 
+69: class Failed(OutcomeException):
+70:     """ raised from an explicit call to pytest.fail() """
+71: 
+72:     __module__ = "builtins"
+73: 
+74: 
+75: class Exit(Exception):
+76:     """ raised for immediate program exits (no tracebacks/summaries)"""
+77: 
+78:     def __init__(
+79:         self, msg: str = "unknown reason", returncode: Optional[int] = None
+80:     ) -> None:
+81:         self.msg = msg
+82:         self.returncode = returncode
+83:         super().__init__(msg)
+84: 
+85: 
+86: # Elaborate hack to work around https://github.com/python/mypy/issues/2087.
+87: # Ideally would just be `exit.Exception = Exit` etc.
+88: 
+89: _F = TypeVar("_F", bound=Callable)
+90: _ET = TypeVar("_ET", bound="Type[BaseException]")
+91: 
+92: 
+93: class _WithException(Protocol[_F, _ET]):
+94:     Exception = None  # type: _ET
+95:     __call__ = None  # type: _F
+96: 
+97: 
+98: def _with_exception(exception_type: _ET) -> Callable[[_F], _WithException[_F, _ET]]:
+99:     def decorate(func: _F) -> _WithException[_F, _ET]:
+
+(Showing lines 50-99 of 227. Use offset=100 to continue.)
+</content>

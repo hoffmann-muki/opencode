@@ -1,0 +1,56 @@
+<path>/testbed/src/_pytest/runner.py</path>
+<type>file</type>
+<content>
+295:         duration = precise_stop - precise_start
+296:         stop = timing.time()
+297:         return cls(
+298:             start=start,
+299:             stop=stop,
+300:             duration=duration,
+301:             when=when,
+302:             result=result,
+303:             excinfo=excinfo,
+304:         )
+305: 
+306:     def __repr__(self) -> str:
+307:         if self.excinfo is None:
+308:             return "<CallInfo when={!r} result: {!r}>".format(self.when, self._result)
+309:         return "<CallInfo when={!r} excinfo={!r}>".format(self.when, self.excinfo)
+310: 
+311: 
+312: def pytest_runtest_makereport(item: Item, call: CallInfo[None]) -> TestReport:
+313:     return TestReport.from_item_and_call(item, call)
+314: 
+315: 
+316: def pytest_make_collect_report(collector: Collector) -> CollectReport:
+317:     call = CallInfo.from_call(lambda: list(collector.collect()), "collect")
+318:     # TODO: Better typing for longrepr.
+319:     longrepr = None  # type: Optional[Any]
+320:     if not call.excinfo:
+321:         outcome = "passed"  # type: Literal["passed", "skipped", "failed"]
+322:     else:
+323:         skip_exceptions = [Skipped]
+324:         unittest = sys.modules.get("unittest")
+325:         if unittest is not None:
+326:             # Type ignored because unittest is loaded dynamically.
+327:             skip_exceptions.append(unittest.SkipTest)  # type: ignore
+328:         if call.excinfo.errisinstance(tuple(skip_exceptions)):
+329:             outcome = "skipped"
+330:             r_ = collector._repr_failure_py(call.excinfo, "line")
+331:             assert isinstance(r_, ExceptionChainRepr), repr(r_)
+332:             r = r_.reprcrash
+333:             assert r
+334:             longrepr = (str(r.path), r.lineno, r.message)
+335:         else:
+336:             outcome = "failed"
+337:             errorinfo = collector.repr_failure(call.excinfo)
+338:             if not hasattr(errorinfo, "toterminal"):
+339:                 errorinfo = CollectErrorRepr(errorinfo)
+340:             longrepr = errorinfo
+341:     result = call.result if not call.excinfo else None
+342:     rep = CollectReport(collector.nodeid, outcome, longrepr, result)
+343:     rep.call = call  # type: ignore # see collect_one_node
+344:     return rep
+
+(Showing lines 295-344 of 438. Use offset=345 to continue.)
+</content>

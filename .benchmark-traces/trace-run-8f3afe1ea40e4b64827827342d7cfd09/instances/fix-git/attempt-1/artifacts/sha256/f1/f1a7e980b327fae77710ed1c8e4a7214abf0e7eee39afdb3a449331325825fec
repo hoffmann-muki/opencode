@@ -1,0 +1,1 @@
+{"command":"cd /app/personal-site && git log --oneline -10"}

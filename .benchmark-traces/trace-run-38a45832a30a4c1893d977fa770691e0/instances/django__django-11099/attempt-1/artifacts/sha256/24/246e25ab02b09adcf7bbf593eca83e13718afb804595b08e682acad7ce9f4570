@@ -1,0 +1,4 @@
+I'll fix the username validator newline issue by changing the regex patterns in both validator classes.
+
+Let me first read the file to see the current state:
+

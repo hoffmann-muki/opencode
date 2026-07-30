@@ -1,0 +1,11 @@
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1 -- /opt/miniconda3/envs/testbed/bin/python
+cachedir: .pytest_cache
+rootdir: /tmp/tmpykcs99_k
+collecting ... collected 1 item
+
+../tmp/tmpykcs99_k/test.py::test_skip SKIPPED                            [100%]
+
+============================== 1 skipped in 0.00s ==============================
+
+

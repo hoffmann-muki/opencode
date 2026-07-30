@@ -1,0 +1,1 @@
+{"command":"grep -n \"class.*skip\" /testbed/src/_pytest/outcomes.py | head -20"}

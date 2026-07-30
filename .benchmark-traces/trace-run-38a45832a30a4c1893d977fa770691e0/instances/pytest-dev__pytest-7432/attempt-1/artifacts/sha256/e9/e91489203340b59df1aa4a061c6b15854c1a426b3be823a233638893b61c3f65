@@ -1,0 +1,9 @@
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1
+rootdir: /testbed, configfile: pyproject.toml
+collected 77 items
+
+testing/test_skipping.py ............................................... [ 61%]
+..............................                                           [100%]
+
+============================== 77 passed in 2.03s ==============================

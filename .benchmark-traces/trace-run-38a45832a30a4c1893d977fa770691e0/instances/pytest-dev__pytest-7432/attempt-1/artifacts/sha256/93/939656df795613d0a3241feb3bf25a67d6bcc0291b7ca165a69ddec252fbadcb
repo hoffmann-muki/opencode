@@ -1,0 +1,56 @@
+<path>/testbed/src/_pytest/outcomes.py</path>
+<type>file</type>
+<content>
+120: 
+121: 
+122: @_with_exception(Skipped)
+123: def skip(msg: str = "", *, allow_module_level: bool = False) -> "NoReturn":
+124:     """
+125:     Skip an executing test with the given message.
+126: 
+127:     This function should be called only during testing (setup, call or teardown) or
+128:     during collection by using the ``allow_module_level`` flag.  This function can
+129:     be called in doctests as well.
+130: 
+131:     :kwarg bool allow_module_level: allows this function to be called at
+132:         module level, skipping the rest of the module. Default to False.
+133: 
+134:     .. note::
+135:         It is better to use the :ref:`pytest.mark.skipif ref` marker when possible to declare a test to be
+136:         skipped under certain conditions like mismatching platforms or
+137:         dependencies.
+138:         Similarly, use the ``# doctest: +SKIP`` directive (see `doctest.SKIP
+139:         <https://docs.python.org/3/library/doctest.html#doctest.SKIP>`_)
+140:         to skip a doctest statically.
+141:     """
+142:     __tracebackhide__ = True
+143:     raise Skipped(msg=msg, allow_module_level=allow_module_level)
+144: 
+145: 
+146: @_with_exception(Failed)
+147: def fail(msg: str = "", pytrace: bool = True) -> "NoReturn":
+148:     """
+149:     Explicitly fail an executing test with the given message.
+150: 
+151:     :param str msg: the message to show the user as reason for the failure.
+152:     :param bool pytrace: if false the msg represents the full failure information and no
+153:         python traceback will be reported.
+154:     """
+155:     __tracebackhide__ = True
+156:     raise Failed(msg=msg, pytrace=pytrace)
+157: 
+158: 
+159: class XFailed(Failed):
+160:     """ raised from an explicit call to pytest.xfail() """
+161: 
+162: 
+163: @_with_exception(XFailed)
+164: def xfail(reason: str = "") -> "NoReturn":
+165:     """
+166:     Imperatively xfail an executing test or setup functions with the given reason.
+167: 
+168:     This function should be called only during testing (setup, call or teardown).
+169: 
+
+(Showing lines 120-169 of 227. Use offset=170 to continue.)
+</content>

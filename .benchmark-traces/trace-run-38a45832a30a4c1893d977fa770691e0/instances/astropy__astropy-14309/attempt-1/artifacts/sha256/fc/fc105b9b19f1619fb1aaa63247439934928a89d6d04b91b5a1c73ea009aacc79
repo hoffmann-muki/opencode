@@ -1,0 +1,21 @@
+<path>/testbed/astropy/io/fits/connect.py</path>
+<type>file</type>
+<content>
+65:         fileobj.seek(pos)
+66:         return sig == FITS_SIGNATURE
+67:     elif filepath is not None:
+68:         if filepath.lower().endswith(
+69:             (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+70:         ):
+71:             return True
+72:     return len(args) > 0 and isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+73: 
+74: 
+75: def _decode_mixins(tbl):
+76:     """Decode a Table ``tbl`` that has astropy Columns + appropriate meta-data into
+77:     the corresponding table with mixin columns (as appropriate).
+78:     """
+79:     # If available read in __serialized_columns__ meta info which is stored
+
+(Showing lines 65-79 of 454. Use offset=80 to continue.)
+</content>

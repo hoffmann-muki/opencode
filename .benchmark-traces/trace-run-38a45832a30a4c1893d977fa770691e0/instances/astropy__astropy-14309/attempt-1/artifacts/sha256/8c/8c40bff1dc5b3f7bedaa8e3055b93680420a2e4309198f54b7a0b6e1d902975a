@@ -1,0 +1,14 @@
+commit 2a0c5c6f5b982a76615c544854cd6e7d35c67c7f
+Author: Nathaniel Starkman <nstarkman@protonmail.com>
+Date:   Mon Jan 16 19:53:46 2023 -0500
+
+    fix SIM103 - ReturnBoolConditionDirectly
+    
+    Ruff will autofix this in future PRs
+    
+    Signed-off-by: Nathaniel Starkman (@nstarman) <nstarkman@protonmail.com>
+
+ astropy/io/fits/connect.py    | 5 +----
+ astropy/io/votable/connect.py | 6 ++----
+ pyproject.toml                | 1 -
+ 3 files changed, 3 insertions(+), 9 deletions(-)

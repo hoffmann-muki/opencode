@@ -1,0 +1,56 @@
+<path>/testbed/src/_pytest/skipping.py</path>
+<type>file</type>
+<content>
+260: @hookimpl(hookwrapper=True)
+261: def pytest_runtest_makereport(item: Item, call: CallInfo[None]):
+262:     outcome = yield
+263:     rep = outcome.get_result()
+264:     xfailed = item._store.get(xfailed_key, None)
+265:     # unittest special case, see setting of unexpectedsuccess_key
+266:     if unexpectedsuccess_key in item._store and rep.when == "call":
+267:         reason = item._store[unexpectedsuccess_key]
+268:         if reason:
+269:             rep.longrepr = "Unexpected success: {}".format(reason)
+270:         else:
+271:             rep.longrepr = "Unexpected success"
+272:         rep.outcome = "failed"
+273:     elif item.config.option.runxfail and (
+274:         not call.excinfo or not isinstance(call.excinfo.value, xfail.Exception)
+275:     ):
+276:         pass  # don't interfere with xfail tests only
+277:     elif call.excinfo and isinstance(call.excinfo.value, xfail.Exception):
+278:         assert call.excinfo.value.msg is not None
+279:         rep.wasxfail = "reason: " + call.excinfo.value.msg
+280:         rep.outcome = "skipped"
+281:     elif not rep.skipped and xfailed:
+282:         if call.excinfo:
+283:             raises = xfailed.raises
+284:             if raises is not None and not isinstance(call.excinfo.value, raises):
+285:                 rep.outcome = "failed"
+286:             else:
+287:                 rep.outcome = "skipped"
+288:                 rep.wasxfail = xfailed.reason
+289:         elif call.when == "call":
+290:             if xfailed.strict:
+291:                 rep.outcome = "failed"
+292:                 rep.longrepr = "[XPASS(strict)] " + xfailed.reason
+293:             else:
+294:                 rep.outcome = "passed"
+295:                 rep.wasxfail = xfailed.reason
+296:     elif (
+297:         item._store.get(skipped_by_mark_key, True)
+298:         and rep.skipped
+299:         and type(rep.longrepr) is tuple
+300:     ):
+301:         # skipped by mark.skipif; change the location of the failure
+302:         # to point to the item definition, otherwise it will display
+303:         # the location of where the skip exception was raised within pytest
+304:         _, _, reason = rep.longrepr
+305:         filename, line = item.reportinfo()[:2]
+306:         assert line is not None
+307:         rep.longrepr = str(filename), line + 1, reason
+308: 
+309: 
+
+(Showing lines 260-309 of 316. Use offset=310 to continue.)
+</content>

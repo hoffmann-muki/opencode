@@ -1,0 +1,56 @@
+<path>/testbed/sympy/core/numbers.py</path>
+<type>file</type>
+<content>
+700:     the fraction 5404319552844595/2**54. So if you try to obtain a Float of
+701:     0.3 to 20 digits of precision you will not see the same thing as 0.3
+702:     followed by 19 zeros:
+703: 
+704:     >>> Float(0.3, 20)
+705:     0.29999999999999998890
+706: 
+707:     If you want a 20-digit value of the decimal 0.3 (not the floating point
+708:     approximation of 0.3) you should send the 0.3 as a string. The underlying
+709:     representation is still binary but a higher precision than Python's float
+710:     is used:
+711: 
+712:     >>> Float('0.3', 20)
+713:     0.30000000000000000000
+714: 
+715:     Although you can increase the precision of an existing Float using Float
+716:     it will not increase the accuracy -- the underlying value is not changed:
+717: 
+718:     >>> def show(f): # binary rep of Float
+719:     ...     from sympy import Mul, Pow
+720:     ...     s, m, e, b = f._mpf_
+721:     ...     v = Mul(int(m), Pow(2, int(e), evaluate=False), evaluate=False)
+722:     ...     print('%s at prec=%s' % (v, f._prec))
+723:     ...
+724:     >>> t = Float('0.3', 3)
+725:     >>> show(t)
+726:     4915/2**14 at prec=13
+727:     >>> show(Float(t, 20)) # higher prec, not higher accuracy
+728:     4915/2**14 at prec=70
+729:     >>> show(Float(t, 2)) # lower prec
+730:     307/2**10 at prec=10
+731: 
+732:     The same thing happens when evalf is used on a Float:
+733: 
+734:     >>> show(t.evalf(20))
+735:     4915/2**14 at prec=70
+736:     >>> show(t.evalf(2))
+737:     307/2**10 at prec=10
+738: 
+739:     Finally, Floats can be instantiated with an mpf tuple (n, c, p) to
+740:     produce the number (-1)**n*c*2**p:
+741: 
+742:     >>> n, c, p = 1, 5, 0
+743:     >>> (-1)**n*c*2**p
+744:     -5
+745:     >>> Float((1, 5, 0))
+746:     -5.00000000000000
+747: 
+748:     An actual mpf tuple also contains the number of bits in c as the last
+749:     element of the tuple:
+
+(Showing lines 700-749 of 3635. Use offset=750 to continue.)
+</content>

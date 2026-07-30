@@ -1,0 +1,1 @@
+{"command":"find /testbed -name \"*.py\" -path \"*/tests/*\" | xargs grep -l \"is_fits\\|is_votable\" | head -10"}

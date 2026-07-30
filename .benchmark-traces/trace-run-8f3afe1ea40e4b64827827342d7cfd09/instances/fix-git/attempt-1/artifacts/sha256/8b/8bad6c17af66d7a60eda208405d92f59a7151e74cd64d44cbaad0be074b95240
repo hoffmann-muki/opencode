@@ -1,0 +1,4 @@
+I can see the issue. You had a commit "Move to Stanford" (c499730) that was on a branch, but you checked out master which is at a different commit (d7d3e4b). The "Move to Stanford" commit is not on master.
+
+Let me check if that commit still exists and see what changes it contained:
+

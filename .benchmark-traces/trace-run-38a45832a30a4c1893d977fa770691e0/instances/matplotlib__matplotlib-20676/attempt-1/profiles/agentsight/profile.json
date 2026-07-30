@@ -1,0 +1,14 @@
+{
+  "schema": "benchmark-agentsight-profile/v1",
+  "profileId": "trace-1cfc787628bd41409bc211333b8491e9",
+  "status": "completed",
+  "topology": "docker-pid-host-sidecar",
+  "targetContainer": "opencode-swe-swe-verified-five-live-20260727-matplotlib__matplotlib-20676-attempt-1",
+  "sourceScopes": [
+    "task-container"
+  ],
+  "image": "agentsight:play",
+  "imageId": "sha256:e7041a719bee18136e47a5ff3a656aeaae647dfd9ddf83f383b1d2df6821cd74",
+  "startedAt": "2026-07-28T03:54:21.986Z",
+  "stoppedAt": "2026-07-28T03:56:05.919Z"
+}

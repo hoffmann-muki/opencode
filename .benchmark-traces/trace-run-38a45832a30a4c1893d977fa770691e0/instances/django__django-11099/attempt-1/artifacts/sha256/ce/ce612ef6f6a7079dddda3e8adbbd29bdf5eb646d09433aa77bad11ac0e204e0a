@@ -1,0 +1,2 @@
+Perfect! I can see that Django's core validators already use `\Z` for proper end-of-string anchoring. Now let me create a test script to verify the current behavior and the fix:
+

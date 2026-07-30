@@ -1,0 +1,2 @@
+Excellent! All tests pass. Now let me create a more comprehensive test to verify the specific bug fix - that skip location reporting works correctly with --runxfail:
+

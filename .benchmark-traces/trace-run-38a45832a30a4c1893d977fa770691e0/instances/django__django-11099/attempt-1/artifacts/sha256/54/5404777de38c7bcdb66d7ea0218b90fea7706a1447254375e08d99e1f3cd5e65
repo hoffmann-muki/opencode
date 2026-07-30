@@ -1,0 +1,22 @@
+[
+  {
+    "content": "Update ASCIIUsernameValidator regex from ^ to \\A and $ to \\Z",
+    "status": "in_progress",
+    "priority": "high"
+  },
+  {
+    "content": "Update UnicodeUsernameValidator regex from ^ to \\A and $ to \\Z",
+    "status": "pending",
+    "priority": "high"
+  },
+  {
+    "content": "Run tests to verify the fix works correctly",
+    "status": "pending",
+    "priority": "medium"
+  },
+  {
+    "content": "Review final diff and verify no other changes needed",
+    "status": "pending",
+    "priority": "medium"
+  }
+]

@@ -1,0 +1,1 @@
+{"command":"readelf -x .init_array /app/a.out && echo \"---\" && readelf -x .fini_array /app/a.out && echo \"---\" && readelf -x .got /app/a.out && echo \"---\" && readelf -x .dynamic /app/a.out"}

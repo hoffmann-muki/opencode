@@ -1,0 +1,2 @@
+The issue is that `axvline` always calls `_request_autoscale_view` at line 806. Let me check if there's a way to add a line without triggering autoscaling. Let me look at `add_line`:
+

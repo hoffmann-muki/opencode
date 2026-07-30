@@ -1,0 +1,13 @@
+I found it! The issue is on line 806 in `/testbed/lib/matplotlib/axes/_axes.py`. The `axvline` method calls `self._request_autoscale_view(scalex=scalex, scaley=False)` where `scalex` is determined by whether the x-value is outside the current bounds (line 801).
+
+The problem is that when `axvline` is called with `x=0` (the default), and the current x-bounds don't include 0, it will trigger autoscaling to include 0. Let me check the ToolLineHandles initialization again:
+
+Looking at line 2372 in widgets.py:
+```python
+self.artists = [line_fun(p, **line_props) for p in positions]
+```
+
+When `line_fun` is `ax.axvline` (for horizontal direction), it's called with `p` from `positions` which comes from `self.extents`. But initially, `self.extents` is not yet set when `_setup_edge_handle` is called!
+
+Let me check when `_setup_edge_handle` is called:
+

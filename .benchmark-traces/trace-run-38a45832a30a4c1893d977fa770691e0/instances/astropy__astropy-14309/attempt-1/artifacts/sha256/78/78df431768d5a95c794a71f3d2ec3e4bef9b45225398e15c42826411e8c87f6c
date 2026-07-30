@@ -1,0 +1,11 @@
+<task id="ses_0593ba8efffeguXtMTdF4u3RW7" state="completed">
+<task_result>
+Perfect! The fix has been applied. The change on line 72 now:
+1. First checks if `len(args) > 0` before accessing `args[0]`
+2. Only then performs the `isinstance` check
+3. Returns `False` if `args` is empty (due to short-circuit evaluation of `and`)
+4. Returns the isinstance result if `args` is not empty
+
+This is a minimal fix that handles the case where a filepath string without a FITS extension is passed (like "bububu.ecsv"), which would result in `args` being empty, and now correctly returns `False` instead of raising an `IndexError`.
+</task_result>
+</task>

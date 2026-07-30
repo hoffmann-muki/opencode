@@ -1,0 +1,20 @@
+2a0c5c6f5 fix SIM103 - ReturnBoolConditionDirectly
+e512a6799 Modified `astropy.units.quantity_helpers.array_equal()` and `astropy.units.quantity_helpers.array_equiv()` to return `False` if the arguments have incompatible units.
+f3389c1b2 Modified `astropy.units.Quantity.__array_ufunc__()` to return `NotImplemented` if the inputs are incompatible.
+0e923721d Merge pull request #14103 from astropy/pre-commit-ci-update-config
+c76a46057 Merge pull request #14038 from mcara/comb-return-ints
+0962a306a Make comb return integer values
+39b610319 Add psf to nddata/ccddata docs
+c1033a420 Ensure we keep a reference to the fsspec OpenFile object
+2dd3ed052 Add missing return
+1f6f42380 Ensure that returned kernels are normalized to sum to 1
+e31d8d896 use best_solution returned by the NoConvergence error to avoid recalculation
+c78d3a103 Ensure that masked instances can be used to initialize np.ma.MaskedArray
+8f7622604 Avoid unnecessarily returning broadcasted components instead of original inputs when not copying
+103ad3014 Remove a problematic test file
+58d103932 Note about updating release branch
+3bbc9341e Removed deprecated check_hashes from check_download_cache, which also no longer returns anything.
+8ff785ca4 Add a private function to CompositeTransform to return an encapsulated version
+2103874f6 ENH: Use importlib in minversion
+103b8d9e2 Add deprecation to flrw in core
+a36715649 Fix sigma_clip return for empty array when masked=True

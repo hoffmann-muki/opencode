@@ -1,0 +1,5 @@
+Testing current regex: ^[\w.@+-]+$
+------------------------------------------------------------
+Traceback (most recent call last):
+  File "<stdin>", line 27, in <module>
+UnicodeEncodeError: 'ascii' codec can't encode character '\u2713' in position 0: ordinal not in range(128)

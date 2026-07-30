@@ -1,0 +1,106 @@
+<path>/testbed/sympy/utilities/lambdify.py</path>
+<type>file</type>
+<content>
+550: 
+551:     if isiter(args) and any(isiter(i) for i in args):
+552:         from sympy.utilities.iterables import flatten
+553:         import re
+554:         dum_args = [str(Dummy(str(i))) for i in range(len(args))]
+555:         iter_args = ','.join([i if isiter(a) else i
+556:             for i, a in zip(dum_args, args)])
+557:         lstr = lambdastr(flatten(args), expr, printer=printer, dummify=dummify)
+558:         flat = '__flatten_args__'
+559:         rv = 'lambda %s: (%s)(*list(%s([%s])))' % (
+560:             ','.join(dum_args), lstr, flat, iter_args)
+561:         if len(re.findall(r'\b%s\b' % flat, rv)) > 1:
+562:             raise ValueError('the name %s is reserved by lambdastr' % flat)
+563:         return rv
+564: 
+565:     dummies_dict = {}
+566:     if dummify:
+567:         args = sub_args(args, dummies_dict)
+568:     else:
+569:         if isinstance(args, str):
+570:             pass
+571:         elif iterable(args, exclude=DeferredVector):
+572:             args = ",".join(str(a) for a in args)
+573: 
+574:     # Transform expr
+575:     if dummify:
+576:         if isinstance(expr, str):
+577:             pass
+578:         else:
+579:             expr = sub_expr(expr, dummies_dict)
+580:     expr = lambdarepr(expr)
+581: 
+582:     return "lambda %s: (%s)" % (args, expr)
+583: 
+584: 
+585: def _imp_namespace(expr, namespace=None):
+586:     """ Return namespace dict with function implementations
+587: 
+588:     We need to search for functions in anything that can be thrown at
+589:     us - that is - anything that could be passed as `expr`.  Examples
+590:     include sympy expressions, as well as tuples, lists and dicts that may
+591:     contain sympy expressions.
+592: 
+593:     Parameters
+594:     ----------
+595:     expr : object
+596:        Something passed to lambdify, that will generate valid code from
+597:        ``str(expr)``.
+598:     namespace : None or mapping
+599:        Namespace to fill.  None results in new empty dict
+600: 
+601:     Returns
+602:     -------
+603:     namespace : dict
+604:        dict with keys of implemented function names within `expr` and
+605:        corresponding values being the numerical implementation of
+606:        function
+607: 
+608:     Examples
+609:     ========
+610: 
+611:     >>> from sympy.abc import x
+612:     >>> from sympy.utilities.lambdify import implemented_function, _imp_namespace
+613:     >>> from sympy import Function
+614:     >>> f = implemented_function(Function('f'), lambda x: x+1)
+615:     >>> g = implemented_function(Function('g'), lambda x: x*10)
+616:     >>> namespace = _imp_namespace(f(g(x)))
+617:     >>> sorted(namespace.keys())
+618:     ['f', 'g']
+619:     """
+620:     # Delayed import to avoid circular imports
+621:     from sympy.core.function import FunctionClass
+622:     if namespace is None:
+623:         namespace = {}
+624:     # tuples, lists, dicts are valid expressions
+625:     if is_sequence(expr):
+626:         for arg in expr:
+627:             _imp_namespace(arg, namespace)
+628:         return namespace
+629:     elif isinstance(expr, dict):
+630:         for key, val in expr.items():
+631:             # functions can be in dictionary keys
+632:             _imp_namespace(key, namespace)
+633:             _imp_namespace(val, namespace)
+634:         return namespace
+635:     # sympy expressions may be Functions themselves
+636:     func = getattr(expr, 'func', None)
+637:     if isinstance(func, FunctionClass):
+638:         imp = getattr(func, '_imp_', None)
+639:         if imp is not None:
+640:             name = expr.func.__name__
+641:             if name in namespace and namespace[name] != imp:
+642:                 raise ValueError('We found more than one '
+643:                                  'implementation with name '
+644:                                  '"%s"' % name)
+645:             namespace[name] = imp
+646:     # and / or they may take Functions as arguments
+647:     if hasattr(expr, 'args'):
+648:         for arg in expr.args:
+649:             _imp_namespace(arg, namespace)
+
+(Showing lines 550-649 of 699. Use offset=650 to continue.)
+</content>

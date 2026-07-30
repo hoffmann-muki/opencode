@@ -1,0 +1,8 @@
+commit cc1d69a25b7acecf13d8d08ae6b17d81f6dc4f00
+Author: Eric Prestat <eric.prestat@gmail.com>
+Date:   Wed Apr 28 17:48:12 2021 +0100
+
+    Use line handlers for span selector
+
+ lib/matplotlib/widgets.py | 112 +++++++++++++++++++++++++++++++---------------
+ 1 file changed, 75 insertions(+), 37 deletions(-)

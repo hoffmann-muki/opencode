@@ -1,0 +1,2 @@
+I can see that line 42 in `/testbed/astropy/io/votable/connect.py` has the same issue! Let me check the full function:
+

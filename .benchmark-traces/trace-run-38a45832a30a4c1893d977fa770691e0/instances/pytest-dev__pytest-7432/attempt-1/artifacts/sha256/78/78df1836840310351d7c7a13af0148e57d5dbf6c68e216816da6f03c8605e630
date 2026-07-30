@@ -1,0 +1,15 @@
+Now I understand the exception hierarchy. `Skipped` is a subclass of `OutcomeException`, and `XFailed` is a subclass of `Failed` which is also a subclass of `OutcomeException`.
+
+Let me trace through what happens when a test is skipped with `@pytest.mark.skip`:
+
+1. During setup (line 236-239), `evaluate_skip_marks()` returns a `Skip` object
+2. `skip(skipped.reason)` is called, which raises a `Skipped` exception
+3. This exception is caught and becomes `call.excinfo.value`
+4. In `pytest_runtest_makereport`, the code checks if `call.excinfo.value` is an `xfail.Exception` (which is `XFailed`)
+
+The problem is that when `--runxfail` is used, the code at line 273-274 just passes without doing anything, so the skip location fix code (lines 294-305) is never reached.
+
+The fix should be: when `--runxfail` is used, we should still handle skip tests properly. The `--runxfail` flag should only affect xfail behavior, not skip behavior.
+
+Let me check what `call.excinfo.value` is when a skip is raised:
+

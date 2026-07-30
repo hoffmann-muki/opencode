@@ -1,0 +1,1 @@
+{"command":"readelf -S /app/a.out && echo \"---\" && readelf -x .data /app/a.out && echo \"---\" && readelf -x .rodata /app/a.out && echo \"---\" && readelf -x .text /app/a.out"}

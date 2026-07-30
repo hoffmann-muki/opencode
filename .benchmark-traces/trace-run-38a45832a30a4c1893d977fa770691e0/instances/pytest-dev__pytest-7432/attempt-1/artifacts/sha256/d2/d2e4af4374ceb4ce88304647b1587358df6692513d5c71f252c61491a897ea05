@@ -1,0 +1,106 @@
+<path>/testbed/testing/test_skipping.py</path>
+<type>file</type>
+<content>
+668:     def test_skipif_reporting(self, testdir, params):
+669:         p = testdir.makepyfile(
+670:             test_foo="""
+671:             import pytest
+672:             @pytest.mark.skipif(%(params)s)
+673:             def test_that():
+674:                 assert 0
+675:         """
+676:             % dict(params=params)
+677:         )
+678:         result = testdir.runpytest(p, "-s", "-rs")
+679:         result.stdout.fnmatch_lines(["*SKIP*1*test_foo.py*platform*", "*1 skipped*"])
+680:         assert result.ret == 0
+681: 
+682:     def test_skipif_using_platform(self, testdir):
+683:         item = testdir.getitem(
+684:             """
+685:             import pytest
+686:             @pytest.mark.skipif("platform.platform() == platform.platform()")
+687:             def test_func():
+688:                 pass
+689:         """
+690:         )
+691:         pytest.raises(pytest.skip.Exception, lambda: pytest_runtest_setup(item))
+692: 
+693:     @pytest.mark.parametrize(
+694:         "marker, msg1, msg2",
+695:         [("skipif", "SKIP", "skipped"), ("xfail", "XPASS", "xpassed")],
+696:     )
+697:     def test_skipif_reporting_multiple(self, testdir, marker, msg1, msg2):
+698:         testdir.makepyfile(
+699:             test_foo="""
+700:             import pytest
+701:             @pytest.mark.{marker}(False, reason='first_condition')
+702:             @pytest.mark.{marker}(True, reason='second_condition')
+703:             def test_foobar():
+704:                 assert 1
+705:         """.format(
+706:                 marker=marker
+707:             )
+708:         )
+709:         result = testdir.runpytest("-s", "-rsxX")
+710:         result.stdout.fnmatch_lines(
+711:             [
+712:                 "*{msg1}*test_foo.py*second_condition*".format(msg1=msg1),
+713:                 "*1 {msg2}*".format(msg2=msg2),
+714:             ]
+715:         )
+716:         assert result.ret == 0
+717: 
+718: 
+719: def test_skip_not_report_default(testdir):
+720:     p = testdir.makepyfile(
+721:         test_one="""
+722:         import pytest
+723:         def test_this():
+724:             pytest.skip("hello")
+725:     """
+726:     )
+727:     result = testdir.runpytest(p, "-v")
+728:     result.stdout.fnmatch_lines(
+729:         [
+730:             # "*HINT*use*-r*",
+731:             "*1 skipped*"
+732:         ]
+733:     )
+734: 
+735: 
+736: def test_skipif_class(testdir):
+737:     p = testdir.makepyfile(
+738:         """
+739:         import pytest
+740: 
+741:         class TestClass(object):
+742:             pytestmark = pytest.mark.skipif("True")
+743:             def test_that(self):
+744:                 assert 0
+745:             def test_though(self):
+746:                 assert 0
+747:     """
+748:     )
+749:     result = testdir.runpytest(p)
+750:     result.stdout.fnmatch_lines(["*2 skipped*"])
+751: 
+752: 
+753: def test_skipped_reasons_functional(testdir):
+754:     testdir.makepyfile(
+755:         test_one="""
+756:             import pytest
+757:             from conftest import doskip
+758: 
+759:             def setup_function(func):
+760:                 doskip()
+761: 
+762:             def test_func():
+763:                 pass
+764: 
+765:             class TestClass(object):
+766:                 def test_method(self):
+767:                     doskip()
+
+(Showing lines 668-767 of 1207. Use offset=768 to continue.)
+</content>

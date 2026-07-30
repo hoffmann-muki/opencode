@@ -1,0 +1,56 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+2342: class ToolLineHandles:
+2343:     """
+2344:     Control handles for canvas tools.
+2345: 
+2346:     Parameters
+2347:     ----------
+2348:     ax : `matplotlib.axes.Axes`
+2349:         Matplotlib axes where tool handles are displayed.
+2350:     positions : 1D array
+2351:         Positions of handles in data coordinates.
+2352:     direction : {"horizontal", "vertical"}
+2353:         Direction of handles, either 'vertical' or 'horizontal'
+2354:     line_props : dict
+2355:         Additional line properties. See `matplotlib.lines.Line2D`.
+2356:     """
+2357: 
+2358:     def __init__(self, ax, positions, direction, line_props=None,
+2359:                  useblit=True):
+2360:         self.ax = ax
+2361: 
+2362:         _api.check_in_list(['horizontal', 'vertical'], direction=direction)
+2363:         self._direction = direction
+2364: 
+2365:         if line_props is None:
+2366:             line_props = {}
+2367:         line_props.update({'visible': False, 'animated': useblit})
+2368: 
+2369:         line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline
+2370:         self._line_props = line_props
+2371: 
+2372:         self.artists = [line_fun(p, **line_props) for p in positions]
+2373: 
+2374:     @property
+2375:     def positions(self):
+2376:         """Positions of the handle in data coordinates."""
+2377:         method = 'get_xdata' if self.direction == 'horizontal' else 'get_ydata'
+2378:         return [getattr(line, method)()[0] for line in self.artists]
+2379: 
+2380:     @property
+2381:     def direction(self):
+2382:         """Direction of the handle: 'vertical' or 'horizontal'."""
+2383:         return self._direction
+2384: 
+2385:     def set_data(self, positions):
+2386:         """
+2387:         Set x or y positions of handles, depending if the lines are vertical
+2388:         of horizontal.
+2389: 
+2390:         Parameters
+2391:         ----------
+
+(Showing lines 2342-2391 of 3409. Use offset=2392 to continue.)
+</content>

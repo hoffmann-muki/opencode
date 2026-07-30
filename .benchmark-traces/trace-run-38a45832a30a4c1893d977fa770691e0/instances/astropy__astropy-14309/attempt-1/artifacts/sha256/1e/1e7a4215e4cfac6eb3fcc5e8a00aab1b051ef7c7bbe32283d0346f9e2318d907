@@ -1,0 +1,2 @@
+Yes! Line 42 in the votable/connect.py has the same issue. When `origin == "read"`, `fileobj is None`, and `filepath is None`, it tries to access `args[0]` without checking if `args` is empty. Let me fix this as well:
+

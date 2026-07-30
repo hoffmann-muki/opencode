@@ -1,0 +1,1 @@
+{"description":"Verify results.txt contains the key","prompt":"Verify that the file /app/results.txt contains the secret key in the format FLAG{...}. \n\nPlease:\n1. Read the contents of /app/results.txt\n2. Confirm the key is in the correct format FLAG{...}\n3. Report back what you found","subagent_type":"benchmark-reviewer"}

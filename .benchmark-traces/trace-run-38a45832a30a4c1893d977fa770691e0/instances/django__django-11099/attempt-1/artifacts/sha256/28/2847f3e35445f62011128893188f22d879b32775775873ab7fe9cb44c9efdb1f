@@ -1,0 +1,2 @@
+Great! I can see that other validators in Django already use `\A` and `\Z` for anchoring. Let me verify the current implementation and understand the issue better by looking at how Python regex works:
+

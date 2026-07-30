@@ -1,0 +1,2 @@
+Let me look at the expected output format more carefully. The example shows addresses like 4194304 (which is 0x400000 in hex). Let me check what the actual memory layout should be:
+

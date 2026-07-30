@@ -1,0 +1,22 @@
+{
+  "captureTls": true,
+  "correlation": {
+    "attempt": 1,
+    "benchmark": "terminal-bench-2.1",
+    "framework": "opencode",
+    "instanceId": "regex-log",
+    "runId": "trace-run-8f3afe1ea40e4b64827827342d7cfd09"
+  },
+  "image": "agentsight:play",
+  "imageId": "sha256:e7041a719bee18136e47a5ff3a656aeaae647dfd9ddf83f383b1d2df6821cd74",
+  "profileId": "agentsight-03cf65355a51d10a16980de14ce12a8f",
+  "schema": "benchmark-agentsight-profile/v1",
+  "sourceScopes": [
+    "task-container"
+  ],
+  "startedAt": "2026-07-28T00:11:53.577140+00:00",
+  "status": "completed",
+  "targetContainer": "7bf31c572e3e",
+  "topology": "docker-pid-host-sidecar",
+  "updatedAt": "2026-07-28T00:14:16.934804+00:00"
+}

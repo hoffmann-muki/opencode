@@ -1,0 +1,2 @@
+Unable to decode the command from the command line:
+UnicodeEncodeError: 'utf-8' codec can't encode characters in position 314-315: surrogates not allowed

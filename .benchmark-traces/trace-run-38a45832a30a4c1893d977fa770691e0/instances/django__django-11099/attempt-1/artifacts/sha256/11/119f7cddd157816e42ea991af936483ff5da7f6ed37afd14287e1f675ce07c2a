@@ -1,0 +1,8 @@
+/testbed/django/contrib/auth/validators.py:class ASCIIUsernameValidator(validators.RegexValidator):
+/testbed/django/contrib/auth/validators.py:class UnicodeUsernameValidator(validators.RegexValidator):
+/testbed/django/contrib/auth/migrations/0004_alter_user_username_opts.py:                validators=[validators.UnicodeUsernameValidator()],
+/testbed/django/contrib/auth/migrations/0008_alter_user_username_max_length.py:                validators=[validators.UnicodeUsernameValidator()],
+/testbed/django/contrib/auth/migrations/0007_alter_validators_add_error_messages.py:                validators=[validators.UnicodeUsernameValidator()],
+/testbed/django/contrib/auth/migrations/0001_initial.py:                    validators=[validators.UnicodeUsernameValidator()],
+/testbed/django/contrib/auth/models.py:from .validators import UnicodeUsernameValidator
+/testbed/django/contrib/auth/models.py:    username_validator = UnicodeUsernameValidator()

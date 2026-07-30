@@ -1,0 +1,35 @@
+I apologize, but I've reached the maximum number of steps allowed for this task. Let me provide a summary of what I've found so far.
+
+## Summary
+
+I've identified the SpanSelector implementation in `/testbed/lib/matplotlib/widgets.py` and found the relevant code sections. The issue appears to be related to how interactive mode handles axis limits.
+
+## Key Findings
+
+1. **SpanSelector class** is at line 1991 in `/testbed/lib/matplotlib/widgets.py`
+2. **_SelectorWidget base class** is at line 1768
+3. The `interactive` parameter was renamed from `span_stays` in version 3.5 (see line 2068-2069)
+
+## What I Was Looking For
+
+I was searching for code that might be forcing axes limits to include 0, particularly:
+- Code related to autoscaling
+- Code that modifies axis limits in interactive mode
+- Any recent changes that might have introduced this bug
+
+## Remaining Tasks
+
+1. Search for autoscale-related code in the widgets module
+2. Look for any code that modifies axis limits when interactive=True
+3. Check git history for changes related to interactive mode
+4. Find the specific code causing the 0-limit forcing behavior
+
+## Recommendations
+
+The investigation should continue by:
+1. Searching for "autoscale" in the widgets.py file
+2. Looking at the `_draw_shape` method and how it interacts with axis limits
+3. Checking if there's any code that calls `ax.autoscale()` or similar methods
+4. Examining the `extents` property setter and how it might affect axis limits
+
+The bug likely involves the interactive mode's handle drawing or the `extents` property setter triggering some kind of autoscaling behavior that forces limits to include 0.

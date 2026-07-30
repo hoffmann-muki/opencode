@@ -1,0 +1,36 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+2131:     def new_axes(self, ax):
+2132:         """Set SpanSelector to operate on a new Axes."""
+2133:         self.ax = ax
+2134:         if self.canvas is not ax.figure.canvas:
+2135:             if self.canvas is not None:
+2136:                 self.disconnect_events()
+2137: 
+2138:             self.canvas = ax.figure.canvas
+2139:             self.connect_default_events()
+2140: 
+2141:         if self.direction == 'horizontal':
+2142:             trans = ax.get_xaxis_transform()
+2143:             w, h = 0, 1
+2144:         else:
+2145:             trans = ax.get_yaxis_transform()
+2146:             w, h = 1, 0
+2147:         self._rect = Rectangle((0, 0), w, h,
+2148:                                transform=trans,
+2149:                                visible=False,
+2150:                                **self._rectprops)
+2151: 
+2152:         self.ax.add_patch(self._rect)
+2153:         if len(self.artists) > 0:
+2154:             self.artists[0] = self._rect
+2155:         else:
+2156:             self.artists.append(self._rect)
+2157: 
+2158:     def _setup_edge_handle(self, props):
+2159:         self._edge_handles = ToolLineHandles(self.ax, self.extents,
+2160:                                              direction=self.direction,
+
+(Showing lines 2131-2160 of 3409. Use offset=2161 to continue.)
+</content>

@@ -1,0 +1,1 @@
+{"command":"git diff /testbed/django/contrib/auth/validators.py 2>/dev/null || echo \"No git diff available\""}

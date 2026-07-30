@@ -1,0 +1,13 @@
+  [11] .rela.plt         RELA             0000000000000610  00000610
+  [12] .init             PROGBITS         0000000000001000  00001000
+  [13] .plt              PROGBITS         0000000000001020  00001020
+  [14] .plt.got          PROGBITS         0000000000001040  00001040
+  [15] .plt.sec          PROGBITS         0000000000001050  00001050
+  [16] .text             PROGBITS         0000000000001060  00001060
+  [17] .fini             PROGBITS         0000000000001168  00001168
+  [18] .rodata           PROGBITS         0000000000002000  00002000
+  [21] .init_array       INIT_ARRAY       0000000000003db8  00002db8
+  [22] .fini_array       FINI_ARRAY       0000000000003dc0  00002dc0
+  [24] .got              PROGBITS         0000000000003fb8  00002fb8
+  [25] .data             PROGBITS         0000000000004000  00003000
+  [26] .bss              NOBITS           0000000000004010  00003010

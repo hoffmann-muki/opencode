@@ -1,0 +1,36 @@
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1 -- /opt/miniconda3/envs/testbed/bin/python
+cachedir: .pytest_cache
+rootdir: /testbed, configfile: pyproject.toml
+collecting ... collected 1 item
+
+testing/test_skipping.py::TestXFail::test_xfail_imperative ============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1
+rootdir: /tmp/pytest-of-root/pytest-1/test_xfail_imperative0
+collected 1 item
+
+test_xfail_imperative.py x                                               [100%]
+
+============================== 1 xfailed in 0.01s ==============================
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1
+rootdir: /tmp/pytest-of-root/pytest-1/test_xfail_imperative0
+collected 1 item
+
+test_xfail_imperative.py x                                               [100%]
+
+=========================== short test summary info ============================
+XFAIL test_xfail_imperative.py::test_this
+  reason: hello
+============================== 1 xfailed in 0.00s ==============================
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1
+rootdir: /tmp/pytest-of-root/pytest-1/test_xfail_imperative0
+collected 1 item
+
+test_xfail_imperative.py .                                               [100%]
+
+============================== 1 passed in 0.00s ===============================
+PASSED
+
+============================== 1 passed in 0.11s ===============================

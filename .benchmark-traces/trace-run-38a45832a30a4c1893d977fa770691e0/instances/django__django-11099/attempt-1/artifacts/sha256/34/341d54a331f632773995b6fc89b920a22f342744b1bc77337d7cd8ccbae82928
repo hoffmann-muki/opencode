@@ -1,0 +1,27 @@
+## Summary
+
+The username validator newline issue has been successfully fixed. Here's what was verified:
+
+### Changes Made
+- **File**: `/testbed/django/contrib/auth/validators.py`
+- **Line 10**: Changed `regex = r'^[\w.@+-]+$'` to `regex = r'\A[\w.@+-]+\Z'` in `ASCIIUsernameValidator`
+- **Line 20**: Changed `regex = r'^[\w.@+-]+$'` to `regex = r'\A[\w.@+-]+\Z'` in `UnicodeUsernameValidator`
+
+### Verification Results
+✅ **All test cases passed**:
+- Valid usernames (letters, numbers, `.`, `@`, `+`, `-`, `_`) are accepted
+- Invalid usernames with newlines (`\n`, `\r`, `\n\r`) are correctly rejected
+- Edge cases (empty string, whitespace-only) are correctly rejected
+- Both validators behave identically and correctly
+
+### Residual Risks
+- No other files in `/testbed/django/contrib/auth/` contain similar regex patterns that need updating
+- The fix uses `\A` and `\Z` anchors which match the absolute start/end of string (unaffected by trailing newlines), resolving the Python regex behavior issue where `$` matches before a trailing newline
+
+### Final Diff Summary
+```
+diff --git a/django/contrib/auth/validators.py b/django/contrib/auth/validators.py
+-    regex = r'^[\w.@+-]+$'
++    regex = r'\A[\w.@+-]+\Z'
+```
+Applied to both `ASCIIUsernameValidator` and `UnicodeUsernameValidator` classes.

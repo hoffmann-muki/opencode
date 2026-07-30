@@ -1,0 +1,36 @@
+<path>/testbed/sympy/core/function.py</path>
+<type>file</type>
+<content>
+539:             if any(bad(a) for a in args):
+540:                 raise ValueError  # one or more args failed to compute with significance
+541:         except ValueError:
+542:             return
+543: 
+544:         with mpmath.workprec(prec):
+545:             v = func(*args)
+546: 
+547:         return Expr._from_mpmath(v, prec)
+548: 
+549:     def _eval_derivative(self, s):
+550:         # f(x).diff(s) -> x.diff(s) * f.fdiff(1)(s)
+551:         i = 0
+552:         l = []
+553:         for a in self.args:
+554:             i += 1
+555:             da = a.diff(s)
+556:             if da is S.Zero:
+557:                 continue
+558:             try:
+559:                 df = self.fdiff(i)
+560:             except ArgumentIndexError:
+561:                 df = Function.fdiff(self, i)
+562:             l.append(df * da)
+563:         return Add(*l)
+564: 
+565:     def _eval_is_commutative(self):
+566:         return fuzzy_and(a.is_commutative for a in self.args)
+567: 
+568:     def _eval_is_complex(self):
+
+(Showing lines 539-568 of 2650. Use offset=569 to continue.)
+</content>

@@ -1,0 +1,97 @@
+<frozen importlib._bootstrap>:228: RuntimeWarning: numpy.ndarray size changed, may indicate binary incompatibility. Expected 80 from C header, got 96 from PyObject
+Internet access disabled
+[1m============================= test session starts ==============================[0m
+platform linux -- Python 3.9.20, pytest-7.4.0, pluggy-1.3.0 -- /opt/miniconda3/envs/testbed/bin/python
+cachedir: .pytest_cache
+
+Running tests with Astropy version 5.3.dev390+gcdb66059a.d20250910.
+Running tests in astropy/io/fits/tests/.
+
+Date: 2026-07-28T03:31:17
+
+Platform: Linux-5.15.146.1-microsoft-standard-WSL2-x86_64-with-glibc2.35
+
+Executable: /opt/miniconda3/envs/testbed/bin/python
+
+Full Python Version: 
+3.9.20 (main, Oct  3 2024, 07:27:41) 
+[GCC 11.2.0]
+
+encodings: sys: utf-8, locale: UTF-8, filesystem: utf-8
+byteorder: little
+float info: dig: 15, mant_dig: 15
+
+Package versions: 
+Numpy: 1.25.2
+Scipy: not available
+Matplotlib: not available
+h5py: not available
+Pandas: not available
+PyERFA: 2.0.0.3
+Cython: not available
+Scikit-image: not available
+asdf: not available
+pyarrow: not available
+
+Using Astropy options: remote_data: none.
+
+hypothesis profile 'ci' -> database=None, deadline=None, print_blob=True, derandomize=True
+CI: undefined
+ARCH_ON_CI: undefined
+IS_CRON: undefined
+
+rootdir: /testbed
+configfile: setup.cfg
+plugins: astropy-header-0.2.2, doctestplus-1.0.0, remotedata-0.4.0, astropy-0.10.0, openfiles-0.5.0, mock-3.11.1, xdist-3.3.1, arraydiff-0.5.0, cov-4.1.0, filter-subpackage-0.1.2, hypothesis-6.82.6
+[1mcollecting ... [0mcollected 995 items / 2 skipped
+
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_sample_file [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_image_create [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_scaled_data [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_scaled_data_auto_rescale [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_uint16_data [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_groups_hdu_data [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_binary_table_data [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_variable_length_table_data [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_ascii_table_data [32mPASSED[0m
+astropy/io/fits/tests/test_checksum.py::TestChecksumFunctions::test_compressed_image_data [31mFAILED[0m
+
+=================================== FAILURES ===================================
+[31m[1m_______________ TestChecksumFunctions.test_compressed_image_data _______________[0m
+
+self = <astropy.io.fits.tests.test_checksum.TestChecksumFunctions object at 0x7ff40cee85b0>
+
+    def test_compressed_image_data(self):
+        with fits.open(self.data("comp.fits")) as h1:
+            h1.writeto(self.temp("tmp.fits"), overwrite=True, checksum=True)
+            with fits.open(self.temp("tmp.fits"), checksum=True) as h2:
+>               assert np.all(h1[1].data == h2[1].data)
+
+[1m[31mastropy/io/fits/tests/test_checksum.py[0m:215: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+[1m[31mastropy/utils/decorators.py[0m:839: in __get__
+    val = self.fget(obj)
+[1m[31mastropy/io/fits/hdu/compressed.py[0m:1474: in data
+    data = decompress_hdu(self)
+[1m[31mastropy/io/fits/_tiled_compression/tiled_compression.py[0m:283: in decompress_hdu
+    settings = _header_to_settings(hdu._header, actual_tile_shape)
+[1m[31mastropy/io/fits/_tiled_compression/tiled_compression.py[0m:85: in _header_to_settings
+    settings["tilesize"] = np.product(actual_tile_shape)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+a = (1, 440), axis = None, dtype = None, out = None, keepdims = None
+initial = None, where = None
+
+    def _product_dispatcher(a, axis=None, dtype=None, out=None, keepdims=None,
+                            initial=None, where=None):
+        # 2023-03-02, 1.25.0
+>       warnings.warn("`product` is deprecated as of NumPy 1.25.0, and will be "
+                      "removed in NumPy 2.0. Please use `prod` instead.",
+                      DeprecationWarning, stacklevel=3)
+[1m[31mE       DeprecationWarning: `product` is deprecated as of NumPy 1.25.0, and will be removed in NumPy 2.0. Please use `prod` instead.[0m
+
+[1m[31m/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/numpy/core/fromnumeric.py[0m:3826: DeprecationWarning
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m astropy/io/fits/tests/test_checksum.py::[1mTestChecksumFunctions::test_compressed_image_data[0m - DeprecationWarning: `product` is deprecated as of NumPy 1.25.0, and will be...
+[31m!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!![0m
+[31m==================== [31m[1m1 failed[0m, [32m9 passed[0m, [33m2 skipped[0m[31m in 2.45s[0m[31m ====================[0m

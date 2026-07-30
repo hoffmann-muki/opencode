@@ -1,0 +1,28 @@
+============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1 -- /opt/miniconda3/envs/testbed/bin/python
+cachedir: .pytest_cache
+rootdir: /testbed, configfile: pyproject.toml
+collecting ... collected 1 item
+
+testing/test_skipping.py::TestXFail::test_xfail_run_anyway ============================= test session starts ==============================
+platform linux -- Python 3.9.20, pytest-5.4.1.dev593+ge6e300e72, py-1.11.0, pluggy-0.13.1
+rootdir: /tmp/pytest-of-root/pytest-0/test_xfail_run_anyway0
+collected 2 items
+
+test_xfail_run_anyway.py F.                                              [100%]
+
+=================================== FAILURES ===================================
+__________________________________ test_func ___________________________________
+
+    @pytest.mark.xfail
+    def test_func():
+>       assert 0
+E       assert 0
+
+test_xfail_run_anyway.py:4: AssertionError
+=========================== short test summary info ============================
+FAILED test_xfail_run_anyway.py::test_func - assert 0
+========================= 1 failed, 1 passed in 0.02s ==========================
+PASSED
+
+============================== 1 passed in 0.08s ===============================

@@ -1,0 +1,1 @@
+{"command":"python -m pytest tests/auth_tests/test_validators.py -xvs 2>&1 | head -100"}

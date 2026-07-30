@@ -1,0 +1,2 @@
+Perfect! I can see the issue clearly. At line 72, the function tries to access `args[0]` without checking if `args` is empty. Let me now check the git history to understand what changed:
+

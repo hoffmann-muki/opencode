@@ -1,0 +1,288 @@
+Found 100 matches (more matches available)
+/testbed/django/urls/resolvers.py:
+  Line 69:     return URLResolver(RegexPattern(r'^/'), urlconf)
+
+  Line 80:     return URLResolver(RegexPattern(r'^/'), [ns_resolver])
+
+
+/testbed/tests/lookup/tests.py:
+  Line 645:             Article.objects.filter(headline__regex=r'^b'),
+
+  Line 648:         self.assertQuerysetEqual(Article.objects.filter(headline__iregex=r'^a'), ['<Article: AbBa>'])
+
+  Line 696:             Article.objects.filter(headline__regex=r'^foo(f|b)'),
+
+  Line 743:         self.assertQuerysetEqual(Season.objects.filter(gt__regex=r'^$'), [])
+
+  Line 750:         self.assertQuerysetEqual(Season.objects.filter(gt__regex=r'^444$'), ['<Season: 2013>'])
+
+
+/testbed/django/views/static.py:
+  Line 27:         url(r'^(?P<path>.*)$', serve, {'document_root': '/path/to/my/files/'})
+
+
+/testbed/tests/postgres_tests/test_json.py:
+  Line 306:         self.assertTrue(JSONModel.objects.filter(field__foo__regex=r'^bar$').exists())
+
+  Line 309:         self.assertTrue(JSONModel.objects.filter(field__foo__iregex=r'^bAr$').exists())
+
+
+/testbed/django/db/migrations/autodetector.py:
+  Line 1317:         match = re.match(r'^\d+', name)
+
+
+/testbed/tests/validators/tests.py:
+  Line 361:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://'),
+
+  Line 362:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://'),
+
+  Line 365:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://'),
+
+  Line 366:             RegexValidator(r'^(?:[0-9\.\-]*)://'),
+
+  Line 369:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://', "oh noes", "invalid"),
+
+  Line 370:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://', "oh noes", "invalid"),
+
+  Line 373:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://', "oh", "invalid"),
+
+  Line 374:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://', "oh noes", "invalid"),
+
+  Line 377:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://', "oh noes", "invalid"),
+
+  Line 378:             RegexValidator(r'^(?:[a-z0-9\.\-]*)://'),
+
+  Line 392:         pattern = r'^(?:[a-z0-9\.\-]*)://'
+
+
+/testbed/tests/i18n/test_extraction.py:
+  Line 79:         pattern = re.compile(r'^\#\:.*' + re.escape(needle), re.MULTILINE)
+
+  Line 527:             found = re.findall(r'^(?P<value>"Plural-Forms.+?\\n")\s*$', po_contents, re.MULTILINE | re.DOTALL)
+
+
+/testbed/tests/i18n/patterns/urls/wrong.py:
+  Line 6:     re_path(_(r'^account/'), include('i18n.patterns.urls.wrong_namespace', namespace='account')),
+
+
+/testbed/tests/i18n/patterns/urls/namespace.py:
+  Line 9:     re_path(_(r'^register/$'), view, name='register'),
+
+  Line 10:     re_path(_(r'^register-without-slash$'), view, name='register-without-slash'),
+
+
+/testbed/tests/i18n/patterns/urls/wrong_namespace.py:
+  Line 10:     re_path(_(r'^register/$'), view, name='register'),
+
+
+/testbed/tests/i18n/patterns/urls/default.py:
+  Line 11:     re_path(_(r'^translated/$'), view, name='no-prefix-translated'),
+
+  Line 12:     re_path(_(r'^translated/(?P<slug>[\w-]+)/$'), view, name='no-prefix-translated-slug'),
+
+  Line 18:     re_path(_(r'^users/$'), view, name='users'),
+
+  Line 19:     re_path(_(r'^account/'), include('i18n.patterns.urls.namespace', namespace='account')),
+
+
+/testbed/tests/template_tests/urls.py:
+  Line 8:     re_path(r'^client/([0-9,]+)/$', views.client, name='client'),
+
+  Line 9:     re_path(r'^client/(?P<id>[0-9]+)/(?P<action>[^/]+)/$', views.client_action, name='client_action'),
+
+  Line 10:     re_path(r'^client/(?P<client_id>[0-9]+)/(?P<action>[^/]+)/$', views.client_action, name='client_action'),
+
+  Line 11:     re_path(r'^named-client/([0-9]+)/$', views.client2, name="named.client"),
+
+  Line 17:     re_path(r'^Юникод/(\w+)/$', views.client2, name="метка_оператора"),
+
+  Line 18:     re_path(r'^Юникод/(?P<tag>\S+)/$', views.client2, name="метка_оператора_2"),
+
+
+/testbed/tests/middleware/urls.py:
+  Line 10:     re_path(r'^(.+)/security/$', views.empty_view),
+
+
+/testbed/django/db/backends/sqlite3/introspection.py:
+  Line 13: field_size_re = re.compile(r'^\s*(?:var)?char\s*\(\s*(\d+)\s*\)\s*$')
+
+
+/testbed/tests/i18n/urls_default_unprefixed.py:
+  Line 7:     re_path(r'^(?P<arg>[\w-]+)-page', lambda request, **arg: HttpResponse(_('Yes'))),
+
+  Line 9:     re_path(r'^(.+)/(.+)/$', lambda *args: HttpResponse()),
+
+
+/testbed/tests/gis_tests/gdal_tests/test_ds.py:
+  Line 21: wgs_84_wkt_regex = r'^GEOGCS\["(GCS_)?WGS[ _](19)?84".*$'
+
+
+/testbed/tests/gis_tests/geoapp/test_functions.py:
+  Line 107:                 r'^<gml:Point srsName="EPSG:4326" xmlns:gml="http://www.opengis.net/gml">'
+
+  Line 113:                 r'^<gml:Point srsName="EPSG:4326"><gml:coordinates>'
+
+
+/testbed/django/db/backends/oracle/operations.py:
+  Line 95:     _tzname_re = re.compile(r'^[\w/:+-]+$')
+
+
+/testbed/tests/i18n/sampleproject/update_catalogs.py:
+  Line 52:     content = re.sub(r'^"POT-Creation-Date.+$\s', '', content, flags=re.MULTILINE)
+
+
+/testbed/tests/gis_tests/geo3d/tests.py:
+  Line 218:         ref_kml_regex = re.compile(r'^<Point><coordinates>-95.363\d+,29.763\d+,18</coordinates></Point>$')
+
+  Line 229:         ref_json_regex = re.compile(r'^{"type":"Point","coordinates":\[-95.363151,29.763374,18(\.0+)?\]}$')
+
+
+/testbed/django/core/signing.py:
+  Line 49: _SEP_UNSAFE = re.compile(r'^[A-z0-9-_=]*$')
+
+
+/testbed/tests/logging_tests/tests.py:
+  Line 594:             self.assertRegex(logger_output.getvalue(), r'^\[[-:,.\s\d]+\] %s' % log_msg)
+
+
+/testbed/django/core/management/commands/makemessages.py:
+  Line 22: plural_forms_re = re.compile(r'^(?P<value>"Plural-Forms.+?\\n")\s*$', re.MULTILINE | re.DOTALL)
+
+  Line 137:             r'^(#: .*)(' + re.escape(old_path) + r')',
+
+
+/testbed/tests/file_uploads/urls.py:
+  Line 17:     re_path(r'^fd_closing/(?P<access>t|f)/$', views.file_upload_fd_closing),
+
+
+/testbed/tests/admin_docs/test_views.py:
+  Line 348:             (r'^a', '/a'),
+
+  Line 349:             (r'^(?P<a>\w+)/b/(?P<c>\w+)/$', '/<a>/b/<c>/'),
+
+  Line 350:             (r'^(?P<a>\w+)/b/(?P<c>\w+)$', '/<a>/b/<c>'),
+
+  Line 351:             (r'^(?P<a>\w+)/b/(\w+)$', '/<a>/b/<var>'),
+
+  Line 352:             (r'^(?P<a>\w+)/b/((x|y)\w+)$', '/<a>/b/<var>'),
+
+  Line 353:             (r'^(?P<a>(x|y))/b/(?P<c>\w+)$', '/<a>/b/<c>'),
+
+  Line 354:             (r'^(?P<a>(x|y))/b/(?P<c>\w+)ab', '/<a>/b/<c>ab'),
+
+  Line 355:             (r'^(?P<a>(x|y)(\(|\)))/b/(?P<c>\w+)ab', '/<a>/b/<c>ab'),
+
+  Line 356:             (r'^a/?$', '/a/'),
+
+
+/testbed/tests/migrations/test_writer.py:
+  Line 251:         pattern = re.compile(r'^foo$')
+
+  Line 393:         regex = re.compile(r'^\w+$')
+
+  Line 407:         validator = RegexValidator(regex=re.compile(r'^\w+$'))
+
+  Line 413:         validator = RegexValidator(r'^[0-9]+$', flags=re.S)
+
+
+/testbed/django/core/validators.py:
+  Line 96:         r'^(?:[a-z0-9\.\-\+]*)://'  # scheme is validated separately
+
+  Line 136:             host_match = re.search(r'^\[(.+)\](?::\d{2,5})?$', urlsplit(value).netloc)
+
+  Line 153:     _lazy_re_compile(r'^-?\d+\Z'),
+
+  Line 235: slug_re = _lazy_re_compile(r'^[-a-zA-Z0-9_]+\Z')
+
+  Line 243: slug_unicode_re = _lazy_re_compile(r'^[-\w]+\Z')
+
+  Line 296:     regexp = _lazy_re_compile(r'^%(neg)s\d+(?:%(sep)s%(neg)s\d+)*\Z' % {
+
+
+/testbed/tests/view_tests/urls.py:
+  Line 51:     re_path(r'^site_media/(?P<path>.*)$', static.serve, {'document_root': media_dir, 'show_indexes': True}),
+
+  Line 55:     re_path(_(r'^translated/$'), views.index_page, name='i18n_prefixed'),
+
+  Line 66:     re_path(r'^test-setlang/(?P<parameter>[^/]+)/$', views.with_parameter, name='with_parameter'),
+
+  Line 68:     re_path(r'^regex-post/(?P<pk>[0-9]+)/$', views.index_page, name='regex-post'),
+
+
+/testbed/django/utils/html.py:
+  Line 24: simple_url_re = re.compile(r'^https?://\[?\w', re.IGNORECASE)
+
+  Line 25: simple_url_2_re = re.compile(r'^www\.|^(?!http)\w[^@]+\.(com|edu|gov|int|mil|net|org)($|/.*)$', re.IGNORECASE)
+
+
+/testbed/django/utils/dateparse.py:
+  Line 30:     r'^'
+
+  Line 43:     r'^(?P<sign>[-+]?)'
+
+  Line 58:     r'^'
+
+
+/testbed/django/utils/http.py:
+  Line 37: RFC1123_DATE = re.compile(r'^\w{3}, %s %s %s %s GMT$' % (__D, __M, __Y, __T))
+
+  Line 38: RFC850_DATE = re.compile(r'^\w{6,9}, %s-%s-%s %s GMT$' % (__D, __M, __Y2, __T))
+
+  Line 39: ASCTIME_DATE = re.compile(r'^\w{3} %s %s %s %s$' % (__M, __D2, __T, __Y))
+
+
+/testbed/tests/contenttypes_tests/urls.py:
+  Line 5:     re_path(r'^shortcut/([0-9]+)/(.*)/$', views.shortcut),
+
+
+/testbed/django/utils/translation/trans_real.py:
+  Line 40:     r'^[a-z]{1,8}(?:-[a-z0-9]{1,8})*(?:@[a-z0-9]{1,20})?$',
+
+  Line 44: language_code_prefix_re = re.compile(r'^/(\w+([@-]\w+)?)(/|$)')
+
+
+/testbed/tests/forms_tests/field_tests/test_regexfield.py:
+  Line 59:         f = RegexField(r'^\w+$')
+
+
+/testbed/tests/forms_tests/field_tests/test_filepathfield.py:
+  Line 59:         f = FilePathField(path=self.path, match=r'^.*?\.py$')
+
+  Line 63:         f = FilePathField(path=self.path, recursive=True, match=r'^.*?\.py$')
+
+
+/testbed/tests/forms_tests/tests/test_forms.py:
+  Line 2927:                         RegexValidator(r'^\+[0-9]{1,2}$', message='Enter a valid country code.')]),
+
+
+/testbed/tests/forms_tests/tests/test_error_messages.py:
+  Line 116:         f = RegexField(r'^[0-9]+$', min_length=5, max_length=10, error_messages=e)
+
+
+/testbed/tests/urlpatterns/path_urls.py:
+  Line 13:     re_path(r'^regex/(?P<pk>[0-9]+)/$', views.empty_view, name='regex'),
+
+
+/testbed/tests/urlpatterns/more_urls.py:
+  Line 6:     re_path(r'^more/(?P<extra>\w+)/$', views.empty_view, name='inner-more'),
+
+
+/testbed/tests/urlpatterns/tests.py:
+  Line 65:         self.assertEqual(match.route, r'^more/(?P<extra>\w+)/$')
+
+
+/testbed/tests/urlpatterns_reverse/included_urls2.py:
+  Line 13:     re_path(r'^part/(?P<value>\w+)/$', empty_view, name='part'),
+
+  Line 14:     re_path(r'^part2/(?:(?P<value>\w+)/)?$', empty_view, name='part2'),
+
+
+/testbed/tests/check_framework/test_urls.py:
+  Line 110:         warning = get_warning_for_invalid_pattern((r'^$', lambda x: x))[0]
+
+
+/testbed/tests/urlpatterns_reverse/included_named_urls.py:
+  Line 7:     re_path(r'^extra/(?P<extra>\w+)/$', empty_view, name="named-url4"),
+
+
+(Results truncated. Consider using a more specific path or pattern.)

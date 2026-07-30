@@ -1,0 +1,10 @@
+test_ascii_validator (tests.auth_tests.test_validators.UsernameValidatorsTests) ... ok
+test_unicode_validator (tests.auth_tests.test_validators.UsernameValidatorsTests) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.001s
+
+OK
+Testing against Django installed in '/testbed/django' with up to 20 processes
+Skipping setup of unused database(s): default, other.
+System check identified no issues (0 silenced).

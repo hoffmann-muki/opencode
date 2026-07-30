@@ -1,0 +1,11 @@
+So the Rectangle is initialized at `(0, 0)` with width `w=0` (for horizontal). This means:
+- `self._rect.get_x()` returns 0
+- `self._rect.get_width()` returns 0
+- So `self.extents` returns `(0, 0)` initially!
+
+When `_setup_edge_handle` is called at line 2159, it calls `ToolLineHandles(self.ax, self.extents, ...)` which passes `(0, 0)` as positions. Then in `ToolLineHandles.__init__`, it calls `ax.axvline(p, **line_props)` for each position `p` in `[0, 0]`.
+
+This is the bug! When `axvline(0)` is called, if the current x-bounds don't include 0, it will trigger autoscaling to include 0.
+
+Let me check the git history to see what changed:
+

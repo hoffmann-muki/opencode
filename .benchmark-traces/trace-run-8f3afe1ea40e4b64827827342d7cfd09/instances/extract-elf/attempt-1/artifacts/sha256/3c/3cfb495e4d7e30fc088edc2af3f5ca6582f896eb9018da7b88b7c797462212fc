@@ -1,0 +1,8 @@
+I understand the task now. Let me create a proper extract.js that extracts memory values from the binary file. Based on my analysis:
+
+1. The binary is an ELF64 executable
+2. The task wants to extract 32-bit values from the binary
+3. The example shows addresses starting from 4194304 (0x400000)
+
+Let me create a clean extract.js that reads the binary and extracts values:
+

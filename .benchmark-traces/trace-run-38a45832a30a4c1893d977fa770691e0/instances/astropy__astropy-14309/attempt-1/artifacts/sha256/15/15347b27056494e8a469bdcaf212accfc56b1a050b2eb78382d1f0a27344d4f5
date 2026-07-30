@@ -1,0 +1,2 @@
+Now I can see the issue. Line 42 has `return isinstance(args[0], (VOTableFile, VOTable))` without checking if `args` is empty. I'll fix this by adding a check for `len(args) > 0` before accessing `args[0]`:
+

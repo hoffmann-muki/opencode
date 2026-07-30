@@ -1,0 +1,13 @@
+Perfect! Now I can see the issue. In commit cc1d69a25, the code was changed from using `ToolHandles` (which used markers) to `ToolLineHandles` (which uses `axvline`/`axhline`). 
+
+The problem is in the `ToolLineHandles.__init__` method. When it's called with `self.extents` at line 2159 in widgets.py, the Rectangle has just been created with position `(0, 0)` and width `0`, so `self.extents` returns `(0, 0)`.
+
+When `axvline(0)` is called, it checks if the x-value is outside the current bounds (line 801 in _axes.py):
+```python
+scalex = (xx < xmin) or (xx > xmax)
+```
+
+If the current x-bounds are, say, `(10, 20)`, then `0 < 10` is True, so `scalex = True`, which triggers autoscaling to include 0.
+
+The fix should be to not call `axvline`/`axhline` with the initial extents when setting up the handles, or to suppress the autoscaling. Let me check how `axvline` works:
+

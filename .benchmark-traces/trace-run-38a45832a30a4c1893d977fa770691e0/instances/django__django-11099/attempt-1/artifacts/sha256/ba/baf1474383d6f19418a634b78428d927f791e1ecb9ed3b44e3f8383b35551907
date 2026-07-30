@@ -1,0 +1,1 @@
+Model tried to call unavailable tool 'invalid'. Available tools: glob, grep, read.

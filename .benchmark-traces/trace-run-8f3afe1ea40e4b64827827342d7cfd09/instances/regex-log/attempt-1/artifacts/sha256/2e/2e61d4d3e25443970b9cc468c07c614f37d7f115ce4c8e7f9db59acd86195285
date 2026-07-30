@@ -1,0 +1,4 @@
+Actually, I realize there's a problem with my approach. The `.*?` is non-greedy, which means it will match the first date, not the last. I need to use a different approach to match the last date.
+
+Let me use a pattern that matches everything up to the last date:
+

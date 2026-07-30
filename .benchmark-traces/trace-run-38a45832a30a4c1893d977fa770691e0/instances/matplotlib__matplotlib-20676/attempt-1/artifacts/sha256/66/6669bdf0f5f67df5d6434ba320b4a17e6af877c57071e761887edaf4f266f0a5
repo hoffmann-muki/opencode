@@ -1,0 +1,1 @@
+{"command":"cd /testbed && grep -n \"def add_line\" /testbed/lib/matplotlib/axes/_base.py | head -5"}

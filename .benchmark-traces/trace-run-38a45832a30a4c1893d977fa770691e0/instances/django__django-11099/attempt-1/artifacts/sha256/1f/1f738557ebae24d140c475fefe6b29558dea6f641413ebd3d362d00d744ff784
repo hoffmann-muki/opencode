@@ -1,0 +1,27 @@
+Testing current regex: ^[\w.@+-]+$
+------------------------------------------------------------
+PASS 'validuser'          ->     1 (expected True)
+PASS 'valid.user'         ->     1 (expected True)
+PASS 'valid@user'         ->     1 (expected True)
+PASS 'valid+user'         ->     1 (expected True)
+PASS 'valid-user'         ->     1 (expected True)
+PASS 'valid_user'         ->     1 (expected True)
+FAIL 'validuser\n'        ->     1 (expected False)
+PASS 'validuser\n\n'      ->     0 (expected False)
+PASS '\nvaliduser'        ->     0 (expected False)
+PASS 'valid\nuser'        ->     0 (expected False)
+
+============================================================
+
+Testing proposed regex: \A[\w.@+-]+\Z
+------------------------------------------------------------
+PASS 'validuser'          ->     1 (expected True)
+PASS 'valid.user'         ->     1 (expected True)
+PASS 'valid@user'         ->     1 (expected True)
+PASS 'valid+user'         ->     1 (expected True)
+PASS 'valid-user'         ->     1 (expected True)
+PASS 'valid_user'         ->     1 (expected True)
+PASS 'validuser\n'        ->     0 (expected False)
+PASS 'validuser\n\n'      ->     0 (expected False)
+PASS '\nvaliduser'        ->     0 (expected False)
+PASS 'valid\nuser'        ->     0 (expected False)

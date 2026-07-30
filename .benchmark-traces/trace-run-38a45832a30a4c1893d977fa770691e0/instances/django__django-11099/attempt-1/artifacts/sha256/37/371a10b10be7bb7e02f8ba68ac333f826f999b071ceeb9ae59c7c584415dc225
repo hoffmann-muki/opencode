@@ -1,0 +1,1 @@
+{"include":"**/test_validators.py","path":"/testbed/tests","pattern":"newline|\\\\n|\\\\r"}

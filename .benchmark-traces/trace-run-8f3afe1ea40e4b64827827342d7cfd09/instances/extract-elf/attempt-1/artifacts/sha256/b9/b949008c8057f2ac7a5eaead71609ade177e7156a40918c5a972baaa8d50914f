@@ -1,0 +1,1 @@
+{"command":"node extract.js /app/a.out 2>&1 | python3 -c \"import sys,json; d=json.load(sys.stdin); print(f'Total entries: {len(d)}'); items=list(d.items())[:30]; print('\\n'.join(f'{k}: {v}' for k,v in items))\""}

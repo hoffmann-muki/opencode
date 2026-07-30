@@ -1,0 +1,26 @@
+Testing ASCIIUsernameValidator:
+------------------------------------------------------------
+PASS: 'validuser'
+PASS: 'valid.user'
+PASS: 'valid@user'
+PASS: 'valid+user'
+PASS: 'valid-user'
+PASS: 'valid_user'
+PASS: 'validuser\n' - correctly rejected
+PASS: 'validuser\n\n' - correctly rejected
+PASS: '\nvaliduser' - correctly rejected
+PASS: 'valid\nuser' - correctly rejected
+
+============================================================
+
+Testing UnicodeUsernameValidator:
+------------------------------------------------------------
+PASS: 'validuser'
+PASS: 'valid.user'
+PASS: 'valid@user'
+PASS: 'valid+user'
+PASS: 'valid-user'
+PASS: 'valid_user'
+Traceback (most recent call last):
+  File "<stdin>", line 42, in <module>
+UnicodeEncodeError: 'ascii' codec can't encode character '\xe9' in position 10: ordinal not in range(128)

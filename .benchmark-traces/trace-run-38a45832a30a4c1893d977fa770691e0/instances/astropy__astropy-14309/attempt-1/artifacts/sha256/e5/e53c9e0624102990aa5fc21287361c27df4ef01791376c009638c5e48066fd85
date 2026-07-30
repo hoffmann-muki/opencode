@@ -1,0 +1,4 @@
+Test 1 (non-FITS file): ['ascii.ecsv']
+SUCCESS: No IndexError!
+Test 2 (FITS file): ['fits']
+Test 3 (HDUList object): ['fits']

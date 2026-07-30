@@ -1,0 +1,2 @@
+Hmm, I realize the issue - `.*?` is non-greedy and `.*` is greedy. For matching the last date, I need `.*` to be greedy so it consumes everything up to the last possible date match.
+

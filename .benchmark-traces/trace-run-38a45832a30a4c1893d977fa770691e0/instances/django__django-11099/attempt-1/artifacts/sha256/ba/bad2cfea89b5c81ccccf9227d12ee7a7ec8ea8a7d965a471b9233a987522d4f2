@@ -1,0 +1,1 @@
+{"command":"grep -r \"ASCIIUsernameValidator\\|UnicodeUsernameValidator\" --include=\"*.py\" /testbed/django | head -20"}

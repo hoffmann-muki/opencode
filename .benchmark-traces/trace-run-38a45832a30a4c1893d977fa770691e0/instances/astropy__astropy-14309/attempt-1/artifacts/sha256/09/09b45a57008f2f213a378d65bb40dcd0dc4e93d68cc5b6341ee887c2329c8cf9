@@ -1,0 +1,20 @@
+cdb66059a Merge pull request #14303 from pllim/bleach-v6
+2f5b71384 Merge pull request #14302 from eerovaher/rm-git-gui-list
+8d5fa1c8a Compat with bleach v6 for test_raw_html_write_clean because bleach.ALLOWED_TAGS is now frozenset
+acd8128ec Remove the list of Git GUIs from developer docs
+93d44a7cb Merge pull request #14291 from saimn/compilation-warnings
+df618b1b6 Merge pull request #14296 from PaulPrice/price/20230123
+90cf30564 docs: add link to variable length array tables
+2d3c12cc5 Merge pull request #14294 from saimn/fix-docs-warnings
+82ed5e575 Add changelog entry
+2068c333b Fix TimeDeltaMissingUnitWarning in kepler reader
+ff3a6367e Fix unit warnings with kepler reader
+f557c0f41 Merge pull request #14278 from WilliamJamieson/feature/flynt
+0f0949cbd Merge pull request #14268 from nstarman/ruff-fix-D202
+58b5634ab QUOTED_FIELD_NEWLINE is not used
+03e89b1fb Fix warnings
+036027c26 Remove unused variables in wcslib_wrap
+062a2b578 Fix D202 - NoBlankLineAfterFunction
+8dfd15113 Merge pull request #14288 from pllim/np-devdocs
+8fad50fa2 Change back numpy URL for sphinx-gallery
+f6e16434c Merge pull request #14252 from aperiosoftware/fits-byte-compress-decompress

@@ -1,0 +1,2 @@
+Let me look more carefully at the code flow. When `skip()` is called during setup, it raises a `Skipped` exception. Let me check if this exception is caught and how it's handled:
+

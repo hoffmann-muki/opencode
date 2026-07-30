@@ -1,0 +1,7 @@
+Found 3 matches
+/testbed/astropy/io/fits/connect.py:
+  Line 48: def is_fits(origin, filepath, fileobj, *args, **kwargs):
+
+  Line 59:     is_fits : bool
+
+  Line 454: io_registry.register_identifier("fits", Table, is_fits)

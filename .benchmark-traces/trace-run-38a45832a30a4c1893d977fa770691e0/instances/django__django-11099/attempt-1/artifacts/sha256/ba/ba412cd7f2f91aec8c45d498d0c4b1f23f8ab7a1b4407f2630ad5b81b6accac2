@@ -1,0 +1,28 @@
+Traceback (most recent call last):
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/runpy.py", line 193, in _run_module_as_main
+    "__main__", mod_spec)
+  File "/opt/miniconda3/envs/testbed/lib/python3.6/runpy.py", line 85, in _run_code
+    exec(code, run_globals)
+  File "/testbed/django/__main__.py", line 9, in <module>
+    management.execute_from_command_line()
+  File "/testbed/django/core/management/__init__.py", line 381, in execute_from_command_line
+    utility.execute()
+  File "/testbed/django/core/management/__init__.py", line 375, in execute
+    self.fetch_command(subcommand).run_from_argv(self.argv)
+  File "/testbed/django/core/management/commands/test.py", line 23, in run_from_argv
+    super().run_from_argv(argv)
+  File "/testbed/django/core/management/base.py", line 315, in run_from_argv
+    parser = self.create_parser(argv[0], argv[1])
+  File "/testbed/django/core/management/base.py", line 289, in create_parser
+    self.add_arguments(parser)
+  File "/testbed/django/core/management/commands/test.py", line 44, in add_arguments
+    test_runner_class = get_runner(settings, self.test_runner)
+  File "/testbed/django/test/utils.py", line 301, in get_runner
+    test_runner_class = test_runner_class or settings.TEST_RUNNER
+  File "/testbed/django/conf/__init__.py", line 76, in __getattr__
+    self._setup(name)
+  File "/testbed/django/conf/__init__.py", line 63, in _setup
+    self._wrapped = Settings(settings_module)
+  File "/testbed/django/conf/__init__.py", line 161, in __init__
+    raise ImproperlyConfigured("The SECRET_KEY=<redacted:assignment> must not be empty.")
+django.core.exceptions.ImproperlyConfigured: The SECRET_KEY=<redacted:assignment> must not be empty.

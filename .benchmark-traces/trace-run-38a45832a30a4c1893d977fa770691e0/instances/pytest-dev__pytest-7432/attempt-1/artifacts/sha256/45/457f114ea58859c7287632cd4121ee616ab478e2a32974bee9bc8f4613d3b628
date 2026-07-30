@@ -1,0 +1,156 @@
+<path>/testbed/testing/test_skipping.py</path>
+<type>file</type>
+<content>
+220:         assert not hasattr(callreport, "wasxfail")
+221: 
+222:     def test_xfail_run_anyway(self, testdir):
+223:         testdir.makepyfile(
+224:             """
+225:             import pytest
+226:             @pytest.mark.xfail
+227:             def test_func():
+228:                 assert 0
+229:             def test_func2():
+230:                 pytest.xfail("hello")
+231:         """
+232:         )
+233:         result = testdir.runpytest("--runxfail")
+234:         result.stdout.fnmatch_lines(
+235:             ["*def test_func():*", "*assert 0*", "*1 failed*1 pass*"]
+236:         )
+237: 
+238:     def test_xfail_evalfalse_but_fails(self, testdir):
+239:         item = testdir.getitem(
+240:             """
+241:             import pytest
+242:             @pytest.mark.xfail('False')
+243:             def test_func():
+244:                 assert 0
+245:         """
+246:         )
+247:         reports = runtestprotocol(item, log=False)
+248:         callreport = reports[1]
+249:         assert callreport.failed
+250:         assert not hasattr(callreport, "wasxfail")
+251:         assert "xfail" in callreport.keywords
+252: 
+253:     def test_xfail_not_report_default(self, testdir):
+254:         p = testdir.makepyfile(
+255:             test_one="""
+256:             import pytest
+257:             @pytest.mark.xfail
+258:             def test_this():
+259:                 assert 0
+260:         """
+261:         )
+262:         testdir.runpytest(p, "-v")
+263:         # result.stdout.fnmatch_lines([
+264:         #    "*HINT*use*-r*"
+265:         # ])
+266: 
+267:     def test_xfail_not_run_xfail_reporting(self, testdir):
+268:         p = testdir.makepyfile(
+269:             test_one="""
+270:             import pytest
+271:             @pytest.mark.xfail(run=False, reason="noway")
+272:             def test_this():
+273:                 assert 0
+274:             @pytest.mark.xfail("True", run=False)
+275:             def test_this_true():
+276:                 assert 0
+277:             @pytest.mark.xfail("False", run=False, reason="huh")
+278:             def test_this_false():
+279:                 assert 1
+280:         """
+281:         )
+282:         result = testdir.runpytest(p, "-rx")
+283:         result.stdout.fnmatch_lines(
+284:             [
+285:                 "*test_one*test_this*",
+286:                 "*NOTRUN*noway",
+287:                 "*test_one*test_this_true*",
+288:                 "*NOTRUN*condition:*True*",
+289:                 "*1 passed*",
+290:             ]
+291:         )
+292: 
+293:     def test_xfail_not_run_no_setup_run(self, testdir):
+294:         p = testdir.makepyfile(
+295:             test_one="""
+296:             import pytest
+297:             @pytest.mark.xfail(run=False, reason="hello")
+298:             def test_this():
+299:                 assert 0
+300:             def setup_module(mod):
+301:                 raise ValueError(42)
+302:         """
+303:         )
+304:         result = testdir.runpytest(p, "-rx")
+305:         result.stdout.fnmatch_lines(
+306:             ["*test_one*test_this*", "*NOTRUN*hello", "*1 xfailed*"]
+307:         )
+308: 
+309:     def test_xfail_xpass(self, testdir):
+310:         p = testdir.makepyfile(
+311:             test_one="""
+312:             import pytest
+313:             @pytest.mark.xfail
+314:             def test_that():
+315:                 assert 1
+316:         """
+317:         )
+318:         result = testdir.runpytest(p, "-rX")
+319:         result.stdout.fnmatch_lines(["*XPASS*test_that*", "*1 xpassed*"])
+320:         assert result.ret == 0
+321: 
+322:     def test_xfail_imperative(self, testdir):
+323:         p = testdir.makepyfile(
+324:             """
+325:             import pytest
+326:             def test_this():
+327:                 pytest.xfail("hello")
+328:         """
+329:         )
+330:         result = testdir.runpytest(p)
+331:         result.stdout.fnmatch_lines(["*1 xfailed*"])
+332:         result = testdir.runpytest(p, "-rx")
+333:         result.stdout.fnmatch_lines(["*XFAIL*test_this*", "*reason:*hello*"])
+334:         result = testdir.runpytest(p, "--runxfail")
+335:         result.stdout.fnmatch_lines(["*1 pass*"])
+336: 
+337:     def test_xfail_imperative_in_setup_function(self, testdir):
+338:         p = testdir.makepyfile(
+339:             """
+340:             import pytest
+341:             def setup_function(function):
+342:                 pytest.xfail("hello")
+343: 
+344:             def test_this():
+345:                 assert 0
+346:         """
+347:         )
+348:         result = testdir.runpytest(p)
+349:         result.stdout.fnmatch_lines(["*1 xfailed*"])
+350:         result = testdir.runpytest(p, "-rx")
+351:         result.stdout.fnmatch_lines(["*XFAIL*test_this*", "*reason:*hello*"])
+352:         result = testdir.runpytest(p, "--runxfail")
+353:         result.stdout.fnmatch_lines(
+354:             """
+355:             *def test_this*
+356:             *1 fail*
+357:         """
+358:         )
+359: 
+360:     def xtest_dynamic_xfail_set_during_setup(self, testdir):
+361:         p = testdir.makepyfile(
+362:             """
+363:             import pytest
+364:             def setup_function(function):
+365:                 pytest.mark.xfail(function)
+366:             def test_this():
+367:                 assert 0
+368:             def test_that():
+369:                 assert 1
+
+(Showing lines 220-369 of 1207. Use offset=370 to continue.)
+</content>

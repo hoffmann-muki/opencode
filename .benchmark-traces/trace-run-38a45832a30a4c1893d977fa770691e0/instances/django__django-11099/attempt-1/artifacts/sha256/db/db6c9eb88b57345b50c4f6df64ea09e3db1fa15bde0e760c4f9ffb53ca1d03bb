@@ -1,0 +1,2 @@
+The error is unrelated to our changes (it's a test setup issue with custom_user models). Let me run just the UsernameValidatorsTests to confirm our changes work:
+

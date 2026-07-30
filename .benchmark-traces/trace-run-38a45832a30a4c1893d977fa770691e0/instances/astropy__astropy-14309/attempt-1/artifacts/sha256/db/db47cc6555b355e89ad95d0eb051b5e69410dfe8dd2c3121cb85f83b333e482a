@@ -1,0 +1,1 @@
+{"command":"grep -n \"HDUList\\|TableHDU\\|BinTableHDU\\|GroupsHDU\" /testbed/astropy/io/fits/connect.py | head -30"}

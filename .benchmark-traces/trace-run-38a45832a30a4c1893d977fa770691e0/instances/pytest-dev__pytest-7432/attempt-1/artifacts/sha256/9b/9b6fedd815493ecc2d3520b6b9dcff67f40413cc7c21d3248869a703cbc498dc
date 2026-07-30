@@ -1,0 +1,156 @@
+<path>/testbed/src/_pytest/runner.py</path>
+<type>file</type>
+<content>
+200: #
+201: # Implementation
+202: 
+203: 
+204: def call_and_report(
+205:     item: Item, when: "Literal['setup', 'call', 'teardown']", log: bool = True, **kwds
+206: ) -> TestReport:
+207:     call = call_runtest_hook(item, when, **kwds)
+208:     hook = item.ihook
+209:     report = hook.pytest_runtest_makereport(item=item, call=call)  # type: TestReport
+210:     if log:
+211:         hook.pytest_runtest_logreport(report=report)
+212:     if check_interactive_exception(call, report):
+213:         hook.pytest_exception_interact(node=item, call=call, report=report)
+214:     return report
+215: 
+216: 
+217: def check_interactive_exception(call: "CallInfo", report: BaseReport) -> bool:
+218:     return call.excinfo is not None and not (
+219:         hasattr(report, "wasxfail")
+220:         or call.excinfo.errisinstance(Skipped)
+221:         or call.excinfo.errisinstance(bdb.BdbQuit)
+222:     )
+223: 
+224: 
+225: def call_runtest_hook(
+226:     item: Item, when: "Literal['setup', 'call', 'teardown']", **kwds
+227: ) -> "CallInfo[None]":
+228:     if when == "setup":
+229:         ihook = item.ihook.pytest_runtest_setup  # type: Callable[..., None]
+230:     elif when == "call":
+231:         ihook = item.ihook.pytest_runtest_call
+232:     elif when == "teardown":
+233:         ihook = item.ihook.pytest_runtest_teardown
+234:     else:
+235:         assert False, "Unhandled runtest hook case: {}".format(when)
+236:     reraise = (Exit,)  # type: Tuple[Type[BaseException], ...]
+237:     if not item.config.getoption("usepdb", False):
+238:         reraise += (KeyboardInterrupt,)
+239:     return CallInfo.from_call(
+240:         lambda: ihook(item=item, **kwds), when=when, reraise=reraise
+241:     )
+242: 
+243: 
+244: _T = TypeVar("_T")
+245: 
+246: 
+247: @attr.s(repr=False)
+248: class CallInfo(Generic[_T]):
+249:     """ Result/Exception info a function invocation.
+250: 
+251:     :param T result: The return value of the call, if it didn't raise. Can only be accessed
+252:         if excinfo is None.
+253:     :param Optional[ExceptionInfo] excinfo: The captured exception of the call, if it raised.
+254:     :param float start: The system time when the call started, in seconds since the epoch.
+255:     :param float stop: The system time when the call ended, in seconds since the epoch.
+256:     :param float duration: The call duration, in seconds.
+257:     :param str when: The context of invocation: "setup", "call", "teardown", ...
+258:     """
+259: 
+260:     _result = attr.ib(type="Optional[_T]")
+261:     excinfo = attr.ib(type=Optional[ExceptionInfo[BaseException]])
+262:     start = attr.ib(type=float)
+263:     stop = attr.ib(type=float)
+264:     duration = attr.ib(type=float)
+265:     when = attr.ib(type="Literal['collect', 'setup', 'call', 'teardown']")
+266: 
+267:     @property
+268:     def result(self) -> _T:
+269:         if self.excinfo is not None:
+270:             raise AttributeError("{!r} has no valid result".format(self))
+271:         # The cast is safe because an exception wasn't raised, hence
+272:         # _result has the expected function return type (which may be
+273:         #  None, that's why a cast and not an assert).
+274:         return cast(_T, self._result)
+275: 
+276:     @classmethod
+277:     def from_call(
+278:         cls,
+279:         func: "Callable[[], _T]",
+280:         when: "Literal['collect', 'setup', 'call', 'teardown']",
+281:         reraise: "Optional[Union[Type[BaseException], Tuple[Type[BaseException], ...]]]" = None,
+282:     ) -> "CallInfo[_T]":
+283:         excinfo = None
+284:         start = timing.time()
+285:         precise_start = timing.perf_counter()
+286:         try:
+287:             result = func()  # type: Optional[_T]
+288:         except BaseException:
+289:             excinfo = ExceptionInfo.from_current()
+290:             if reraise is not None and excinfo.errisinstance(reraise):
+291:                 raise
+292:             result = None
+293:         # use the perf counter
+294:         precise_stop = timing.perf_counter()
+295:         duration = precise_stop - precise_start
+296:         stop = timing.time()
+297:         return cls(
+298:             start=start,
+299:             stop=stop,
+300:             duration=duration,
+301:             when=when,
+302:             result=result,
+303:             excinfo=excinfo,
+304:         )
+305: 
+306:     def __repr__(self) -> str:
+307:         if self.excinfo is None:
+308:             return "<CallInfo when={!r} result: {!r}>".format(self.when, self._result)
+309:         return "<CallInfo when={!r} excinfo={!r}>".format(self.when, self.excinfo)
+310: 
+311: 
+312: def pytest_runtest_makereport(item: Item, call: CallInfo[None]) -> TestReport:
+313:     return TestReport.from_item_and_call(item, call)
+314: 
+315: 
+316: def pytest_make_collect_report(collector: Collector) -> CollectReport:
+317:     call = CallInfo.from_call(lambda: list(collector.collect()), "collect")
+318:     # TODO: Better typing for longrepr.
+319:     longrepr = None  # type: Optional[Any]
+320:     if not call.excinfo:
+321:         outcome = "passed"  # type: Literal["passed", "skipped", "failed"]
+322:     else:
+323:         skip_exceptions = [Skipped]
+324:         unittest = sys.modules.get("unittest")
+325:         if unittest is not None:
+326:             # Type ignored because unittest is loaded dynamically.
+327:             skip_exceptions.append(unittest.SkipTest)  # type: ignore
+328:         if call.excinfo.errisinstance(tuple(skip_exceptions)):
+329:             outcome = "skipped"
+330:             r_ = collector._repr_failure_py(call.excinfo, "line")
+331:             assert isinstance(r_, ExceptionChainRepr), repr(r_)
+332:             r = r_.reprcrash
+333:             assert r
+334:             longrepr = (str(r.path), r.lineno, r.message)
+335:         else:
+336:             outcome = "failed"
+337:             errorinfo = collector.repr_failure(call.excinfo)
+338:             if not hasattr(errorinfo, "toterminal"):
+339:                 errorinfo = CollectErrorRepr(errorinfo)
+340:             longrepr = errorinfo
+341:     result = call.result if not call.excinfo else None
+342:     rep = CollectReport(collector.nodeid, outcome, longrepr, result)
+343:     rep.call = call  # type: ignore # see collect_one_node
+344:     return rep
+345: 
+346: 
+347: class SetupState:
+348:     """ shared state for setting up/tearing down test items or collectors. """
+349: 
+
+(Showing lines 200-349 of 438. Use offset=350 to continue.)
+</content>

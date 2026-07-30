@@ -1,0 +1,20 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a",
+  "trace_id": "trace-cfabff536b5b47ffa31f07714a4581a8",
+  "generated_at": "2026-07-28T00:30:59.569Z",
+  "status": "healthy",
+  "finalization": "clean",
+  "failure_policy": "continue_agent_without_retry",
+  "agent_outcome_affected": false,
+  "benchmark_retry_triggered": false,
+  "counters": {
+    "events_written": 734,
+    "artifacts_written": 94,
+    "artifact_bytes_written": 1133765,
+    "redactions_applied": 0,
+    "dropped_events": 0,
+    "sequence_gaps": 0
+  },
+  "issues": []
+}

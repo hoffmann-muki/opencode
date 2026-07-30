@@ -1,0 +1,16 @@
+Hmm, I keep writing `.*?`. Let me think about this more carefully.
+
+The requirement is: "If multiple dates are present in a line, the regex should match only the last date in that line."
+
+With `re.findall`, the pattern needs to match the entire line (or at least capture the last date). The issue is that `.*` is greedy and will match as much as possible. When combined with a date pattern at the end, it will match everything up to the last date.
+
+But wait - `.*` being greedy means it will try to match as much as possible, then backtrack. So if there are multiple dates, `.*` will consume everything, then backtrack character by character until it finds a valid date pattern. This means it will find the LAST valid date.
+
+Actually, I think I need to reconsider. Let me trace through an example:
+- Input: "2024-01-15 192.168.1.1 2024-02-28 2024-03-10"
+- Pattern: `^.*?(?<![0-9a-zA-Z])([0-9]{4}-...)(?![0-9a-zA-Z])`
+- With `.*?` (non-greedy): It will match from start, then try to match the date pattern. It finds "2024-01-15" first and stops.
+- With `.*` (greedy): It will match everything, then backtrack. It will find "2024-03-10" last.
+
+So I need `.*` (greedy), not `.*?` (non-greedy).
+

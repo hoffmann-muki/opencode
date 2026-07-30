@@ -1,0 +1,15 @@
+{
+  "status": "completed",
+  "complete": true,
+  "events": 1177512,
+  "writeErrors": 0,
+  "eventsBySource": {
+    "diagnostic": 1,
+    "http_parser": 406,
+    "process": 1174886,
+    "sse_processor": 197,
+    "ssl": 1683,
+    "system": 339
+  },
+  "diagnosticsByType": {}
+}

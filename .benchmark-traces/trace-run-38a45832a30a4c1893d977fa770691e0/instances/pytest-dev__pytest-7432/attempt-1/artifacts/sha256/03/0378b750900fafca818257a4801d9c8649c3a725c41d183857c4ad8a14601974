@@ -1,0 +1,1 @@
+{"include":"*.py","output_format":"files","path":"/testbed","pattern":"pytest_runtest_makereport"}

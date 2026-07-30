@@ -1,0 +1,14 @@
+{
+  "schema": "benchmark-agentsight-profile/v1",
+  "profileId": "trace-fa28fb4352794e28823cb79b6e704bd7",
+  "status": "completed",
+  "topology": "docker-pid-host-sidecar",
+  "targetContainer": "opencode-swe-swe-verified-five-live-20260727-django__django-11099-attempt-1",
+  "sourceScopes": [
+    "task-container"
+  ],
+  "image": "agentsight:play",
+  "imageId": "sha256:e7041a719bee18136e47a5ff3a656aeaae647dfd9ddf83f383b1d2df6821cd74",
+  "startedAt": "2026-07-28T03:42:38.596Z",
+  "stoppedAt": "2026-07-28T03:53:57.586Z"
+}

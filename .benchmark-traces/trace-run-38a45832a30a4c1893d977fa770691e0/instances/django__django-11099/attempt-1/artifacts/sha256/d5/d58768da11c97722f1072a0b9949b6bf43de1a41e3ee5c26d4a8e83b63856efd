@@ -1,0 +1,7 @@
+Testing UnicodeUsernameValidator:
+Valid usernames (should pass):
+  PASS: joe
+Traceback (most recent call last):
+  File "/tmp/test_validators.py", line 23, in <module>
+    print(f'  PASS: {valid}')
+UnicodeEncodeError: 'ascii' codec can't encode character '\xe9' in position 11: ordinal not in range(128)

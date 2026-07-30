@@ -1,0 +1,56 @@
+<path>/testbed/sympy/core/evalf.py</path>
+<type>file</type>
+<content>
+1420:     def _eval_evalf(self, prec):
+1421:         return
+1422: 
+1423:     def _to_mpmath(self, prec, allow_ints=True):
+1424:         # mpmath functions accept ints as input
+1425:         errmsg = "cannot convert to mpmath number"
+1426:         if allow_ints and self.is_Integer:
+1427:             return self.p
+1428:         if hasattr(self, '_as_mpf_val'):
+1429:             return make_mpf(self._as_mpf_val(prec))
+1430:         try:
+1431:             re, im, _, _ = evalf(self, prec, {})
+1432:             if im:
+1433:                 if not re:
+1434:                     re = fzero
+1435:                 return make_mpc((re, im))
+1436:             elif re:
+1437:                 return make_mpf(re)
+1438:             else:
+1439:                 return make_mpf(fzero)
+1440:         except NotImplementedError:
+1441:             v = self._eval_evalf(prec)
+1442:             if v is None:
+1443:                 raise ValueError(errmsg)
+1444:             if v.is_Float:
+1445:                 return make_mpf(v._mpf_)
+1446:             # Number + Number*I is also fine
+1447:             re, im = v.as_real_imag()
+1448:             if allow_ints and re.is_Integer:
+1449:                 re = from_int(re.p)
+1450:             elif re.is_Float:
+1451:                 re = re._mpf_
+1452:             else:
+1453:                 raise ValueError(errmsg)
+1454:             if allow_ints and im.is_Integer:
+1455:                 im = from_int(im.p)
+1456:             elif im.is_Float:
+1457:                 im = im._mpf_
+1458:             else:
+1459:                 raise ValueError(errmsg)
+1460:             return make_mpc((re, im))
+1461: 
+1462: 
+1463: def N(x, n=15, **options):
+1464:     """
+1465:     Calls x.evalf(n, \*\*options).
+1466: 
+1467:     Both .n() and N() are equivalent to .evalf(); use the one that you like better.
+1468:     See also the docstring of .evalf() for information on the options.
+1469: 
+
+(Showing lines 1420-1469 of 1481. Use offset=1470 to continue.)
+</content>

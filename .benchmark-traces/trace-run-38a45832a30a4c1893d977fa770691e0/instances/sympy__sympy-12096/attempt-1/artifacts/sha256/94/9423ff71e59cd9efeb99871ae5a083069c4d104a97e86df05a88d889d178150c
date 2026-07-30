@@ -1,0 +1,65 @@
+Found 27 matches
+/testbed/sympy/utilities/lambdify.py:
+  Line 210:     implemented_function and user defined subclasses of Function.  If specified,
+
+  Line 272:     >>> from sympy.utilities.lambdify import implemented_function
+
+  Line 314:     ``implemented_function`` factory:
+
+  Line 316:     >>> f = implemented_function(Function('f'), lambda x: x+1)
+
+  Line 612:     >>> from sympy.utilities.lambdify import implemented_function, _imp_namespace
+
+  Line 614:     >>> f = implemented_function(Function('f'), lambda x: x+1)
+
+  Line 615:     >>> g = implemented_function(Function('g'), lambda x: x*10)
+
+  Line 653: def implemented_function(symfunc, implementation):
+
+  Line 682:     >>> from sympy.utilities.lambdify import lambdify, implemented_function
+
+  Line 684:     >>> f = implemented_function(Function('f'), lambda x: x+1)
+
+
+/testbed/sympy/utilities/autowrap.py:
+  Line 88: from sympy.utilities.lambdify import implemented_function
+
+  Line 544:     with implemented_function().
+
+  Line 558:     return implemented_function(symfunc, binary)
+
+  Line 958:         f = implemented_function(Dummy().name, Lambda(args, expr))
+
+
+/testbed/sympy/utilities/tests/test_codegen_julia.py:
+  Line 10: from sympy.utilities.lambdify import implemented_function
+
+
+/testbed/sympy/utilities/tests/test_codegen_octave.py:
+  Line 9: from sympy.utilities.lambdify import implemented_function
+
+
+/testbed/sympy/utilities/tests/test_codegen.py:
+  Line 10: from sympy.utilities.lambdify import implemented_function
+
+  Line 1195:     func = implemented_function('func', Lambda(n, n*(n + 1)))
+
+
+/testbed/sympy/utilities/tests/test_lambdify.py:
+  Line 13: from sympy.utilities.lambdify import implemented_function
+
+  Line 472:     uf = implemented_function(Function('uf'), lambda x, y : 2*x*y+1)
+
+  Line 598:     f = implemented_function('f', lambda x: 2*x)
+
+  Line 599:     g = implemented_function('f', lambda x: math.sqrt(x))
+
+  Line 608:     my_f = implemented_function(func, lambda x: 2*x)
+
+  Line 611:     f2 = implemented_function("f", lambda x: x + 101)
+
+  Line 627:         f = implemented_function('f', myfunc)
+
+  Line 633:     raises(ValueError, lambda: implemented_function(sin, lambda x: x))
+
+  Line 644:     f = implemented_function("f", lambda x: x + 100)

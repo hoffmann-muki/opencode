@@ -1,0 +1,1 @@
+{"command":"which xxd objdump hexdump readelf 2>/dev/null; ls -la /usr/bin/ | grep -E \"(xxd|objdump|hexdump|readelf|file)\" 2>/dev/null"}

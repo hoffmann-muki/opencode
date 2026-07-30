@@ -1,0 +1,5 @@
+Found 2 matches
+/testbed/sympy/core/function.py:
+  Line 135: class FunctionClass(ManagedProperties):
+
+  Line 317: class Function(Application, Expr):

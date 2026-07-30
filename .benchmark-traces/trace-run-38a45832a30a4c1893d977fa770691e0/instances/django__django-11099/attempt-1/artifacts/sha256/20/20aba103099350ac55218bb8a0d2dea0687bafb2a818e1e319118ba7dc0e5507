@@ -1,0 +1,1 @@
+{"filePath":"/testbed/django/contrib/auth/validators.py","newString":"    regex = r'\\A[\\w.@+-]+\\Z'","oldString":"    regex = r'^[\\w.@+-]+$'","replaceAll":true}

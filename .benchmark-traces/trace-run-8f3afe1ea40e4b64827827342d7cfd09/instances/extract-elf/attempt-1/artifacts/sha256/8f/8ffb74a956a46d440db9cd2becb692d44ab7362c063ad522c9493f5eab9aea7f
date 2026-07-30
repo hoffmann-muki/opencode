@@ -1,0 +1,1 @@
+{"command":"readelf -x .interp /app/a.out && echo \"---\" && readelf -x .note.gnu.build-id /app/a.out && echo \"---\" && readelf -x .gnu.hash /app/a.out && echo \"---\" && readelf -x .dynsym /app/a.out"}

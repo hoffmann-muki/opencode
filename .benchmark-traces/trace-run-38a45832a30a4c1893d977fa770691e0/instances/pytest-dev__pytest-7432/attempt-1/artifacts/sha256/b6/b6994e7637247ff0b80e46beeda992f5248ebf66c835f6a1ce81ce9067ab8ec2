@@ -1,0 +1,2 @@
+Now let me understand the issue better. Let me look at the `pytest_runtest_makereport` hook in skipping.py more carefully:
+

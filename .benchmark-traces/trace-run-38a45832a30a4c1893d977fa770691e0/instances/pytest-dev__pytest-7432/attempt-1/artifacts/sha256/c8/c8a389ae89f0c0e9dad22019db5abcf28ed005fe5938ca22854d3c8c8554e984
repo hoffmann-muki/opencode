@@ -1,0 +1,61 @@
+<task id="ses_05921bc34ffe6v4uQdK1UAi5L1" state="completed">
+<task_result>
+I've analyzed the bug in pytest where `--runxfail` breaks the skip location reporting. Here's my investigation:
+
+## Analysis of the Bug
+
+### Root Cause
+The issue is in `/testbed/src/_pytest/skipping.py` in the `pytest_runtest_makereport` hook (lines 261-305).
+
+### The Problem
+When `--runxfail` is used, the hook at line 273-274 has a `pass` statement that says "don't interfere". This means that when a test is skipped by mark (using `@pytest.mark.skip`), the code that fixes the skip location (lines 294-305) is never executed.
+
+The problematic flow:
+1. Without `--runxfail`: When a test is skipped by mark, `rep.skipped` is True, and the code at lines 294-305 executes to fix the location
+2. With `--runxfail`: The code at lines 273-274 returns early with `pass`, so the location fix code (lines 294-305) never runs
+
+### The Code That Fixes Location (lines 294-305)
+```python
+elif (
+    item._store.get(skipped_by_mark_key, True)
+    and rep.skipped
+    and type(rep.longrepr) is tuple
+):
+    # skipped by mark.skipif; change the location of the failure
+    # to point to the item definition, otherwise it will display
+    # the location of where the skip exception was raised within pytest
+    _, _, reason = rep.longrepr
+    filename, line = item.reportinfo()[:2]
+    assert line is not None
+    rep.longrepr = str(filename), line + 1, reason
+```
+
+This code should update `rep.longrepr` to point to the actual test location, but it's never reached when `--runxfail` is used.
+
+### The Bug Location
+**File**: `/testbed/src/_pytest/skipping.py`  
+**Function**: `pytest_runtest_makereport`  
+**Lines**: 273-274
+
+### What Needs to Be Fixed
+The condition at line 273 should not prevent the location fix code from running when a test is skipped by mark. The fix should ensure that:
+1. When `--runxfail` is used, xfail tests are handled normally (current behavior)
+2. When a test is skipped by mark, the location fix code still runs regardless of `--runxfail`
+
+### Test Files
+Relevant test file: `/testbed/testing/test_skipping.py`  
+Specifically, tests like `test_skipif_reporting` (line 668) and `test_skipped_reasons_functional` (line 753) test skip location reporting.
+
+### Verification Commands
+To verify the fix, you can run:
+```bash
+# Test without --runxfail (should show correct location)
+pytest -rs test_it.py
+
+# Test with --runxfail (currently shows wrong location, should show correct location after fix)
+pytest -rs --runxfail test_it.py
+```
+
+The bug is that when `--runxfail` is used, skipped tests show the location as `src/_pytest/skipping.py:238` instead of the actual test file and line number.
+</task_result>
+</task>

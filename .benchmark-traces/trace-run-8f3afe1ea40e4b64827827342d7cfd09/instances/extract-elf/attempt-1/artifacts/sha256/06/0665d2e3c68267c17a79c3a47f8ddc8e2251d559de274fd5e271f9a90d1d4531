@@ -1,0 +1,2 @@
+Now I understand better. The task wants me to extract 32-bit values from the binary at their virtual addresses. Let me now create a proper extract.js that reads 32-bit values from all sections:
+

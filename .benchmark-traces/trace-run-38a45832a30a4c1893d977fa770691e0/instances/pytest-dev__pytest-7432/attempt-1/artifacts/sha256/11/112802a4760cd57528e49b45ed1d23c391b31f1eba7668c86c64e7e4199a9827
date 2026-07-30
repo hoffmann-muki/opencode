@@ -1,0 +1,35 @@
+Found 11 matches
+/testbed/src/_pytest/unittest.py:
+  Line 292: def pytest_runtest_makereport(item: Item, call: CallInfo[None]) -> None:
+
+
+/testbed/src/_pytest/runner.py:
+  Line 209:     report = hook.pytest_runtest_makereport(item=item, call=call)  # type: TestReport
+
+  Line 312: def pytest_runtest_makereport(item: Item, call: CallInfo[None]) -> TestReport:
+
+
+/testbed/src/_pytest/hookspec.py:
+  Line 405:         - ``report = pytest_runtest_makereport(item, call)``
+
+  Line 411:         - ``report = pytest_runtest_makereport(item, call)``
+
+  Line 417:         - ``report = pytest_runtest_makereport(item, call)``
+
+  Line 489: def pytest_runtest_makereport(
+
+
+/testbed/testing/test_unittest.py:
+  Line 147:         def pytest_runtest_makereport(item, call):
+
+
+/testbed/testing/test_resultlog.py:
+  Line 216:         def pytest_runtest_makereport():
+
+
+/testbed/src/_pytest/skipping.py:
+  Line 261: def pytest_runtest_makereport(item: Item, call: CallInfo[None]):
+
+
+/testbed/testing/test_runner.py:
+  Line 798:         def pytest_runtest_makereport():
