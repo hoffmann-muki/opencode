@@ -1,0 +1,3 @@
+The 13 failures are pre-existing (NumPy deprecation warnings about `bounding_box`), completely unrelated to my change. 
+
+Now let me add test cases for the nested compound model scenario to the test file. Let me add test cases that cover the bug:

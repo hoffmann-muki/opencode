@@ -1,0 +1,3 @@
+Now I understand the structure. The `Pipeline` class has a `__getitem__` method but no `__len__` method. I need to add a `__len__` method that returns the number of steps.
+
+Let me add the `__len__` method right after the `__getitem__` method.

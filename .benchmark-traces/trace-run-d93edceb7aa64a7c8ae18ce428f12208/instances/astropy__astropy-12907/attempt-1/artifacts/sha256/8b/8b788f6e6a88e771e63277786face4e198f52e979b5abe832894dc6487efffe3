@@ -1,0 +1,6 @@
+The fix works. Now the nested case `Pix2Sky_TAN & cm` gives the same result as the non-nested case `Pix2Sky_TAN & Linear1D(10) & Linear1D(5)`, which is the expected behavior.
+
+Let me also test some additional cases to make sure the fix is robust:
+1. Nested on the left side
+2. Deeper nesting
+3. The `|` operator with nested models

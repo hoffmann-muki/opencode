@@ -1,0 +1,156 @@
+<path>/testbed/astropy/modeling/tests/test_separable.py</path>
+<type>file</type>
+<content>
+1: # Licensed under a 3-clause BSD style license - see LICENSE.rst
+2: """
+3: Test separability of models.
+4: 
+5: """
+6: # pylint: disable=invalid-name
+7: import pytest
+8: import numpy as np
+9: from numpy.testing import assert_allclose
+10: 
+11: from astropy.modeling import custom_model, models
+12: from astropy.modeling.models import Mapping
+13: from astropy.modeling.separable import (_coord_matrix, is_separable, _cdot,
+14:                                         _cstack, _arith_oper, separability_matrix)
+15: from astropy.modeling.core import ModelDefinitionError
+16: 
+17: 
+18: sh1 = models.Shift(1, name='shift1')
+19: sh2 = models.Shift(2, name='sh2')
+20: scl1 = models.Scale(1, name='scl1')
+21: scl2 = models.Scale(2, name='scl2')
+22: map1 = Mapping((0, 1, 0, 1), name='map1')
+23: map2 = Mapping((0, 0, 1), name='map2')
+24: map3 = Mapping((0, 0), name='map3')
+25: rot = models.Rotation2D(2, name='rotation')
+26: p2 = models.Polynomial2D(1, name='p2')
+27: p22 = models.Polynomial2D(2, name='p22')
+28: p1 = models.Polynomial1D(1, name='p1')
+29: 
+30: 
+31: compound_models = {
+32:     'cm1': (map3 & sh1 | rot & sh1 | sh1 & sh2 & sh1,
+33:             (np.array([False, False, True]),
+34:              np.array([[True, False], [True, False], [False, True]]))
+35:             ),
+36:     'cm2': (sh1 & sh2 | rot | map1 | p2 & p22,
+37:             (np.array([False, False]),
+38:              np.array([[True, True], [True, True]]))
+39:             ),
+40:     'cm3': (map2 | rot & scl1,
+41:             (np.array([False, False, True]),
+42:              np.array([[True, False], [True, False], [False, True]]))
+43:             ),
+44:     'cm4': (sh1 & sh2 | map2 | rot & scl1,
+45:             (np.array([False, False, True]),
+46:              np.array([[True, False], [True, False], [False, True]]))
+47:             ),
+48:     'cm5': (map3 | sh1 & sh2 | scl1 & scl2,
+49:             (np.array([False, False]),
+50:              np.array([[True], [True]]))
+51:             ),
+52:     'cm7': (map2 | p2 & sh1,
+53:             (np.array([False, True]),
+54:              np.array([[True, False], [False, True]]))
+55:             )
+56: }
+57: 
+58: 
+59: def test_coord_matrix():
+60:     c = _coord_matrix(p2, 'left', 2)
+61:     assert_allclose(np.array([[1, 1], [0, 0]]), c)
+62:     c = _coord_matrix(p2, 'right', 2)
+63:     assert_allclose(np.array([[0, 0], [1, 1]]), c)
+64:     c = _coord_matrix(p1, 'left', 2)
+65:     assert_allclose(np.array([[1], [0]]), c)
+66:     c = _coord_matrix(p1, 'left', 1)
+67:     assert_allclose(np.array([[1]]), c)
+68:     c = _coord_matrix(sh1, 'left', 2)
+69:     assert_allclose(np.array([[1], [0]]), c)
+70:     c = _coord_matrix(sh1, 'right', 2)
+71:     assert_allclose(np.array([[0], [1]]), c)
+72:     c = _coord_matrix(sh1, 'right', 3)
+73:     assert_allclose(np.array([[0], [0], [1]]), c)
+74:     c = _coord_matrix(map3, 'left', 2)
+75:     assert_allclose(np.array([[1], [1]]), c)
+76:     c = _coord_matrix(map3, 'left', 3)
+77:     assert_allclose(np.array([[1], [1], [0]]), c)
+78: 
+79: 
+80: def test_cdot():
+81:     result = _cdot(sh1, scl1)
+82:     assert_allclose(result, np.array([[1]]))
+83: 
+84:     result = _cdot(rot, p2)
+85:     assert_allclose(result, np.array([[2, 2]]))
+86: 
+87:     result = _cdot(rot, rot)
+88:     assert_allclose(result, np.array([[2, 2], [2, 2]]))
+89: 
+90:     result = _cdot(Mapping((0, 0)), rot)
+91:     assert_allclose(result, np.array([[2], [2]]))
+92: 
+93:     with pytest.raises(ModelDefinitionError,
+94:                        match=r"Models cannot be combined with the \"|\" operator; .*"):
+95:         _cdot(sh1, map1)
+96: 
+97: 
+98: def test_cstack():
+99:     result = _cstack(sh1, scl1)
+100:     assert_allclose(result, np.array([[1, 0], [0, 1]]))
+101: 
+102:     result = _cstack(sh1, rot)
+103:     assert_allclose(result,
+104:                     np.array([[1, 0, 0],
+105:                               [0, 1, 1],
+106:                               [0, 1, 1]])
+107:                     )
+108:     result = _cstack(rot, sh1)
+109:     assert_allclose(result,
+110:                     np.array([[1, 1, 0],
+111:                               [1, 1, 0],
+112:                               [0, 0, 1]])
+113:                     )
+114: 
+115: 
+116: def test_arith_oper():
+117:     # Models as inputs
+118:     result = _arith_oper(sh1, scl1)
+119:     assert_allclose(result, np.array([[1]]))
+120:     result = _arith_oper(rot, rot)
+121:     assert_allclose(result, np.array([[1, 1], [1, 1]]))
+122: 
+123:     # ndarray
+124:     result = _arith_oper(np.array([[1, 2], [3, 4]]), np.array([[1, 2], [3, 4]]))
+125:     assert_allclose(result, np.array([[1, 1], [1, 1]]))
+126: 
+127:     # Error
+128:     with pytest.raises(ModelDefinitionError, match=r"Unsupported operands for arithmetic operator: .*"):
+129:         _arith_oper(sh1, map1)
+130: 
+131: 
+132: @pytest.mark.parametrize(('compound_model', 'result'), compound_models.values())
+133: def test_separable(compound_model, result):
+134:     assert_allclose(is_separable(compound_model), result[0])
+135:     assert_allclose(separability_matrix(compound_model), result[1])
+136: 
+137: 
+138: def test_custom_model_separable():
+139:     @custom_model
+140:     def model_a(x):
+141:         return x
+142: 
+143:     assert model_a().separable
+144: 
+145:     @custom_model
+146:     def model_c(x, y):
+147:         return x + y
+148: 
+149:     assert not model_c().separable
+150:     assert np.all(separability_matrix(model_c()) == [True, True])
+
+(End of file - total 150 lines)
+</content>

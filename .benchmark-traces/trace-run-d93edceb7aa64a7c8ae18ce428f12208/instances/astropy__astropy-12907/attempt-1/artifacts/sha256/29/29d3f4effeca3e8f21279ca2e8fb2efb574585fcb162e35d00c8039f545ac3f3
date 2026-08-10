@@ -1,0 +1,26 @@
+<path>/testbed/astropy/modeling/tests/test_separable.py</path>
+<type>file</type>
+<content>
+98: 
+99: def test_cdot():
+100:     result = _cdot(sh1, scl1)
+101:     assert_allclose(result, np.array([[1]]))
+102: 
+103:     result = _cdot(rot, p2)
+104:     assert_allclose(result, np.array([[2, 2]]))
+105: 
+106:     result = _cdot(rot, rot)
+107:     assert_allclose(result, np.array([[2, 2], [2, 2]]))
+108: 
+109:     result = _cdot(Mapping((0, 0)), rot)
+110:     assert_allclose(result, np.array([[2], [2]]))
+111: 
+112:     with pytest.raises(ModelDefinitionError,
+113:                        match=r"Models cannot be combined with the \"|\" operator; .*"):
+114:         _cdot(sh1, map1)
+115: 
+116: 
+117: def test_cstack():
+
+(Showing lines 98-117 of 169. Use offset=118 to continue.)
+</content>

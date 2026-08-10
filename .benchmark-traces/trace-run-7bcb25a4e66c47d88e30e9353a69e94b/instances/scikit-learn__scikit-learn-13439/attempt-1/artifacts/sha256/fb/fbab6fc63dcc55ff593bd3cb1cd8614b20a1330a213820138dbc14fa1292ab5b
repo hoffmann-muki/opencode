@@ -1,0 +1,1 @@
+Let me add a test for `__len__` in the `test_pipeline_index` test, since it's the most related test. Let me add an assertion for `len(pipe)`.

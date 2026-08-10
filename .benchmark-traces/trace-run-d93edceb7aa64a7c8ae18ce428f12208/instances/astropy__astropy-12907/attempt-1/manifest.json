@@ -1,0 +1,53 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "trace_id": "trace-d6a7ea1c576348258c73f8b7f55a8452",
+  "run_id": "trace-run-d93edceb7aa64a7c8ae18ce428f12208",
+  "benchmark": "swe-bench-lite",
+  "framework": "opencode",
+  "instance_id": "astropy__astropy-12907",
+  "attempt": 1,
+  "created_at": "2026-08-10T04:56:55.148Z",
+  "finalized_at": "2026-08-10T05:07:45.300Z",
+  "complete": true,
+  "producer": {
+    "name": "opencode.benchmarks.tracing.opencode",
+    "version": "1.2.0"
+  },
+  "provenance": {
+    "benchmark": {
+      "name": "opencode-benchmarks",
+      "revision": "d3c91d3928a14e5e767d5c6c614e266677a07d50"
+    },
+    "framework": {
+      "name": "OpenCode",
+      "revision": "d3c91d3928a14e5e767d5c6c614e266677a07d50"
+    },
+    "adapter": {
+      "name": "opencode.benchmarks.tracing.opencode",
+      "revision": "d3c91d3928a14e5e767d5c6c614e266677a07d50"
+    },
+    "agent_image": "docker.io/swebench/sweb.eval.x86_64.astropy_1776_astropy-12907:latest"
+  },
+  "execution": {
+    "model": "openrouter/poolside/laguna-s-2.1:free",
+    "evaluation_workers": 1,
+    "inference_timeout_seconds": 900,
+    "evaluation_timeout_seconds": 3600,
+    "benchmark_retries": 0,
+    "provider_attempts": 1
+  },
+  "files": {
+    "journal": "journal.jsonl",
+    "events": "events.jsonl",
+    "execution_tree": "execution-tree.json",
+    "capabilities": "capabilities.json",
+    "health": "health.json",
+    "native_index": "native/index.jsonl",
+    "artifacts": "artifacts/sha256"
+  }
+}

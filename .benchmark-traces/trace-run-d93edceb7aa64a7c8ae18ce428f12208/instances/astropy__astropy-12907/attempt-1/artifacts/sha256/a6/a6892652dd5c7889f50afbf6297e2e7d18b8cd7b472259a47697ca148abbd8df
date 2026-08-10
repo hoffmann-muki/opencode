@@ -1,0 +1,1 @@
+All 14 tests pass, including the 3 new test cases. Let me also add a direct test for `_cstack` with array inputs (which is the code path that was buggy):

@@ -1,0 +1,53 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "trace_id": "trace-13728f0c1b8446c4959bb48ccf6f1dbb",
+  "run_id": "trace-run-7bcb25a4e66c47d88e30e9353a69e94b",
+  "benchmark": "swe-bench-verified",
+  "framework": "opencode",
+  "instance_id": "scikit-learn__scikit-learn-13439",
+  "attempt": 1,
+  "created_at": "2026-08-10T05:08:29.600Z",
+  "finalized_at": "2026-08-10T05:11:00.009Z",
+  "complete": true,
+  "producer": {
+    "name": "opencode.benchmarks.tracing.opencode",
+    "version": "1.2.0"
+  },
+  "provenance": {
+    "benchmark": {
+      "name": "opencode-benchmarks",
+      "revision": "d3c91d3928a14e5e767d5c6c614e266677a07d50"
+    },
+    "framework": {
+      "name": "OpenCode",
+      "revision": "d3c91d3928a14e5e767d5c6c614e266677a07d50"
+    },
+    "adapter": {
+      "name": "opencode.benchmarks.tracing.opencode",
+      "revision": "d3c91d3928a14e5e767d5c6c614e266677a07d50"
+    },
+    "agent_image": "docker.io/swebench/sweb.eval.x86_64.scikit-learn_1776_scikit-learn-13439:latest"
+  },
+  "execution": {
+    "model": "openrouter/poolside/laguna-s-2.1:free",
+    "evaluation_workers": 1,
+    "inference_timeout_seconds": 900,
+    "evaluation_timeout_seconds": 3600,
+    "benchmark_retries": 0,
+    "provider_attempts": 1
+  },
+  "files": {
+    "journal": "journal.jsonl",
+    "events": "events.jsonl",
+    "execution_tree": "execution-tree.json",
+    "capabilities": "capabilities.json",
+    "health": "health.json",
+    "native_index": "native/index.jsonl",
+    "artifacts": "artifacts/sha256"
+  }
+}

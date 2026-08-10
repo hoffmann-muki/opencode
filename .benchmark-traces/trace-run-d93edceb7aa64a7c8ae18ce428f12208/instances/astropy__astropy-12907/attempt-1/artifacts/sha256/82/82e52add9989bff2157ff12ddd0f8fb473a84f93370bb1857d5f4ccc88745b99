@@ -1,0 +1,26 @@
+<path>/testbed/astropy/modeling/tests/test_separable.py</path>
+<type>file</type>
+<content>
+117: def test_cstack():
+118:     result = _cstack(sh1, scl1)
+119:     assert_allclose(result, np.array([[1, 0], [0, 1]]))
+120: 
+121:     result = _cstack(sh1, rot)
+122:     assert_allclose(result,
+123:                     np.array([[1, 0, 0],
+124:                               [0, 1, 1],
+125:                               [0, 1, 1]])
+126:                     )
+127:     result = _cstack(rot, sh1)
+128:     assert_allclose(result,
+129:                     np.array([[1, 1, 0],
+130:                               [1, 1, 0],
+131:                               [0, 0, 1]])
+132:                     )
+133: 
+134: 
+135: def test_arith_oper():
+136:     # Models as inputs
+
+(Showing lines 117-136 of 169. Use offset=137 to continue.)
+</content>

@@ -1,0 +1,26 @@
+The fix works correctly. Here's a summary of the changes:
+
+## Summary
+
+### Problem
+`Pipeline` implemented `__getitem__` (supporting indexing and slicing) but did not implement `__len__`. This meant `len(pipe)` raised a `TypeError`, and consequently `pipe[:len(pipe)]` (which relies on `len(pipe)` to compute the slice bound) also failed.
+
+### Changes
+
+1. **`/testbed/sklearn/pipeline.py`** — Added a `__len__` method to the `Pipeline` class that returns `len(self.steps)`, placed right after the existing `__getitem__` method:
+   ```python
+   def __len__(self):
+       """__len__"""
+       return len(self.steps)
+   ```
+
+2. **`/testbed/sklearn/tests/test_pipeline.py`** — Added an assertion `assert len(pipe) == 2` to the existing `test_pipeline_index` test to cover the new behavior.
+
+3. **`/testbed/doc/whats_new/v0.21.rst`** — Added a whatsnew entry documenting the new `__len__` support.
+
+### Verification
+- Ran the reproduction code from the issue: `len(pipe)` now returns `2`, and `pipe[:len(pipe)]` works correctly.
+- Ran the full `sklearn/tests/test_pipeline.py` suite: all 41 tests pass.
+
+### Residual Risk
+Minimal. The change is a small, additive method that delegates to the existing `self.steps` list. The only behavioral consideration is that `len(pipe)` now returns the number of steps (including the final estimator), which is the intuitive and expected semantics. No existing behavior is altered.

@@ -1,0 +1,29 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "run_id": "trace-run-d2b5f21214624fca98750329173d6a7d",
+  "benchmark": "terminal-bench-2.1",
+  "framework": "opencode",
+  "created_at": "2026-08-10T04:38:55.425Z",
+  "finalized_at": "2026-08-10T04:41:30.725Z",
+  "selection": {
+    "strategy": "explicit_ids",
+    "requested_count": 1,
+    "instance_ids": [
+      "fix-git"
+    ]
+  },
+  "attempts": [
+    {
+      "trace_id": "trace-168e343c73204fe9923b0c44e87dfc6c",
+      "instance_id": "fix-git",
+      "attempt": 1,
+      "path": "instances/fix-git/attempt-1",
+      "status": "completed"
+    }
+  ]
+}

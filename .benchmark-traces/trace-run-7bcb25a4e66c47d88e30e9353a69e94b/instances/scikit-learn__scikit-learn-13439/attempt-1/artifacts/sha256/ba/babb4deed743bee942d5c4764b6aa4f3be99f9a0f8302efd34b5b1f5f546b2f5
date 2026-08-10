@@ -1,0 +1,7 @@
+The diff looks good. Let me summarize the changes:
+
+1. `/testbed/sklearn/pipeline.py` - Added `__len__` method to the `Pipeline` class that returns `len(self.steps)`.
+2. `/testbed/sklearn/tests/test_pipeline.py` - Added a test assertion `assert len(pipe) == 2` in `test_pipeline_index`.
+3. `/testbed/doc/whats_new/v0.21.rst` - Added a whatsnew entry documenting the change.
+
+Let me run the reproduction code one more time to confirm the fix works as expected.

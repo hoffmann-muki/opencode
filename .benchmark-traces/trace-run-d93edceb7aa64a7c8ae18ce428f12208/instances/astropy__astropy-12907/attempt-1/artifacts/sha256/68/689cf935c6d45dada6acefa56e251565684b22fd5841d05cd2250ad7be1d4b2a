@@ -1,0 +1,5 @@
+The failures are all related to `bounding_box` and `DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated`, which is a NumPy version issue, not related to my change. Let me verify these failures exist before my change by checking if they're related to separability at all.
+
+Let me check if these failures are pre-existing by looking at the error messages. They're all about `bounding_box` and `DeprecationWarning` from numpy, which is unrelated to my change in `separable.py`.
+
+Let me verify by stashing my change and running the same tests.

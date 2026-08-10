@@ -1,0 +1,1 @@
+All doctests pass. Let me run a broader set of modeling tests to ensure nothing is broken (excluding the pre-existing `bounding_box` failures):

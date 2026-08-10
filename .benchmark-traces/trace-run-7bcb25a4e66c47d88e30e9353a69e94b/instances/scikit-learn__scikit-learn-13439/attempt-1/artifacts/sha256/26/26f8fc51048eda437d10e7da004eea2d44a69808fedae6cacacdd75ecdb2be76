@@ -1,0 +1,99 @@
+Found 41 matches
+/testbed/doc/whats_new/v0.18.rst:
+  Line 463: - Added support for substituting or disabling :class:`pipeline.Pipeline`
+
+  Line 464:   and :class:`pipeline.FeatureUnion` components using the ``set_params``
+
+  Line 561:   set ``random_state`` on base estimators in a pipeline or similar nesting.
+
+
+/testbed/doc/whats_new/v0.16.rst:
+  Line 252:   :class:`pipeline.Pipeline`. By `Andreas Müller`_.
+
+  Line 310:   :class:`grid_search.RandomizedSearchCV`, :class:`pipeline.Pipeline`,
+
+  Line 346: - Pipeline object delegate the ``classes_`` attribute to the underlying
+
+  Line 347:   estimator. It allows, for instance, to make bagging of a pipeline object.
+
+
+/testbed/doc/whats_new/older_versions.rst:
+  Line 951: - :class:`decomposition.PCA` is now usable from the Pipeline object by `Olivier Grisel`_.
+
+  Line 1225: - New :class:`pipeline.Pipeline` object to compose different estimators.
+
+
+/testbed/doc/whats_new/v0.17.rst:
+  Line 75:   function into a ``Pipeline``-compatible transformer object.
+
+  Line 284: - Added the ``fit_predict`` method to :class:`pipeline.Pipeline`.
+
+  Line 374: - Fixed a bug in :class:`pipeline.FeatureUnion` where ``transformer_weights``
+
+  Line 467: - The behavior of calling the ``inverse_transform`` method of ``Pipeline.pipeline`` will
+
+
+/testbed/doc/whats_new/v0.15.rst:
+  Line 80:   text processing pipelines. By `Andreas Müller`_.
+
+  Line 141: - Shorthand constructors :func:`pipeline.make_pipeline` and
+
+  Line 142:   :func:`pipeline.make_union` were added by `Lars Buitinck`_.
+
+
+/testbed/doc/whats_new/v0.21.rst:
+  Line 404: :mod:`sklearn.pipeline`
+
+  Line 407: - |Feature| :class:`pipeline.Pipeline` can now use indexing notation (e.g.
+
+  Line 408:   ``my_pipeline[0:-1]``) to extract a subsequence of steps as another Pipeline
+
+  Line 409:   instance.  A Pipeline can also be indexed directly to extract a particular
+
+  Line 410:   step (e.g. ``my_pipeline['svc']``), rather than accessing ``named_steps``.
+
+  Line 413: - |API| :class:`pipeline.Pipeline` now supports using ``'passthrough'`` as a
+
+
+/testbed/doc/whats_new/v0.20.rst:
+  Line 728:   values in X and/or multi-output Y to support wrapping pipelines that perform
+
+  Line 1282: :mod:`sklearn.pipeline`
+
+  Line 1285: - |Feature| The ``predict`` method of :class:`pipeline.Pipeline` now passes
+
+  Line 1286:   keyword arguments on to the pipeline's last estimator, enabling the use of
+
+  Line 1287:   parameters such as ``return_std`` in a pipeline with caution.
+
+  Line 1290: - |API| :class:`pipeline.FeatureUnion` now supports ``'drop'`` as a transformer
+
+
+/testbed/doc/whats_new/v0.13.rst:
+  Line 78: - :class:`pipeline.FeatureUnion`, a transformer that concatenates
+
+
+/testbed/doc/whats_new/v0.19.rst:
+  Line 84:   pipeline step and its parameter at the same time. :issue:`9945` by `Andreas
+
+  Line 101: - Fix regression in :class:`pipeline.Pipeline` where it no longer accepted
+
+  Line 125: - To improve usability of version 0.19's :class:`pipeline.Pipeline`
+
+  Line 174: transformations <pipeline_cache>` in :class:`pipeline.Pipeline` makes grid
+
+  Line 175: search over pipelines including slow transformations much more efficient.  And
+
+  Line 427: - :class:`pipeline.Pipeline` is now able to cache transformers
+
+  Line 428:   within a pipeline by using the ``memory`` constructor parameter.
+
+  Line 431: - :class:`pipeline.Pipeline` steps can now be accessed as attributes of its
+
+  Line 435: - Added ``sample_weight`` parameter to :meth:`pipeline.Pipeline.score`.
+
+  Line 438: - Added ability to set ``n_jobs`` parameter to :func:`pipeline.make_union`.
+
+  Line 709:   pipeline with  :class:`feature_extraction.text.TfidfTransformer`.
+
+  Line 933:   in :class:`pipeline.Pipeline` to enable tab completion in interactive

@@ -1,0 +1,3 @@
+All doctests pass. Let me also run a broader set of modeling tests to make sure nothing is broken. Let me run the full test_core.py and test_models.py (excluding the pre-existing bounding_box failures).
+
+Actually, let me just run the full test suite for the modeling module to be thorough, but filter out the known pre-existing failures.

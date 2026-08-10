@@ -1,0 +1,66 @@
+<path>/testbed/astropy/modeling/tests/test_separable.py</path>
+<type>file</type>
+<content>
+30: 
+31: compound_models = {
+32:     'cm1': (map3 & sh1 | rot & sh1 | sh1 & sh2 & sh1,
+33:             (np.array([False, False, True]),
+34:              np.array([[True, False], [True, False], [False, True]]))
+35:             ),
+36:     'cm2': (sh1 & sh2 | rot | map1 | p2 & p22,
+37:             (np.array([False, False]),
+38:              np.array([[True, True], [True, True]]))
+39:             ),
+40:     'cm3': (map2 | rot & scl1,
+41:             (np.array([False, False, True]),
+42:              np.array([[True, False], [True, False], [False, True]]))
+43:             ),
+44:     'cm4': (sh1 & sh2 | map2 | rot & scl1,
+45:             (np.array([False, False, True]),
+46:              np.array([[True, False], [True, False], [False, True]]))
+47:             ),
+48:     'cm5': (map3 | sh1 & sh2 | scl1 & scl2,
+49:             (np.array([False, False]),
+50:              np.array([[True], [True]]))
+51:             ),
+52:     'cm7': (map2 | p2 & sh1,
+53:             (np.array([False, True]),
+54:              np.array([[True, False], [False, True]]))
+55:             )
+56: }
+57: 
+58: 
+59: def test_coord_matrix():
+60:     c = _coord_matrix(p2, 'left', 2)
+61:     assert_allclose(np.array([[1, 1], [0, 0]]), c)
+62:     c = _coord_matrix(p2, 'right', 2)
+63:     assert_allclose(np.array([[0, 0], [1, 1]]), c)
+64:     c = _coord_matrix(p1, 'left', 2)
+65:     assert_allclose(np.array([[1], [0]]), c)
+66:     c = _coord_matrix(p1, 'left', 1)
+67:     assert_allclose(np.array([[1]]), c)
+68:     c = _coord_matrix(sh1, 'left', 2)
+69:     assert_allclose(np.array([[1], [0]]), c)
+70:     c = _coord_matrix(sh1, 'right', 2)
+71:     assert_allclose(np.array([[0], [1]]), c)
+72:     c = _coord_matrix(sh1, 'right', 3)
+73:     assert_allclose(np.array([[0], [0], [1]]), c)
+74:     c = _coord_matrix(map3, 'left', 2)
+75:     assert_allclose(np.array([[1], [1]]), c)
+76:     c = _coord_matrix(map3, 'left', 3)
+77:     assert_allclose(np.array([[1], [1], [0]]), c)
+78: 
+79: 
+80: def test_cdot():
+81:     result = _cdot(sh1, scl1)
+82:     assert_allclose(result, np.array([[1]]))
+83: 
+84:     result = _cdot(rot, p2)
+85:     assert_allclose(result, np.array([[2, 2]]))
+86: 
+87:     result = _cdot(rot, rot)
+88:     assert_allclose(result, np.array([[2, 2], [2, 2]]))
+89: 
+
+(Showing lines 30-89 of 150. Use offset=90 to continue.)
+</content>

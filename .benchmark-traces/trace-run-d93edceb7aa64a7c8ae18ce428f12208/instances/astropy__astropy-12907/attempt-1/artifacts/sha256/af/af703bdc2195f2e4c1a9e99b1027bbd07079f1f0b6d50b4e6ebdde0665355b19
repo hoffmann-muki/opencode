@@ -1,0 +1,15 @@
+cm:
+[[ True False]
+ [False  True]]
+
+Pix2Sky_TAN & Linear1D(10) & Linear1D(5):
+[[ True  True False False]
+ [ True  True False False]
+ [False False  True False]
+ [False False False  True]]
+
+Pix2Sky_TAN & cm (nested):
+[[ True  True False False]
+ [ True  True False False]
+ [False False  True  True]
+ [False False  True  True]]

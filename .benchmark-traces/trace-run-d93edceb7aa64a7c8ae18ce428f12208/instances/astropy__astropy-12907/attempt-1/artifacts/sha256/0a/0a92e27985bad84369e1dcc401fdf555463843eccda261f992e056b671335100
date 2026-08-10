@@ -1,0 +1,46 @@
+Let me add test cases for nested compound models. I'll add them to the `compound_models` dictionary.
+
+Let me add:
+1. `cm8`: A nested `&` compound model where the right side is a compound model with separable sub-models. E.g., `sh1 & (sh2 & sh1)`.
+2. `cm9`: A nested `&` compound model where the left side is a compound model. E.g., `(sh1 & sh2) & sh1`.
+3. `cm10`: A nested `&` compound model with a non-separable model on the left. E.g., `rot & (sh1 & sh2)`.
+
+Let me compute the expected results:
+
+`cm8`: `sh1 & (sh2 & sh1)`
+- sh1: n_in=1, n_out=1, separable.
+- sh2 & sh1: n_in=2, n_out=2, separable (diagonal).
+- sh1 & (sh2 & sh1): n_in=3, n_out=3.
+- Expected matrix:
+  ```
+  [[ True, False, False],
+   [False,  True, False],
+   [False, False,  True]]
+  ```
+- is_separable: [True, True, True]
+
+`cm9`: `(sh1 & sh2) & sh1`
+- sh1 & sh2: n_in=2, n_out=2, separable (diagonal).
+- (sh1 & sh2) & sh1: n_in=3, n_out=3.
+- Expected matrix:
+  ```
+  [[ True, False, False],
+   [False,  True, False],
+   [False, False,  True]]
+  ```
+- is_separable: [True, True, True]
+
+`cm10`: `rot & (sh1 & sh2)`
+- rot: n_in=2, n_out=2, not separable.
+- sh1 & sh2: n_in=2, n_out=2, separable (diagonal).
+- rot & (sh1 & sh2): n_in=4, n_out=4.
+- Expected matrix:
+  ```
+  [[ True,  True, False, False],
+   [ True,  True, False, False],
+   [False, False,  True, False],
+   [False, False, False,  True]]
+  ```
+- is_separable: [False, False, True, True]
+
+Let me verify these with the actual code.

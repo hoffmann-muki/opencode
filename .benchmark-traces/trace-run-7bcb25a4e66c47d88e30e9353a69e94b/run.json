@@ -1,0 +1,29 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "run_id": "trace-run-7bcb25a4e66c47d88e30e9353a69e94b",
+  "benchmark": "swe-bench-verified",
+  "framework": "opencode",
+  "created_at": "2026-08-10T05:08:29.592Z",
+  "finalized_at": "2026-08-10T05:11:00.176Z",
+  "selection": {
+    "strategy": "explicit_ids",
+    "requested_count": 1,
+    "instance_ids": [
+      "scikit-learn__scikit-learn-13439"
+    ]
+  },
+  "attempts": [
+    {
+      "trace_id": "trace-13728f0c1b8446c4959bb48ccf6f1dbb",
+      "instance_id": "scikit-learn__scikit-learn-13439",
+      "attempt": 1,
+      "path": "instances/scikit-learn__scikit-learn-13439/attempt-1",
+      "status": "completed"
+    }
+  ]
+}

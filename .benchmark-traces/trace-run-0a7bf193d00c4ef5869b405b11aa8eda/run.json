@@ -1,0 +1,29 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "run_id": "trace-run-0a7bf193d00c4ef5869b405b11aa8eda",
+  "benchmark": "swe-bench-pro",
+  "framework": "opencode",
+  "created_at": "2026-08-10T05:11:32.258Z",
+  "finalized_at": "2026-08-10T05:17:29.995Z",
+  "selection": {
+    "strategy": "explicit_ids",
+    "requested_count": 1,
+    "instance_ids": [
+      "instance_qutebrowser__qutebrowser-5fdc83e5da6222fe61163395baaad7ae57fa2cb4-v363c8a7e5ccdf6968fc7ab84a2053ac78036691d"
+    ]
+  },
+  "attempts": [
+    {
+      "trace_id": "trace-c1274d0fa97a46f1872ac13af3e44c53",
+      "instance_id": "instance_qutebrowser__qutebrowser-5fdc83e5da6222fe61163395baaad7ae57fa2cb4-v363c8a7e5ccdf6968fc7ab84a2053ac78036691d",
+      "attempt": 1,
+      "path": "instances/instance_qutebrowser__qutebrowser-5fdc83e5da6222fe61163395baaad7ae57fa2cb4-v363c8a7e5ccdf6968fc7ab84a2053ac78036691d/attempt-1",
+      "status": "completed"
+    }
+  ]
+}

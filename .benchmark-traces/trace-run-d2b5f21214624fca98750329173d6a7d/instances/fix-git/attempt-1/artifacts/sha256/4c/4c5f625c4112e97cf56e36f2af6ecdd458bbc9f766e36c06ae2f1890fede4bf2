@@ -1,0 +1,9 @@
+I found your lost changes. Here's what happened:
+
+**The situation:** While on master (at commit `d7d3e4b`), you checked out `HEAD~1` into a detached HEAD state, made a commit (`c499730` — "Move to Stanford"), and then checked out master again. This left your "Move to Stanford" commit unreachable from master.
+
+**The lost commit** (`c499730`) contains changes to:
+- `_includes/about.md` — Updated your bio from "PhD student at UW" to "Postdoctoral Researcher at Stanford CS"
+- `_layouts/default.html` — Updated the header from "PhD Student @ UW CSE" to "Postdoc @ Stanford", plus some HTML formatting cleanup
+
+Since this commit's parent (`c4e38a1`) is already in master's history, I can merge it in cleanly. Let me do that now.

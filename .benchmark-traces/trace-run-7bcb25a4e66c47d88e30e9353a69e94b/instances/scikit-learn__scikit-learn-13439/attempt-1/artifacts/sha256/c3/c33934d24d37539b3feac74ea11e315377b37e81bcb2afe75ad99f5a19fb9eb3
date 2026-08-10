@@ -1,0 +1,3 @@
+All tests pass. Let me also check the FeatureUnion class - the issue is specifically about Pipeline, but let me check if FeatureUnion should also have `__len__`. Looking at the issue, it's specifically about Pipeline. The FeatureUnion uses `transformer_list` instead of `steps`, and the issue is specifically about Pipeline. Let me keep the fix focused on Pipeline as the issue requests.
+
+Let me also check the whatsnew file to add a note about this change, which is common practice in scikit-learn.

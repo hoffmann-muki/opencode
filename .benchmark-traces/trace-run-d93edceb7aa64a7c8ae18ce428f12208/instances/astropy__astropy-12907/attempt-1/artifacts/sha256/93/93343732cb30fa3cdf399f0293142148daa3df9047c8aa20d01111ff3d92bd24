@@ -1,0 +1,5 @@
+I can see the bug clearly now. On line 245, when `right` is an array (from a nested compound model), the code sets the bottom-right block to `1` instead of using the actual content of `right`. Compare with the `left` side on line 240, which correctly copies the content: `cleft[: left.shape[0], : left.shape[1]] = left`.
+
+The `right` array is the coord_matrix of the right sub-model (shape `(n_outputs_right, n_inputs_right)`), and it should be placed in the bottom-right block of the `(noutp, n_inputs_right)` matrix, preserving its actual structure (e.g., a diagonal for separable nested models).
+
+Let me apply the fix:

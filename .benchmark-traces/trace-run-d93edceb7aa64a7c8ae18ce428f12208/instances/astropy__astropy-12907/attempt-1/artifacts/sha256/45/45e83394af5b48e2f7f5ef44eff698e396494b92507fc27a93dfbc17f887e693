@@ -1,0 +1,20 @@
+                    size.append(
+>                       int(math.ceil((stop - start) / (step*1.0))))
+E                       DeprecationWarning: Conversion of an array with ndim > 0 to a scalar is deprecated, and will error in future. Ensure you extract a single element from your array before performing this operation. (Deprecated NumPy 1.25.)
+
+/opt/miniconda3/envs/testbed/lib/python3.9/site-packages/numpy/lib/index_tricks.py:166: DeprecationWarning
+=========================== short test summary info ============================
+FAILED astropy/modeling/tests/test_models.py::test_custom_model_bounding_box
+FAILED astropy/modeling/tests/test_models.py::TestFittable1DModels::test_bounding_box1D_peak[Box1D-test_parameters3]
+FAILED astropy/modeling/tests/test_models.py::TestFittable1DModels::test_bounding_box1D_peak[Gaussian1D-test_parameters7]
+FAILED astropy/modeling/tests/test_models.py::TestFittable1DModels::test_bounding_box1D_peak[KingProjectedAnalytic1D-test_parameters8]
+FAILED astropy/modeling/tests/test_models.py::TestFittable1DModels::test_bounding_box1D_peak[Lorentz1D-test_parameters11]
+FAILED astropy/modeling/tests/test_models.py::TestFittable1DModels::test_bounding_box1D_peak[RickerWavelet1D-test_parameters13]
+FAILED astropy/modeling/tests/test_models.py::TestFittable1DModels::test_bounding_box1D_peak[Trapezoid1D-test_parameters17]
+FAILED astropy/modeling/tests/test_models.py::TestFittable1DModels::test_bounding_box1D_peak[Drude1D-test_parameters19]
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[Box2D-test_parameters1]
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[Disk2D-test_parameters3]
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[Gaussian2D-test_parameters4]
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[Ring2D-test_parameters8]
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[TrapezoidDisk2D-test_parameters10]
+================= 13 failed, 217 passed, 102 skipped in 1.50s ==================

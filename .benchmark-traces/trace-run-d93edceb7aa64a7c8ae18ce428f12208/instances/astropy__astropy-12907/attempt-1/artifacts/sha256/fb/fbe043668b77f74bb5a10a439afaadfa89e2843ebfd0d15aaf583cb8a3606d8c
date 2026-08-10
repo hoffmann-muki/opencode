@@ -1,0 +1,1072 @@
+Let me understand the issue. The problem is with nested CompoundModels. Let me trace through the code.
+
+When we have `m.Pix2Sky_TAN() & cm` where `cm = m.Linear1D(10) & m.Linear1D(5)`.
+
+The `_separable` function is called on the top-level compound model. It's a CompoundModel with op `&`. So it calls `_separable(transform.left)` and `_separable(transform.right)`.
+
+`transform.left` is `m.Pix2Sky_TAN()` which is a simple Model. So `_separable` returns `_coord_matrix(transform, 'left', transform.n_outputs)`.
+
+`transform.right` is `cm = m.Linear1D(10) & m.Linear1D(5)`, which is a CompoundModel with op `&`. So `_separable` recursively calls `_separable(cm.left)` and `_separable(cm.right)`.
+
+`cm.left` is `m.Linear1D(10)`, a simple Model. `_separable` returns `_coord_matrix(m.Linear1D(10), 'left', m.Linear1D(10).n_outputs)`.
+
+`cm.right` is `m.Linear1D(5)`, a simple Model. `_separable` returns `_coord_matrix(m.Linear1D(5), 'left', m.Linear1D(5).n_outputs)`.
+
+Then `_cstack(sepleft, sepright)` is called.
+
+Let me look at `_coord_matrix` more carefully.
+
+```python
+def _coord_matrix(model, pos, noutp):
+    if isinstance(model, Mapping):
+        ...
+    if not model.separable:
+        # this does not work for more than 2 coordinates
+        mat = np.zeros((noutp, model.n_inputs))
+        if pos == 'left':
+            mat[:model.n_outputs, : model.n_inputs] = 1
+        else:
+            mat[-model.n_outputs:, -model.n_inputs:] = 1
+    else:
+        mat = np.zeros((noutp, model.n_inputs))
+
+        for i in range(model.n_inputs):
+            mat[i, i] = 1
+        if pos == 'right':
+            mat = np.roll(mat, (noutp - model.n_outputs))
+    return mat
+```
+
+So for a simple model, `_coord_matrix` is called with `noutp = model.n_outputs`. So the matrix has shape `(model.n_outputs, model.n_inputs)`.
+
+For `m.Linear1D(10)`, n_outputs=1, n_inputs=1. So `mat = np.zeros((1, 1))`, then `mat[0, 0] = 1`. So `mat = [[1]]`.
+
+For `m.Linear1D(5)`, same thing, `mat = [[1]]`.
+
+Then `_cstack([[1]], [[1]])`:
+```python
+def _cstack(left, right):
+    noutp = _compute_n_outputs(left, right)  # 1 + 1 = 2
+
+    if isinstance(left, Model):  # No, left is an array
+        ...
+    else:
+        cleft = np.zeros((noutp, left.shape[1]))  # np.zeros((2, 1))
+        cleft[: left.shape[0], : left.shape[1]] = left  # cleft[:1, :1] = [[1]]
+    if isinstance(right, Model):  # No
+        ...
+    else:
+        cright = np.zeros((noutp, right.shape[1]))  # np.zeros((2, 1))
+        cright[-right.shape[0]:, -right.shape[1]:] = 1  # cright[-1:, -1:] = 1
+
+    return np.hstack([cleft, cright])
+```
+
+So `cleft = [[1], [0]]` and `cright = [[0], [1]]`. `np.hstack` gives `[[1, 0], [0, 1]]`. That's the correct diagonal for `cm`.
+
+Now for the top-level: `m.Pix2Sky_TAN() & cm`.
+
+`transform.left` is `m.Pix2Sky_TAN()`. `_separable` returns `_coord_matrix(m.Pix2Sky_TAN(), 'left', m.Pix2Sky_TAN().n_outputs)`.
+
+`m.Pix2Sky_TAN()` has n_outputs=2, n_inputs=2. Is it separable? Let me check. Pix2Sky_TAN is a sky projection. Let me check its `separable` attribute.
+
+Actually, let me think about this. The issue is that when we have a nested compound model, the `_separable` function returns the coord_matrix for the inner compound model, but the coord_matrix is computed with `noutp = model.n_outputs` for the inner model, not the outer model's n_outputs.
+
+Wait, let me re-trace. For the top-level compound model `m.Pix2Sky_TAN() & cm`:
+
+`_separable(top)`:
+- `top` is a CompoundModel with op `&`.
+- `sepleft = _separable(top.left)` = `_separable(m.Pix2Sky_TAN())`.
+  - `m.Pix2Sky_TAN()` is a simple Model (not CompoundModel).
+  - returns `_coord_matrix(m.Pix2Sky_TAN(), 'left', m.Pix2Sky_TAN().n_outputs)`.
+  - noutp = 2 (n_outputs of Pix2Sky_TAN).
+  - If Pix2Sky_TAN is not separable: `mat = np.zeros((2, 2))`, `mat[:2, :2] = 1`, so `mat = [[1,1],[1,1]]`.
+  - returns `[[1,1],[1,1]]`.
+- `sepright = _separable(top.right)` = `_separable(cm)`.
+  - `cm` is a CompoundModel with op `&`.
+  - `sepleft = _separable(cm.left)` = `_separable(m.Linear1D(10))`.
+    - returns `_coord_matrix(m.Linear1D(10), 'left', 1)` = `[[1]]`.
+  - `sepright = _separable(cm.right)` = `_separable(m.Linear1D(5))`.
+    - returns `_coord_matrix(m.Linear1D(5), 'left', 1)` = `[[1]]`.
+  - returns `_cstack([[1]], [[1]])` = `[[1,0],[0,1]]`.
+- returns `_cstack([[1,1],[1,1]], [[1,0],[0,1]])`.
+
+Now `_cstack([[1,1],[1,1]], [[1,0],[0,1]])`:
+```python
+noutp = _compute_n_outputs(left, right)  # left.shape[0] + right.shape[0] = 2 + 2 = 4
+
+# left is an array (not Model)
+cleft = np.zeros((noutp, left.shape[1]))  # np.zeros((4, 2))
+cleft[: left.shape[0], : left.shape[1]] = left  # cleft[:2, :2] = [[1,1],[1,1]]
+# so cleft = [[1,1,0,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]]
+
+# right is an array (not Model)
+cright = np.zeros((noutp, right.shape[1]))  # np.zeros((4, 2))
+cright[-right.shape[0]:, -right.shape[1]:] = 1  # cright[-2:, -2:] = 1
+# so cright = [[0,0,0,0],[0,0,0,0],[1,1,1,1],[1,1,1,1]]
+
+return np.hstack([cleft, cright])
+# = [[1,1,0,0,0,0],[1,1,0,0,0,0],[0,0,0,0,1,1],[0,0,0,0,1,1]]
+```
+
+Wait, that gives a 4x4 matrix but with 6 columns? No wait. cleft is (4, 2) and cright is (4, 2). hstack gives (4, 4).
+
+cleft = [[1,1],[1,1],[0,0],[0,0]]
+cright = [[0,0],[0,0],[1,1],[1,1]]
+hstack = [[1,1,0,0],[1,1,0,0],[0,0,1,1],[0,0,1,1]]
+
+So the result is:
+```
+[[ True,  True, False, False],
+ [ True,  True, False, False],
+ [False, False,  True,  True],
+ [False, False,  True,  True]]
+```
+
+That matches the buggy output in the issue! The problem is that the inner `cm` coord_matrix `[[1,0],[0,1]]` is being placed in the bottom-right 2x2 block, but it should be placed correctly.
+
+Wait, actually the issue is that the inner `cm` has 2 inputs and 2 outputs. The coord_matrix for `cm` is `[[1,0],[0,1]]` which is 2x2. When this is stacked with the Pix2Sky_TAN part, the cright places it in the bottom-right.
+
+But the problem is the inner cm's coord_matrix `[[1,0],[0,1]]` represents the relationship between cm's 2 outputs and 2 inputs. The first output of cm depends on the first input of cm, and the second output depends on the second input of cm.
+
+But in the full model `Pix2Sky_TAN() & cm`, the inputs are: Pix2Sky_TAN's 2 inputs, then cm's 2 inputs. So 4 inputs total. The outputs are: Pix2Sky_TAN's 2 outputs, then cm's 2 outputs. So 4 outputs total.
+
+The coord_matrix should be:
+- Output 0 (Pix2Sky_TAN out 0) depends on inputs 0, 1 (Pix2Sky_TAN inputs)
+- Output 1 (Pix2Sky_TAN out 1) depends on inputs 0, 1
+- Output 2 (cm out 0 = Linear1D(10) out) depends on input 2 (cm input 0 = Linear1D(10) input)
+- Output 3 (cm out 1 = Linear1D(5) out) depends on input 3 (cm input 1 = Linear1D(5) input)
+
+So the correct matrix is:
+```
+[[ True,  True, False, False],
+ [ True,  True, False, False],
+ [False, False,  True, False],
+ [False, False, False,  True]]
+```
+
+But we're getting:
+```
+[[ True,  True, False, False],
+ [ True,  True, False, False],
+ [False, False,  True,  True],
+ [False, False,  True,  True]]
+```
+
+The issue is in how `_cstack` handles the right operand when it's already a coord_matrix (array) from a nested compound model.
+
+Let me look at `_cstack` again:
+
+```python
+def _cstack(left, right):
+    noutp = _compute_n_outputs(left, right)
+
+    if isinstance(left, Model):
+        cleft = _coord_matrix(left, 'left', noutp)
+    else:
+        cleft = np.zeros((noutp, left.shape[1]))
+        cleft[: left.shape[0], : left.shape[1]] = left
+    if isinstance(right, Model):
+        cright = _coord_matrix(right, 'right', noutp)
+    else:
+        cright = np.zeros((noutp, right.shape[1]))
+        cright[-right.shape[0]:, -right.shape[1]:] = 1
+
+    return np.hstack([cleft, cright])
+```
+
+When `right` is an array (the coord_matrix from the nested cm), the code does:
+```python
+cright = np.zeros((noutp, right.shape[1]))  # (4, 2)
+cright[-right.shape[0]:, -right.shape[1]:] = 1  # cright[-2:, -2:] = 1
+```
+
+This sets the bottom-right 2x2 block to all 1s, ignoring the actual content of `right` (which is `[[1,0],[0,1]]`)! That's the bug.
+
+When `right` is a Model, it calls `_coord_matrix(right, 'right', noutp)` which properly handles the model. But when `right` is an array (from a nested compound model), it just sets the bottom-right block to 1, losing the actual separability information.
+
+Similarly for `left`:
+```python
+cleft = np.zeros((noutp, left.shape[1]))
+cleft[: left.shape[0], : left.shape[1]] = left
+```
+
+This correctly copies the content of `left` into the top-left block. So the left side is handled correctly, but the right side is not.
+
+So the fix is to make the right side also copy the content of `right` into the bottom-right block, instead of just setting it to 1.
+
+Let me verify this. The correct behavior for `cright` when `right` is an array should be:
+```python
+cright = np.zeros((noutp, right.shape[1]))
+cright[-right.shape[0]:, -right.shape[1]:] = right
+```
+
+Wait, but we need to be careful. The `right` array has shape `(right.shape[0], right.shape[1])` = `(n_outputs_right, n_inputs_right)`. We want to place it in the bottom-right corner of a `(noutp, n_inputs_right)` matrix.
+
+Actually, let me think about this more carefully. The `right` coord_matrix represents the relationship between the right model's outputs and inputs. When we stack it with the left model, the right model's inputs are the last `n_inputs_right` inputs of the compound model, and the right model's outputs are the last `n_outputs_right` outputs.
+
+So we want to place the `right` matrix in the bottom-right block: rows `[-n_outputs_right:]` and columns `[-n_inputs_right:]`.
+
+The current code does:
+```python
+cright = np.zeros((noutp, right.shape[1]))
+cright[-right.shape[0]:, -right.shape[1]:] = 1
+```
+
+This sets the bottom-right block to 1, but it should be:
+```python
+cright = np.zeros((noutp, right.shape[1]))
+cright[-right.shape[0]:, -right.shape[1]:] = right
+```
+
+Wait, but `right.shape[1]` is `n_inputs_right`, and `right.shape[0]` is `n_outputs_right`. So `cright[-right.shape[0]:, -right.shape[1]:]` is the bottom-right `n_outputs_right x n_inputs_right` block. Setting it to `right` would correctly place the right matrix.
+
+Hmm, but wait. Let me reconsider. Actually, I need to think about whether the columns are aligned correctly.
+
+The `right` matrix has shape `(n_outputs_right, n_inputs_right)`. In the compound model, the right model's inputs correspond to the last `n_inputs_right` inputs. So the columns of the `right` matrix should map to the last `n_inputs_right` columns of the compound matrix.
+
+But actually, the `right` matrix's columns already represent the right model's inputs. When we place it in `cright[-n_outputs_right:, -n_inputs_right:]`, the columns of `right` map to columns `[-n_inputs_right:]` of `cright`, which is correct.
+
+Wait, but there's a subtlety. The `right` matrix might not have its non-zero entries only in the bottom-right. Let me think...
+
+Actually, for a simple model, `_coord_matrix` returns a matrix where the non-zero entries are in specific positions. For a separable model with pos='left', the matrix has 1s on the diagonal (mat[i,i]=1 for i in range(n_inputs)). For pos='right', it's rolled.
+
+But for a nested compound model, the coord_matrix returned by `_separable` could have a more complex structure.
+
+Let me think about the case where `right` is the nested `cm = Linear1D(10) & Linear1D(5)`. Its coord_matrix is `[[1,0],[0,1]]`. This is a 2x2 matrix. When placed in the compound `Pix2Sky_TAN() & cm`, the cm's inputs are inputs 2,3 and outputs are outputs 2,3. So we want:
+```
+cright = [[0,0],
+          [0,0],
+          [1,0],
+          [0,1]]
+```
+
+With the fix `cright[-2:, -2:] = right`, we get:
+```
+cright = [[0,0],
+          [0,0],
+          [1,0],
+          [0,1]]
+```
+
+That's correct!
+
+And `cleft` for Pix2Sky_TAN (which is `[[1,1],[1,1]]`):
+```
+cleft = [[1,1],
+         [1,1],
+         [0,0],
+         [0,0]]
+```
+
+hstack gives:
+```
+[[1,1,0,0],
+ [1,1,0,0],
+ [0,0,1,0],
+ [0,0,0,1]]
+```
+
+That's the correct answer!
+
+So the fix is to change:
+```python
+cright[-right.shape[0]:, -right.shape[1]:] = 1
+```
+to:
+```python
+cright[-right.shape[0]:, -right.shape[1]:] = right
+```
+
+Wait, but I need to be careful. Let me check the case where `right` is a simple Model vs an array.
+
+When `right` is a Model, `_coord_matrix(right, 'right', noutp)` is called. Let me trace through that for a simple separable model.
+
+For `m.Linear1D(5)` with pos='right', noutp=2 (in the context of `cm = Linear1D(10) & Linear1D(5)`):
+```python
+mat = np.zeros((2, 1))  # (noutp, n_inputs)
+for i in range(1):  # n_inputs = 1
+    mat[i, i] = 1  # mat[0, 0] = 1
+# mat = [[1], [0]]
+if pos == 'right':
+    mat = np.roll(mat, (noutp - model.n_outputs))  # roll by (2 - 1) = 1
+# mat = [[0], [1]]
+```
+
+So for a simple model with pos='right', the matrix is `[[0],[1]]` (2x1). This is then placed in the bottom-right of the compound matrix.
+
+Now in `_cstack`, when `right` is a Model:
+```python
+cright = _coord_matrix(right, 'right', noutp)
+```
+This returns a matrix of shape `(noutp, right.n_inputs)`. For Linear1D(5) with noutp=2, it returns `[[0],[1]]` (2x1).
+
+Then `np.hstack([cleft, cright])` combines them.
+
+OK so when `right` is a Model, `_coord_matrix` handles the rolling correctly. The issue is only when `right` is an array (from a nested compound model).
+
+Let me now check: when `right` is an array, what should happen?
+
+The `right` array is the coord_matrix of the right sub-model. It has shape `(n_outputs_right, n_inputs_right)`. We need to embed it in a `(noutp, n_inputs_right)` matrix, placing it in the bottom-right block.
+
+The current code:
+```python
+cright = np.zeros((noutp, right.shape[1]))
+cright[-right.shape[0]:, -right.shape[1]:] = 1
+```
+
+This creates a `(noutp, n_inputs_right)` matrix and sets the bottom-right `n_outputs_right x n_inputs_right` block to 1. But it should set it to `right` instead.
+
+So the fix:
+```python
+cright = np.zeros((noutp, right.shape[1]))
+cright[-right.shape[0]:, -right.shape[1]:] = right
+```
+
+Wait, but I need to double-check. Is `right.shape[0]` always equal to `n_outputs_right`? Yes, because the coord_matrix has shape `(n_outputs, n_inputs)`.
+
+And `right.shape[1]` is `n_inputs_right`. So `cright[-right.shape[0]:, -right.shape[1]:]` is the bottom-right `n_outputs_right x n_inputs_right` block, which is exactly where we want to place `right`.
+
+Hmm, but wait. There's a subtle issue. When `right` is a simple model's coord_matrix (not from a nested compound), the matrix might already be "rolled" or positioned correctly for the full noutp. Let me check.
+
+Actually no. When `right` is a simple Model, `_coord_matrix(right, 'right', noutp)` is called with the full `noutp`, so it returns a matrix of shape `(noutp, n_inputs_right)` that's already correctly positioned. The rolling happens inside `_coord_matrix`.
+
+But when `right` is an array (from a nested compound model), the array has shape `(n_outputs_right, n_inputs_right)`, NOT `(noutp, n_inputs_right)`. So we need to embed it.
+
+So the fix is correct: when `right` is an array, we should place its content in the bottom-right block, not just set it to 1.
+
+But wait, let me also check the `left` case. When `left` is an array:
+```python
+cleft = np.zeros((noutp, left.shape[1]))
+cleft[: left.shape[0], : left.shape[1]] = left
+```
+
+This correctly copies `left` into the top-left block. So the left case is already correct.
+
+Hmm, but actually, let me reconsider. Is the left case really correct? Let me think about a case where the left is a nested compound model.
+
+Consider `cm & Pix2Sky_TAN()` where `cm = Linear1D(10) & Linear1D(5)`.
+
+`_separable(cm & Pix2Sky_TAN())`:
+- It's a CompoundModel with op `&`.
+- `sepleft = _separable(cm)` = `[[1,0],[0,1]]` (2x2).
+- `sepright = _separable(Pix2Sky_TAN())` = `_coord_matrix(Pix2Sky_TAN(), 'left', 2)`.
+  - Pix2Sky_TAN has n_outputs=2, n_inputs=2.
+  - If not separable: `mat = np.zeros((2, 2))`, `mat[:2, :2] = 1`, so `mat = [[1,1],[1,1]]`.
+- returns `_cstack([[1,0],[0,1]], [[1,1],[1,1]])`.
+
+`_cstack([[1,0],[0,1]], [[1,1],[1,1]])`:
+```python
+noutp = 2 + 2 = 4
+
+# left is array
+cleft = np.zeros((4, 2))
+cleft[:2, :2] = [[1,0],[0,1]]
+# cleft = [[1,0,0,0],[0,1,0,0],[0,0,0,0],[0,0,0,0]]
+
+# right is array
+cright = np.zeros((4, 2))
+cright[-2:, -2:] = 1
+# cright = [[0,0,0,0],[0,0,0,0],[1,1,1,1],[1,1,1,1]]
+
+return np.hstack([cleft, cright])
+# = [[1,0,0,0],[0,1,0,0],[0,0,1,1],[0,0,1,1]]
+```
+
+So the result is:
+```
+[[ True, False, False, False],
+ [False,  True, False, False],
+ [False, False,  True,  True],
+ [False, False,  True,  True]]
+```
+
+But the correct answer should be:
+```
+[[ True, False, False, False],
+ [False,  True, False, False],
+ [False, False,  True,  True],
+ [False, False,  True,  True]]
+```
+
+Wait, that's actually correct! Because Pix2Sky_TAN is not separable, its outputs depend on all its inputs. So outputs 2,3 depend on inputs 2,3. That's correct.
+
+Hmm wait, but in this case the right side is `[[1,1],[1,1]]` which is all 1s, so setting it to 1 gives the same result. The bug only manifests when the right side has a non-trivial structure (like `[[1,0],[0,1]]`).
+
+So the bug is specifically when the right operand of `&` is a nested compound model with a non-trivial separability structure.
+
+Let me verify my fix handles this. With the fix:
+```python
+cright = np.zeros((4, 2))
+cright[-2:, -2:] = [[1,1],[1,1]]
+# cright = [[0,0,0,0],[0,0,0,0],[1,1,1,1],[1,1,1,1]]
+```
+
+Same result. Good.
+
+Now let me check the original buggy case again with the fix:
+`_cstack([[1,1],[1,1]], [[1,0],[0,1]])`:
+```python
+noutp = 4
+
+# left is array
+cleft = np.zeros((4, 2))
+cleft[:2, :2] = [[1,1],[1,1]]
+# cleft = [[1,1,0,0],[1,1,0,0],[0,0,0,0],[0,0,0,0]]
+
+# right is array (with fix)
+cright = np.zeros((4, 2))
+cright[-2:, -2:] = [[1,0],[0,1]]
+# cright = [[0,0,0,0],[0,0,0,0],[1,0,1,0],[0,1,0,1]]
+
+return np.hstack([cleft, cright])
+# = [[1,1,0,0,0,0],[1,1,0,0,0,0],[0,0,1,0,1,0],[0,0,0,1,0,1]]
+```
+
+Wait, that's 4x6, not 4x4! That's wrong.
+
+Hmm, let me reconsider. The issue is that `cleft` has shape `(4, 2)` (noutp=4, left.shape[1]=2) and `cright` has shape `(4, 2)` (noutp=4, right.shape[1]=2). hstack gives `(4, 4)`. 
+
+Wait, I made an error. Let me redo this.
+
+`cleft = np.zeros((4, 2))` - 4 rows, 2 columns.
+`cleft[:2, :2] = [[1,1],[1,1]]` - sets the top-left 2x2 block.
+So `cleft = [[1,1],[1,1],[0,0],[0,0]]` - 4 rows, 2 columns.
+
+`cright = np.zeros((4, 2))` - 4 rows, 2 columns.
+`cright[-2:, -2:] = [[1,0],[0,1]]` - sets the bottom-right 2x2 block.
+So `cright = [[0,0],[0,0],[1,0],[0,1]]` - 4 rows, 2 columns.
+
+`np.hstack([cleft, cright])` = `[[1,1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]]` - 4 rows, 4 columns.
+
+That's correct! I made an arithmetic error before. Let me redo:
+
+cleft:
+```
+[[1,1],
+ [1,1],
+ [0,0],
+ [0,0]]
+```
+
+cright:
+```
+[[0,0],
+ [0,0],
+ [1,0],
+ [0,1]]
+```
+
+hstack:
+```
+[[1,1,0,0],
+ [1,1,0,0],
+ [0,0,1,0],
+ [0,0,0,1]]
+```
+
+Yes! That's the correct answer. 
+
+So the fix is to change line 245 from:
+```python
+cright[-right.shape[0]:, -right.shape[1]:] = 1
+```
+to:
+```python
+cright[-right.shape[0]:, -right.shape[1]:] = right
+```
+
+Wait, but I should double-check. Let me re-read the `_cstack` function:
+
+```python
+def _cstack(left, right):
+    noutp = _compute_n_outputs(left, right)
+
+    if isinstance(left, Model):
+        cleft = _coord_matrix(left, 'left', noutp)
+    else:
+        cleft = np.zeros((noutp, left.shape[1]))
+        cleft[: left.shape[0], : left.shape[1]] = left
+    if isinstance(right, Model):
+        cright = _coord_matrix(right, 'right', noutp)
+    else:
+        cright = np.zeros((noutp, right.shape[1]))
+        cright[-right.shape[0]:, -right.shape[1]:] = 1
+
+    return np.hstack([cleft, cright])
+```
+
+Yes, the fix is on line 245. Change `= 1` to `= right`.
+
+But wait, I need to make sure this doesn't break the case where `right` is a simple model's coord_matrix that was already computed with the full noutp. Let me check.
+
+When is `right` an array in `_cstack`? It's when `_separable(transform.right)` returns an array. This happens when `transform.right` is a CompoundModel (recursively computed) or a simple Model (via `_coord_matrix`).
+
+Wait, for a simple Model, `_separable` returns `_coord_matrix(transform, 'left', transform.n_outputs)`. This has shape `(transform.n_outputs, transform.n_inputs)`, NOT `(noutp, ...)`. So it's a "local" coord_matrix, not embedded in the full noutp.
+
+Hmm, but then in `_cstack`, when `right` is a simple Model, it goes through the `isinstance(right, Model)` branch and calls `_coord_matrix(right, 'right', noutp)`, which embeds it correctly.
+
+When `right` is an array (from a nested CompoundModel), it goes through the `else` branch. The array has shape `(n_outputs_right, n_inputs_right)`. We need to embed it in the bottom-right of a `(noutp, n_inputs_right)` matrix.
+
+So the fix is correct. Let me also check: could `right` be an array from a simple Model? No, because for a simple Model, `_separable` returns `_coord_matrix(transform, 'left', transform.n_outputs)`, and in `_cstack`, the `isinstance(right, Model)` check would catch it first... 
+
+Wait, no. `_separable` returns the result of `_coord_matrix`, which is an array, not a Model. So when `_cstack` is called with the result of `_separable(transform.right)`, if `transform.right` is a simple Model, `_separable` returns an array (the coord_matrix). Then in `_cstack`, `isinstance(right, Model)` is False (it's an array), so it goes to the `else` branch.
+
+Hmm, so actually, for a simple Model on the right side, `_separable` returns `_coord_matrix(model, 'left', model.n_outputs)`, which is a local matrix of shape `(n_outputs, n_inputs)`. Then `_cstack` treats it as an array and embeds it.
+
+Let me trace through `Linear1D(10) & Linear1D(5)` again with this understanding.
+
+`_separable(Linear1D(10) & Linear1D(5))`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(Linear1D(10))` = `_coord_matrix(Linear1D(10), 'left', 1)`.
+  - Linear1D is separable (it's a linear model).
+  - `mat = np.zeros((1, 1))`, `mat[0, 0] = 1`, so `mat = [[1]]`.
+  - pos='left', so no roll.
+  - returns `[[1]]`.
+- `sepright = _separable(Linear1D(5))` = `_coord_matrix(Linear1D(5), 'left', 1)` = `[[1]]`.
+- returns `_cstack([[1]], [[1]])`.
+
+`_cstack([[1]], [[1]])`:
+```python
+noutp = 1 + 1 = 2
+
+# left is array
+cleft = np.zeros((2, 1))
+cleft[:1, :1] = [[1]]
+# cleft = [[1], [0]]
+
+# right is array
+cright = np.zeros((2, 1))
+cright[-1:, -1:] = 1  # (with current code)
+# cright = [[0], [1]]
+
+# (with fix) cright[-1:, -1:] = [[1]]
+# cright = [[0], [1]]
+
+return np.hstack([cleft, cright])
+# = [[1, 0], [0, 1]]
+```
+
+OK so for this case, both the current code and the fix give the same result because `right` is `[[1]]` (all 1s in the 1x1 block).
+
+Now let me check a case where the right side is a simple non-separable model. Consider `Rotation2D(2) & Linear1D(5)` (just as an example).
+
+Actually, let me think about when the right side is a simple model that's NOT separable. For example, `Mapping([0, 1, 0, 1])`.
+
+Hmm, actually, let me think about a case where the right side is a simple model with n_inputs > 1 and not separable.
+
+Consider `Shift(1) & Rotation2D(2)`. Rotation2D has n_inputs=2, n_outputs=2, and is not separable.
+
+`_separable(Shift(1) & Rotation2D(2))`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(Shift(1))` = `_coord_matrix(Shift(1), 'left', 1)`.
+  - Shift is separable.
+  - `mat = np.zeros((1, 1))`, `mat[0, 0] = 1`, so `mat = [[1]]`.
+  - returns `[[1]]`.
+- `sepright = _separable(Rotation2D(2))` = `_coord_matrix(Rotation2D(2), 'left', 2)`.
+  - Rotation2D is not separable.
+  - `mat = np.zeros((2, 2))`, `mat[:2, :2] = 1`, so `mat = [[1,1],[1,1]]`.
+  - returns `[[1,1],[1,1]]`.
+- returns `_cstack([[1]], [[1,1],[1,1]])`.
+
+`_cstack([[1]], [[1,1],[1,1]])`:
+```python
+noutp = 1 + 2 = 3
+
+# left is array
+cleft = np.zeros((3, 1))
+cleft[:1, :1] = [[1]]
+# cleft = [[1], [0], [0]]
+
+# right is array
+cright = np.zeros((3, 2))
+cright[-2:, -2:] = 1  # (current code)
+# cright = [[0,0], [1,1], [1,1]]
+
+# (with fix) cright[-2:, -2:] = [[1,1],[1,1]]
+# cright = [[0,0], [1,1], [1,1]]
+
+return np.hstack([cleft, cright])
+# = [[1,0,0], [0,1,1], [0,1,1]]
+```
+
+Both give the same result because `right` is all 1s.
+
+Now, the key question: is there a case where `right` is an array with a non-trivial structure (not all 1s) AND the current code gives a wrong answer?
+
+Yes! The nested compound model case. When `right` is a nested CompoundModel like `cm = Linear1D(10) & Linear1D(5)`, its coord_matrix is `[[1,0],[0,1]]`, which has a non-trivial structure. The current code sets the bottom-right block to 1, losing the structure.
+
+But wait, could `right` be a simple model with a non-trivial coord_matrix? Let me think...
+
+For a simple separable model with n_inputs > 1, like `Polynomial2D(1) & ...` no wait, that's compound.
+
+Actually, for a simple model, `_coord_matrix` with pos='left' and noutp=model.n_outputs gives:
+- If separable: `mat[i,i] = 1` for i in range(n_inputs). So it's a diagonal matrix (if n_inputs == n_outputs).
+- If not separable: all 1s in the top-left block.
+
+For a simple model with n_inputs == n_outputs and separable, the coord_matrix is a diagonal matrix. So if such a model is on the right side of `&`, the current code would set the bottom-right block to 1 instead of the diagonal.
+
+Wait, but can a simple model with n_inputs > 1 be separable? Let me check. A model is separable if its outputs are independent. For a simple model like `Polynomial2D`, it's not separable (outputs depend on multiple inputs). For `Shift & Scale`, that's a compound model.
+
+Hmm, actually, let me check what models are separable. Let me look at the `separable` property.
+
+Actually, let me just check: is there a simple (non-compound) model with n_inputs > 1 that is separable?
+
+Let me think... `Mapping` is handled separately. For other models, `separable` is typically False for models with n_inputs > 1 (like Rotation2D, Polynomial2D, etc.).
+
+Actually, I recall that in astropy, most simple models with n_inputs > 1 are not separable. The separable ones are things like `Shift`, `Scale`, `Linear1D` which have n_inputs=1.
+
+But wait, there might be cases. Let me check the `separable` property of models.
+
+Actually, let me just focus on the fix. The issue is clear: when `right` is an array (from a nested compound model), the current code sets the bottom-right block to 1 instead of using the actual content of `right`. The fix is to use `right` instead of `1`.
+
+But I need to make sure this doesn't break existing tests. Let me check if there are cases where `right` is an array with all 1s in the bottom-right block, where the fix would give the same result. Yes, as I showed above, for non-separable simple models, the coord_matrix is all 1s, so the fix gives the same result.
+
+The only case where the fix changes behavior is when `right` is an array with a non-trivial structure (not all 1s in the bottom-right block). This happens for nested compound models with separable sub-models.
+
+Let me also check the `_cdot` function (for `|` operator) to see if it has a similar issue.
+
+```python
+def _cdot(left, right):
+    left, right = right, left
+
+    def _n_inputs_outputs(input, position):
+        if isinstance(input, Model):
+            coords = _coord_matrix(input, position, input.n_outputs)
+        else:
+            coords = input
+        return coords
+
+    cleft = _n_inputs_outputs(left, 'left')
+    cright = _n_inputs_outputs(right, 'right')
+
+    try:
+        result = np.dot(cleft, cright)
+    except ValueError:
+        raise ModelDefinitionError(...)
+    return result
+```
+
+Here, `left` and `right` are swapped (because `|` is right-to-left). Then `cleft` is computed with pos='left' and `cright` with pos='right'. For arrays, they're used directly. Then `np.dot(cleft, cright)` is computed.
+
+This seems different. The `_cdot` function uses `np.dot` which combines the matrices. Let me think about whether this has a similar issue.
+
+Actually, for the `|` operator, the coord_matrices are combined via matrix multiplication, which naturally handles the composition. So I don't think `_cdot` has the same issue.
+
+But wait, let me think about a nested compound model with `|`. Consider `(Shift(1) | Scale(2)) | (Shift(3) | Scale(4))`.
+
+Hmm, this is getting complex. Let me focus on the `&` operator fix first, and then check if `|` has a similar issue.
+
+Actually, let me re-examine the `_cstack` function more carefully. The issue is specifically in the `else` branch for `right`:
+
+```python
+else:
+    cright = np.zeros((noutp, right.shape[1]))
+    cright[-right.shape[0]:, -right.shape[1]:] = 1
+```
+
+The fix:
+```python
+else:
+    cright = np.zeros((noutp, right.shape[1]))
+    cright[-right.shape[0]:, -right.shape[1]:] = right
+```
+
+Wait, but I need to be more careful. The `right` array has shape `(right.shape[0], right.shape[1])`. We're creating `cright` with shape `(noutp, right.shape[1])`. The bottom-right block is `cright[-right.shape[0]:, -right.shape[1]:]`, which has shape `(right.shape[0], right.shape[1])`. So assigning `right` to it is correct in terms of shape.
+
+But is the positioning correct? The `right` array represents the coord_matrix of the right sub-model. Its rows correspond to the right sub-model's outputs, and its columns correspond to the right sub-model's inputs. In the compound model, the right sub-model's outputs are the last `right.shape[0]` outputs, and its inputs are the last `right.shape[1]` inputs. So placing `right` in the bottom-right block is correct.
+
+Actually wait, I need to think about this more carefully. The `right` array from a nested compound model - does it already account for the full noutp, or is it a "local" matrix?
+
+Let me trace through `_separable(cm)` where `cm = Linear1D(10) & Linear1D(5)`:
+- `_separable(cm)` calls `_cstack(_separable(Linear1D(10)), _separable(Linear1D(5)))`.
+- `_separable(Linear1D(10))` = `_coord_matrix(Linear1D(10), 'left', 1)` = `[[1]]` (1x1).
+- `_separable(Linear1D(5))` = `_coord_matrix(Linear1D(5), 'left', 1)` = `[[1]]` (1x1).
+- `_cstack([[1]], [[1]])`:
+  - noutp = 2.
+  - cleft = `[[1], [0]]` (2x1).
+  - cright = `[[0], [1]]` (2x1).
+  - hstack = `[[1, 0], [0, 1]]` (2x2).
+
+So `_separable(cm)` returns `[[1, 0], [0, 1]]` (2x2). This is a "local" matrix for cm, with shape `(cm.n_outputs, cm.n_inputs)` = `(2, 2)`.
+
+Now, when this is used as `right` in the outer `_cstack`:
+- `right` = `[[1, 0], [0, 1]]` (2x2).
+- noutp = 4 (Pix2Sky_TAN has 2 outputs, cm has 2 outputs).
+- cright = `np.zeros((4, 2))`.
+- With fix: `cright[-2:, -2:] = [[1, 0], [0, 1]]`.
+- cright = `[[0, 0], [0, 0], [1, 0], [0, 1]]` (4x2).
+
+This is correct! The cm's outputs (rows 2,3) depend on cm's inputs (columns 0,1 of cright, which correspond to inputs 2,3 of the compound model).
+
+And cleft for Pix2Sky_TAN:
+- Pix2Sky_TAN is a simple Model, so `_separable` returns `_coord_matrix(Pix2Sky_TAN, 'left', 2)` = `[[1,1],[1,1]]` (2x2, since not separable).
+- In `_cstack`, `left` = `[[1,1],[1,1]]` (2x2).
+- cleft = `np.zeros((4, 2))`.
+- `cleft[:2, :2] = [[1,1],[1,1]]`.
+- cleft = `[[1,1],[1,1],[0,0],[0,0]]` (4x2).
+
+hstack = `[[1,1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]]` (4x4). Correct!
+
+Great, so the fix works. Let me now also think about whether there could be issues with the `left` side.
+
+For the `left` side, the current code is:
+```python
+cleft = np.zeros((noutp, left.shape[1]))
+cleft[: left.shape[0], : left.shape[1]] = left
+```
+
+This copies `left` into the top-left block. This is correct because the left sub-model's outputs are the first `left.shape[0]` outputs, and its inputs are the first `left.shape[1]` inputs.
+
+But wait, is this always correct? What if `left` is a nested compound model whose coord_matrix has non-zero entries outside the top-left block?
+
+Hmm, for a nested compound model on the left side, the coord_matrix should have non-zero entries only in the top-left block (corresponding to the left sub-model's outputs and inputs). Let me verify.
+
+Consider `cm & Pix2Sky_TAN()` where `cm = Linear1D(10) & Linear1D(5)`.
+
+`_separable(cm & Pix2Sky_TAN())`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(cm)` = `[[1,0],[0,1]]` (2x2).
+- `sepright = _separable(Pix2Sky_TAN())` = `[[1,1],[1,1]]` (2x2).
+- `_cstack([[1,0],[0,1]], [[1,1],[1,1]])`:
+  - noutp = 4.
+  - cleft = `np.zeros((4, 2))`, `cleft[:2, :2] = [[1,0],[0,1]]`.
+  - cleft = `[[1,0],[0,1],[0,0],[0,0]]` (4x2).
+  - cright = `np.zeros((4, 2))`, `cright[-2:, -2:] = [[1,1],[1,1]]` (with fix).
+  - cright = `[[0,0],[0,0],[1,1],[1,1]]` (4x2).
+  - hstack = `[[1,0,0,0],[0,1,0,0],[0,0,1,1],[0,0,1,1]]` (4x4).
+
+The correct answer:
+- Output 0 (cm out 0 = Linear1D(10) out) depends on input 0 (cm input 0 = Linear1D(10) input).
+- Output 1 (cm out 1 = Linear1D(5) out) depends on input 1 (cm input 1 = Linear1D(5) input).
+- Output 2 (Pix2Sky_TAN out 0) depends on inputs 2, 3 (Pix2Sky_TAN inputs).
+- Output 3 (Pix2Sky_TAN out 1) depends on inputs 2, 3.
+
+So the correct matrix is:
+```
+[[ True, False, False, False],
+ [False,  True, False, False],
+ [False, False,  True,  True],
+ [False, False,  True,  True]]
+```
+
+And we get exactly that. 
+
+Now, what about the `left` side when it's a nested compound model with a more complex structure? Let me think of a case where the left sub-model's coord_matrix has non-zero entries that don't fit in the top-left block.
+
+Actually, for the `&` operator, the left sub-model's outputs are always the first `n_outputs_left` outputs, and its inputs are always the first `n_inputs_left` inputs. So the coord_matrix for the left sub-model should have non-zero entries only in the top-left `n_outputs_left x n_inputs_left` block. This is guaranteed by how `_coord_matrix` and `_cstack` work.
+
+Wait, but what about the `|` operator? For `|`, the inputs and outputs are shared. Let me think...
+
+Actually, for the `|` operator, `_separable` calls `_cdot`, which uses `np.dot`. The coord_matrices for `|` are different because the inputs are shared.
+
+Let me not worry about `|` for now and focus on the `&` fix. Let me also check if there are similar issues in `_cdot`.
+
+Actually, let me re-examine `_cdot`:
+
+```python
+def _cdot(left, right):
+    left, right = right, left
+
+    def _n_inputs_outputs(input, position):
+        if isinstance(input, Model):
+            coords = _coord_matrix(input, position, input.n_outputs)
+        else:
+            coords = input
+        return coords
+
+    cleft = _n_inputs_outputs(left, 'left')
+    cright = _n_inputs_outputs(right, 'right')
+
+    try:
+        result = np.dot(cleft, cright)
+    except ValueError:
+        raise ModelDefinitionError(...)
+    return result
+```
+
+Here, `left` and `right` are swapped. So `cleft` is computed from the original `right` (with pos='left'), and `cright` is computed from the original `left` (with pos='right').
+
+For arrays, they're used directly. Then `np.dot(cleft, cright)` is computed.
+
+The `np.dot` combines the matrices: if `cleft` has shape `(a, b)` and `cright` has shape `(b, c)`, the result has shape `(a, c)`.
+
+For the `|` operator, the left model's outputs become the right model's inputs. So the coord_matrix of the left model has shape `(n_outputs_left, n_inputs_left)`, and the coord_matrix of the right model has shape `(n_outputs_right, n_inputs_right)`. For `|` to be valid, `n_outputs_left == n_inputs_right`.
+
+After swapping, `cleft` (from original right) has shape `(n_outputs_right, n_inputs_right)`, and `cright` (from original left) has shape `(n_outputs_left, n_inputs_left)`. For `np.dot` to work, `n_inputs_right == n_outputs_left`, which is the same condition.
+
+The result has shape `(n_outputs_right, n_inputs_left)`, which is the shape of the compound model's coord_matrix.
+
+Now, for nested compound models with `|`, the coord_matrices are computed recursively. Let me think about whether there's an issue.
+
+Consider `(Shift(1) | Scale(2)) | (Shift(3) | Scale(4))`.
+
+`_separable((Shift(1) | Scale(2)) | (Shift(3) | Scale(4)))`:
+- CompoundModel with op `|`.
+- `sepleft = _separable(Shift(1) | Scale(2))`:
+  - CompoundModel with op `|`.
+  - `sepleft = _separable(Shift(1))` = `_coord_matrix(Shift(1), 'left', 1)` = `[[1]]`.
+  - `sepright = _separable(Scale(2))` = `_coord_matrix(Scale(2), 'left', 1)` = `[[1]]`.
+  - `_cdot([[1]], [[1]])`:
+    - Swap: left=`[[1]]`, right=`[[1]]`.
+    - cleft = `[[1]]` (array, used directly).
+    - cright = `[[1]]` (array, used directly).
+    - np.dot = `[[1]]`.
+  - returns `[[1]]`.
+- `sepright = _separable(Shift(3) | Scale(4))` = `[[1]]` (similar).
+- `_cdot([[1]], [[1]])`:
+  - Swap: left=`[[1]]`, right=`[[1]]`.
+  - cleft = `[[1]]`.
+  - cright = `[[1]]`.
+  - np.dot = `[[1]]`.
+- returns `[[1]]`.
+
+OK, that's a trivial case. Let me think of a more complex case.
+
+Consider `(Shift(1) & Shift(2)) | Rotation2D(2)`.
+
+`_separable((Shift(1) & Shift(2)) | Rotation2D(2))`:
+- CompoundModel with op `|`.
+- `sepleft = _separable(Shift(1) & Shift(2))`:
+  - CompoundModel with op `&`.
+  - `sepleft = _separable(Shift(1))` = `[[1]]`.
+  - `sepright = _separable(Shift(2))` = `[[1]]`.
+  - `_cstack([[1]], [[1]])` = `[[1,0],[0,1]]`.
+  - returns `[[1,0],[0,1]]` (2x2).
+- `sepright = _separable(Rotation2D(2))` = `_coord_matrix(Rotation2D(2), 'left', 2)` = `[[1,1],[1,1]]` (2x2, not separable).
+- `_cdot([[1,0],[0,1]], [[1,1],[1,1]])`:
+  - Swap: left=`[[1,1],[1,1]]`, right=`[[1,0],[0,1]]`.
+  - cleft = `[[1,1],[1,1]]` (array, used directly).
+  - cright = `[[1,0],[0,1]]` (array, used directly).
+  - np.dot(`[[1,1],[1,1]]`, `[[1,0],[0,1]]`) = `[[1,1],[1,1]]`.
+  - returns `[[1,1],[1,1]]`.
+
+The correct answer: `(Shift(1) & Shift(2))` has 2 outputs that depend on inputs 0 and 1 respectively. `Rotation2D(2)` takes these 2 outputs as inputs and produces 2 outputs that depend on both. So the compound model has 2 inputs and 2 outputs, and both outputs depend on both inputs. The matrix should be `[[1,1],[1,1]]`. Correct!
+
+Now let me think about a nested `|` case that might have an issue.
+
+Consider `(Shift(1) | Scale(2)) & (Shift(3) | Scale(4))`.
+
+`_separable((Shift(1) | Scale(2)) & (Shift(3) | Scale(4)))`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(Shift(1) | Scale(2))` = `[[1]]` (1x1, as computed above).
+- `sepright = _separable(Shift(3) | Scale(4))` = `[[1]]` (1x1).
+- `_cstack([[1]], [[1]])` = `[[1,0],[0,1]]` (2x2).
+
+Correct! Each output depends on its own input.
+
+Now, what about a case where the right side of `&` is a nested `|` compound model with a non-trivial structure?
+
+Consider `Shift(1) & (Shift(2) | Scale(3))`.
+
+`_separable(Shift(1) & (Shift(2) | Scale(3)))`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(Shift(1))` = `[[1]]` (1x1).
+- `sepright = _separable(Shift(2) | Scale(3))`:
+  - CompoundModel with op `|`.
+  - `sepleft = _separable(Shift(2))` = `[[1]]`.
+  - `sepright = _separable(Scale(3))` = `[[1]]`.
+  - `_cdot([[1]], [[1]])` = `[[1]]` (1x1).
+  - returns `[[1]]`.
+- `_cstack([[1]], [[1]])` = `[[1,0],[0,1]]` (2x2).
+
+Correct!
+
+Now, what about `Shift(1) & (Shift(2) & Shift(3))`? This is the nested `&` case.
+
+`_separable(Shift(1) & (Shift(2) & Shift(3)))`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(Shift(1))` = `[[1]]` (1x1).
+- `sepright = _separable(Shift(2) & Shift(3))`:
+  - CompoundModel with op `&`.
+  - `sepleft = _separable(Shift(2))` = `[[1]]`.
+  - `sepright = _separable(Shift(3))` = `[[1]]`.
+  - `_cstack([[1]], [[1]])` = `[[1,0],[0,1]]` (2x2).
+  - returns `[[1,0],[0,1]]`.
+- `_cstack([[1]], [[1,0],[0,1]])`:
+  - noutp = 1 + 2 = 3.
+  - cleft = `np.zeros((3, 1))`, `cleft[:1, :1] = [[1]]`.
+  - cleft = `[[1], [0], [0]]` (3x1).
+  - cright = `np.zeros((3, 2))`.
+  - Current code: `cright[-2:, -2:] = 1` → `cright = [[0,0], [1,1], [1,1]]` (3x2).
+  - Fix: `cright[-2:, -2:] = [[1,0],[0,1]]` → `cright = [[0,0], [1,0], [0,1]]` (3x2).
+  - hstack (current): `[[1,0,0], [0,1,1], [0,1,1]]` (3x3).
+  - hstack (fix): `[[1,0,0], [0,1,0], [0,0,1]]` (3x3).
+
+The correct answer: `Shift(1) & (Shift(2) & Shift(3))` has 3 inputs and 3 outputs. Output 0 depends on input 0, output 1 depends on input 1, output 2 depends on input 2. So the matrix should be diagonal: `[[1,0,0], [0,1,0], [0,0,1]]`.
+
+The current code gives `[[1,0,0], [0,1,1], [0,1,1]]`, which is wrong! The fix gives the correct diagonal.
+
+So the fix is definitely needed. Let me now also check the `_cdot` function for similar issues with nested compound models.
+
+Actually, let me think about whether `_cdot` has a similar issue. In `_cdot`, arrays are used directly in `np.dot`. The issue in `_cstack` was that the array content was being ignored (set to 1). In `_cdot`, the array content is used directly, so there's no such issue.
+
+But wait, let me think more carefully. In `_cdot`, when `right` (after swap) is an array, it's used directly as `cright`. But `cright` should have shape `(n_outputs_left, n_inputs_left)` for the dot product to work. If `right` is a nested compound model's coord_matrix, it has shape `(n_outputs_right, n_inputs_right)`. After the swap, `right` is the original `left`. So `cright` = original left's coord_matrix, which has shape `(n_outputs_left, n_inputs_left)`. And `cleft` = original right's coord_matrix, which has shape `(n_outputs_right, n_inputs_right)`. For `np.dot(cleft, cright)` to work, `n_inputs_right == n_outputs_left`, which is the condition for `|` to be valid.
+
+So `_cdot` uses the arrays directly, which is correct. No issue there.
+
+But wait, there's a subtlety. In `_cdot`, when the input is a Model, `_coord_matrix` is called with `input.n_outputs` as `noutp`. This means the coord_matrix has shape `(n_outputs, n_inputs)`, which is the "local" shape. But for the `|` operator, the coord_matrix should account for the shared inputs/outputs.
+
+Hmm, let me think about this more carefully. For the `|` operator, the left model's outputs are the right model's inputs. So the coord_matrix of the left model has shape `(n_outputs_left, n_inputs_left)`, and the coord_matrix of the right model has shape `(n_outputs_right, n_inputs_right)` where `n_inputs_right == n_outputs_left`.
+
+The compound model's coord_matrix should have shape `(n_outputs_right, n_inputs_left)`. And `np.dot(cleft, cright)` where `cleft` has shape `(n_outputs_right, n_inputs_right)` and `cright` has shape `(n_outputs_left, n_inputs_left)` gives shape `(n_outputs_right, n_inputs_left)`. Correct!
+
+But wait, in `_cdot`, `cleft` is computed from the original `right` (after swap), and `cright` is computed from the original `left` (after swap). Let me re-read:
+
+```python
+def _cdot(left, right):
+    left, right = right, left  # swap
+
+    cleft = _n_inputs_outputs(left, 'left')  # original right, pos='left'
+    cright = _n_inputs_outputs(right, 'right')  # original left, pos='right'
+
+    result = np.dot(cleft, cright)
+```
+
+So `cleft` = coord_matrix of original right (pos='left'), shape `(n_outputs_right, n_inputs_right)`.
+`cright` = coord_matrix of original left (pos='right'), shape `(n_outputs_left, n_inputs_left)`.
+
+`np.dot(cleft, cright)` = shape `(n_outputs_right, n_inputs_left)`. Correct!
+
+For arrays, they're used directly. So if the original right is a nested compound model, its coord_matrix (shape `(n_outputs_right, n_inputs_right)`) is used as `cleft`. And if the original left is a nested compound model, its coord_matrix (shape `(n_outputs_left, n_inputs_left)`) is used as `cright`. The dot product combines them correctly.
+
+So `_cdot` doesn't have the same issue as `_cstack`. Good.
+
+Now, let me also think about whether there's an issue with the `left` side of `_cstack`. I showed earlier that the `left` side correctly copies the array content. But let me think about a case where the left side is a nested compound model with a non-trivial structure.
+
+Consider `(Shift(1) & Shift(2)) & Shift(3)`.
+
+`_separable((Shift(1) & Shift(2)) & Shift(3))`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(Shift(1) & Shift(2))` = `[[1,0],[0,1]]` (2x2).
+- `sepright = _separable(Shift(3))` = `[[1]]` (1x1).
+- `_cstack([[1,0],[0,1]], [[1]])`:
+  - noutp = 2 + 1 = 3.
+  - cleft = `np.zeros((3, 2))`, `cleft[:2, :2] = [[1,0],[0,1]]`.
+  - cleft = `[[1,0],[0,1],[0,0]]` (3x2).
+  - cright = `np.zeros((3, 1))`.
+  - Current code: `cright[-1:, -1:] = 1` → `cright = [[0], [0], [1]]` (3x1).
+  - Fix: `cright[-1:, -1:] = [[1]]` → `cright = [[0], [0], [1]]` (3x1).
+  - hstack: `[[1,0,0], [0,1,0], [0,0,1]]` (3x3).
+
+Both give the same result because `right` is `[[1]]` (all 1s in 1x1 block). Correct!
+
+Now consider `(Shift(1) & Shift(2)) & (Shift(3) & Shift(4))`.
+
+`_separable((Shift(1) & Shift(2)) & (Shift(3) & Shift(4)))`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(Shift(1) & Shift(2))` = `[[1,0],[0,1]]` (2x2).
+- `sepright = _separable(Shift(3) & Shift(4))` = `[[1,0],[0,1]]` (2x2).
+- `_cstack([[1,0],[0,1]], [[1,0],[0,1]])`:
+  - noutp = 2 + 2 = 4.
+  - cleft = `np.zeros((4, 2))`, `cleft[:2, :2] = [[1,0],[0,1]]`.
+  - cleft = `[[1,0],[0,1],[0,0],[0,0]]` (4x2).
+  - cright = `np.zeros((4, 2))`.
+  - Current code: `cright[-2:, -2:] = 1` → `cright = [[0,0],[0,0],[1,1],[1,1]]` (4x2).
+  - Fix: `cright[-2:, -2:] = [[1,0],[0,1]]` → `cright = [[0,0],[0,0],[1,0],[0,1]]` (4x2).
+  - hstack (current): `[[1,0,0,0], [0,1,0,0], [0,0,1,1], [0,0,1,1]]` (4x4).
+  - hstack (fix): `[[1,0,0,0], [0,1,0,0], [0,0,1,0], [0,0,0,1]]` (4x4).
+
+The correct answer is the diagonal. The current code gives a wrong answer (bottom-right 2x2 block is all 1s), and the fix gives the correct diagonal.
+
+So the fix is needed for both left and right sides... wait, no. The left side already correctly copies the array content. Let me re-check.
+
+For the left side:
+```python
+cleft = np.zeros((noutp, left.shape[1]))
+cleft[: left.shape[0], : left.shape[1]] = left
+```
+
+This copies `left` into the top-left block. So for `left = [[1,0],[0,1]]`, `cleft[:2, :2] = [[1,0],[0,1]]`, which is correct.
+
+For the right side:
+```python
+cright = np.zeros((noutp, right.shape[1]))
+cright[-right.shape[0]:, -right.shape[1]:] = 1
+```
+
+This sets the bottom-right block to 1, ignoring `right`'s content. The fix changes this to `= right`.
+
+So the fix is only needed for the right side. The left side is already correct.
+
+Let me now implement the fix and test it.
+
+Actually, wait. Let me also consider the case where `right` is a simple Model (not an array). In that case, `_coord_matrix(right, 'right', noutp)` is called, which handles the positioning correctly. So the fix only affects the case where `right` is an array.
+
+But there's a question: when `right` is a simple Model, `_separable` returns `_coord_matrix(model, 'left', model.n_outputs)`, which is an array. So in `_cstack`, `right` is an array, not a Model. The `isinstance(right, Model)` check is False, so it goes to the `else` branch.
+
+Wait, that means for a simple Model on the right side, the current code also has the issue! Let me check.
+
+For `Shift(1) & Rotation2D(2)`:
+- `sepright = _separable(Rotation2D(2))` = `_coord_matrix(Rotation2D(2), 'left', 2)` = `[[1,1],[1,1]]` (2x2, not separable).
+- In `_cstack`, `right` = `[[1,1],[1,1]]` (array).
+- `cright = np.zeros((3, 2))`, `cright[-2:, -2:] = 1` → `cright = [[0,0], [1,1], [1,1]]`.
+- With fix: `cright[-2:, -2:] = [[1,1],[1,1]]` → `cright = [[0,0], [1,1], [1,1]]`.
+
+Same result because `right` is all 1s. So for non-separable simple models, the fix doesn't change anything.
+
+But what about a separable simple model with n_inputs > 1? Are there any?
+
+Let me check. A simple model is separable if its outputs are independent. For a model with n_inputs > 1, this would mean each output depends on only one input. 
+
+Hmm, I think `Mapping` is the main case, but it's handled separately in `_coord_matrix`. For other models, I believe most simple models with n_inputs > 1 are not separable.
+
+But actually, let me check. What about `AffineTransformation1D`? No, that has n_inputs=1. What about `Rotation2D`? It's not separable.
+
+Actually, I think the key insight is: for a simple model with n_inputs > 1, if it's separable, its coord_matrix would be a diagonal matrix (mat[i,i]=1). But I'm not sure if such models exist in astropy.
+
+Let me check by looking at the `separable` property.
+
+Actually, let me just check if there are any simple models with n_inputs > 1 that are separable. Let me search the codebase.
+
+Actually, let me just focus on the fix and run the tests. The fix is clearly correct for the nested compound model case, and it doesn't change behavior for non-separable models (where the coord_matrix is all 1s).
+
+Let me also think about edge cases. What if `right` has shape `(0, 0)` or something weird? That shouldn't happen in practice.
+
+What if `right.shape[0]` is 0? Then `cright[-0:, -0:]` would be `cright[0:, 0:]` which is the whole array. But this shouldn't happen.
+
+OK, let me implement the fix.
+
+Actually, wait. Let me reconsider. I want to make sure the fix is correct for all cases. Let me think about what `right` looks like when it's an array.
+
+`right` is the result of `_separable(transform.right)`. This is either:
+1. `_coord_matrix(model, 'left', model.n_outputs)` for a simple Model. Shape: `(model.n_outputs, model.n_inputs)`.
+2. The result of `_cstack` or `_cdot` for a CompoundModel. Shape: `(n_outputs, n_inputs)` of the compound model.
+
+In both cases, `right` has shape `(n_outputs_right, n_inputs_right)`, where `n_outputs_right` and `n_inputs_right` are the number of outputs and inputs of the right sub-model.
+
+In `_cstack`, we want to embed `right` in the bottom-right block of a `(noutp, n_inputs_right)` matrix. The bottom-right block has shape `(n_outputs_right, n_inputs_right)`, which matches `right`'s shape. So the assignment `cright[-right.shape[0]:, -right.shape[1]:] = right` is correct.
+
+Great, the fix is correct. Let me implement it.
+
+Actually, hold on. Let me reconsider the case where `right` is a simple Model's coord_matrix. For a simple separable model with pos='left' and noutp=model.n_outputs:
+
+```python
+mat = np.zeros((noutp, model.n_inputs))  # (n_outputs, n_inputs)
+for i in range(model.n_inputs):
+    mat[i, i] = 1
+```
+
+If n_inputs == n_outputs, this is a diagonal matrix. If n_inputs < n_outputs, only the first n_inputs rows have 1s. If n_inputs > n_outputs, only the first n_outputs columns have 1s (but the loop goes up to n_inputs, so it would set mat[i,i] for i up to n_inputs-1, but mat only has n_outputs rows, so it would only set mat[i,i] for i up to min(n_inputs, n_outputs)-1).
+
+Hmm, actually, for a simple model, n_inputs == n_outputs typically. Let me not worry about edge cases and just implement the fix.
+
+Wait, actually, I realize I should also check: is the `left` side handling correct for all cases? Let me think about a case where the left side is a simple non-separable model.
+
+For `Rotation2D(2) & Shift(1)`:
+- `sepleft = _separable(Rotation2D(2))` = `_coord_matrix(Rotation2D(2), 'left', 2)` = `[[1,1],[1,1]]` (2x2).
+- `sepright = _separable(Shift(1))` = `[[1]]` (1x1).
+- `_cstack([[1,1],[1,1]], [[1]])`:
+  - noutp = 2 + 1 = 3.
+  - cleft = `np.zeros((3, 2))`, `cleft[:2, :2] = [[1,1],[1,1]]`.
+  - cleft = `[[1,1],[1,1],[0,0]]` (3x2).
+  - cright = `np.zeros((3, 1))`.
+  - Current: `cright[-1:, -1:] = 1` → `cright = [[0], [0], [1]]`.
+  - Fix: `cright[-1:, -1:] = [[1]]` → `cright = [[0], [0], [1]]`.
+  - hstack: `[[1,1,0], [1,1,0], [0,0,1]]` (3x3).
+
+Correct! Output 0,1 depend on inputs 0,1 (Rotation2D), output 2 depends on input 2 (Shift).
+
+OK, the fix is correct. Let me implement it now.
+
+Let me also check: are there existing tests for this? Let me look at the test file.

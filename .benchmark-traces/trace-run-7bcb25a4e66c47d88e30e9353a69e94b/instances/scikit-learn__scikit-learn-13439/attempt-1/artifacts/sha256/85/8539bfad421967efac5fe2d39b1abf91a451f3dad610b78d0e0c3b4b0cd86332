@@ -1,0 +1,46 @@
+<path>/testbed/sklearn/tests/test_pipeline.py</path>
+<type>file</type>
+<content>
+532: def test_pipeline_slice():
+533:     pipe = Pipeline([('transf1', Transf()),
+534:                      ('transf2', Transf()),
+535:                      ('clf', FitParamT())])
+536:     pipe2 = pipe[:-1]
+537:     assert isinstance(pipe2, Pipeline)
+538:     assert pipe2.steps == pipe.steps[:-1]
+539:     assert 2 == len(pipe2.named_steps)
+540:     assert_raises(ValueError, lambda: pipe[::-1])
+541: 
+542: 
+543: def test_pipeline_index():
+544:     transf = Transf()
+545:     clf = FitParamT()
+546:     pipe = Pipeline([('transf', transf), ('clf', clf)])
+547:     assert pipe[0] == transf
+548:     assert pipe['transf'] == transf
+549:     assert pipe[-1] == clf
+550:     assert pipe['clf'] == clf
+551:     assert_raises(IndexError, lambda: pipe[3])
+552:     assert_raises(KeyError, lambda: pipe['foobar'])
+553: 
+554: 
+555: def test_set_pipeline_steps():
+556:     transf1 = Transf()
+557:     transf2 = Transf()
+558:     pipeline = Pipeline([('mock', transf1)])
+559:     assert pipeline.named_steps['mock'] is transf1
+560: 
+561:     # Directly setting attr
+562:     pipeline.steps = [('mock2', transf2)]
+563:     assert 'mock' not in pipeline.named_steps
+564:     assert pipeline.named_steps['mock2'] is transf2
+565:     assert_equal([('mock2', transf2)], pipeline.steps)
+566: 
+567:     # Using set_params
+568:     pipeline.set_params(steps=[('mock', transf1)])
+569:     assert_equal([('mock', transf1)], pipeline.steps)
+570: 
+571:     # Using set_params to replace single step
+
+(Showing lines 532-571 of 1073. Use offset=572 to continue.)
+</content>

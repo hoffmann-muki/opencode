@@ -1,0 +1,1 @@
+The failures are all related to `bounding_box` and a NumPy `DeprecationWarning` about array-to-scalar conversion — unrelated to my change. Let me verify these are pre-existing failures by temporarily reverting my change:

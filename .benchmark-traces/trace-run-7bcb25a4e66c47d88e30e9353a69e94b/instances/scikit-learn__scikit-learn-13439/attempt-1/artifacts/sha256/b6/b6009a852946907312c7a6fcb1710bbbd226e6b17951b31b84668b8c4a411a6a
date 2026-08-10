@@ -1,0 +1,3 @@
+Let me start by investigating the repository structure and understanding the issue. The issue is that `Pipeline` should implement `__len__` so that `len(pipe)` works.
+
+Let me look at the pipeline source code.

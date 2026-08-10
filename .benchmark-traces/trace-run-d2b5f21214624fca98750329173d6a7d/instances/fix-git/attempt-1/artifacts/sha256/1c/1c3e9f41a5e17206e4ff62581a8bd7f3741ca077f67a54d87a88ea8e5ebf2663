@@ -1,0 +1,11 @@
+Let me analyze the reflog:
+
+1. `d7d3e4b HEAD@{0}: checkout: moving from c499730ae050deb27e5d22972ea28daf778060f2 to master` - This is the checkout to master that the user mentioned. Before this checkout, HEAD was at `c499730`.
+2. `c499730 HEAD@{1}: commit: Move to Stanford` - This is a commit "Move to Stanford" that was made on some branch (not master, since we're now on master and the commit isn't in master's history).
+3. `c4e38a1 HEAD@{2}: checkout: moving from master to HEAD~1` - This was a checkout from master to HEAD~1 (detached HEAD state).
+4. `d7d3e4b HEAD@{3}: reset: moving to d7d3e4b` - A reset to d7d3e4b.
+5. `19b5d10 HEAD@{4}: clone: from https://github.com/TheMikeMerrill/personal-site.git` - The original clone.
+
+So the user's lost changes are in commit `c499730` with message "Move to Stanford". This commit was made while in a detached HEAD state (after checking out HEAD~1 from master). When the user checked out master, this commit became unreachable from master.
+
+Let me look at what's in that commit to understand the changes.

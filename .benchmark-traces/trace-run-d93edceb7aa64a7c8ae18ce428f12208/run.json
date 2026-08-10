@@ -1,0 +1,29 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "run_id": "trace-run-d93edceb7aa64a7c8ae18ce428f12208",
+  "benchmark": "swe-bench-lite",
+  "framework": "opencode",
+  "created_at": "2026-08-10T04:56:55.136Z",
+  "finalized_at": "2026-08-10T05:07:46.030Z",
+  "selection": {
+    "strategy": "explicit_ids",
+    "requested_count": 1,
+    "instance_ids": [
+      "astropy__astropy-12907"
+    ]
+  },
+  "attempts": [
+    {
+      "trace_id": "trace-d6a7ea1c576348258c73f8b7f55a8452",
+      "instance_id": "astropy__astropy-12907",
+      "attempt": 1,
+      "path": "instances/astropy__astropy-12907/attempt-1",
+      "status": "completed"
+    }
+  ]
+}

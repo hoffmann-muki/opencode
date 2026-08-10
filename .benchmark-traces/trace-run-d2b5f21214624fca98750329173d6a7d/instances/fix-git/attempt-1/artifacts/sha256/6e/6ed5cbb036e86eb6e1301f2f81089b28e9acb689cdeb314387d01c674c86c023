@@ -1,0 +1,1 @@
+I can see the conflict. The master branch has "I am a sixth PhD candidate at..." (modified in commit `d7d3e4b`), while your lost commit changed it to "I am a Postdoctoral Researcher at Stanford CS." Since the whole point of your "Move to Stanford" commit was to update this line, I'll resolve the conflict by taking your Stanford version.

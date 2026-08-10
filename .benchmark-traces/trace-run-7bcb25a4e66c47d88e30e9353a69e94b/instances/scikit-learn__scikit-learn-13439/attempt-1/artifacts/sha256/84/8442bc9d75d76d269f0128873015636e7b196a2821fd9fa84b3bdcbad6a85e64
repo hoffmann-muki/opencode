@@ -1,0 +1,1 @@
+{"command":"cd /testbed && python -m pytest sklearn/tests/test_pipeline.py -k \"test_pipeline_index or test_pipeline_slice or test_set_pipeline_steps or test_pipeline_named_steps or test_pipeline_correctly_adjusts_steps\" -v 2>&1 | tail -30"}

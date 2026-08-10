@@ -1,0 +1,2 @@
+len(pipe) = 2
+pipe[:len(pipe)] works: True

@@ -1,0 +1,42 @@
+diff --git a/doc/whats_new/v0.21.rst b/doc/whats_new/v0.21.rst
+index 8787b07d5..2f0adda45 100644
+--- a/doc/whats_new/v0.21.rst
++++ b/doc/whats_new/v0.21.rst
+@@ -410,6 +410,10 @@ Support for Python 3.4 and below has been officially dropped.
+   step (e.g. ``my_pipeline['svc']``), rather than accessing ``named_steps``.
+   :issue:`2568` by `Joel Nothman`_.
+ 
++- |Feature| :class:`pipeline.Pipeline` now implements ``__len__`` so that
++  ``len(pipeline)`` returns the number of steps. :issue:`13439` by
++  `Joel Nothman`_.
++
+ - |API| :class:`pipeline.Pipeline` now supports using ``'passthrough'`` as a
+   transformer. :issue:`11144` by :user:`Thomas Fan <thomasjpfan>`.
+ 
+diff --git a/sklearn/pipeline.py b/sklearn/pipeline.py
+index 7eaf9a46f..d0030fb64 100644
+--- a/sklearn/pipeline.py
++++ b/sklearn/pipeline.py
+@@ -219,6 +219,10 @@ class Pipeline(_BaseComposition):
+             return self.named_steps[ind]
+         return est
+ 
++    def __len__(self):
++        """__len__"""
++        return len(self.steps)
++
+     @property
+     def _estimator_type(self):
+         return self.steps[-1][1]._estimator_type
+diff --git a/sklearn/tests/test_pipeline.py b/sklearn/tests/test_pipeline.py
+index 8d6fe8f70..ee3b25758 100644
+--- a/sklearn/tests/test_pipeline.py
++++ b/sklearn/tests/test_pipeline.py
+@@ -550,6 +550,7 @@ def test_pipeline_index():
+     assert pipe['clf'] == clf
+     assert_raises(IndexError, lambda: pipe[3])
+     assert_raises(KeyError, lambda: pipe['foobar'])
++    assert len(pipe) == 2
+ 
+ 
+ def test_set_pipeline_steps():

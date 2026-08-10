@@ -1,0 +1,13 @@
+Found 6 matches
+/testbed/sklearn/tests/test_pipeline.py:
+  Line 532: def test_pipeline_slice():
+
+  Line 543: def test_pipeline_index():
+
+  Line 555: def test_set_pipeline_steps():
+
+  Line 581: def test_pipeline_named_steps():
+
+  Line 599: def test_pipeline_correctly_adjusts_steps(passthrough):
+
+  Line 851: def test_set_feature_union_steps():

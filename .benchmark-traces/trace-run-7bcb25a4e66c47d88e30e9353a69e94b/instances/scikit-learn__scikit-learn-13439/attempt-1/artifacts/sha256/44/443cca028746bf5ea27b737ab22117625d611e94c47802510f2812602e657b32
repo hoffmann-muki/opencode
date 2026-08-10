@@ -1,0 +1,14 @@
+============================= test session starts ==============================
+platform linux -- Python 3.6.13, pytest-6.2.4, py-1.11.0, pluggy-0.13.1 -- /opt/miniconda3/envs/testbed/bin/python
+cachedir: .pytest_cache
+rootdir: /testbed, configfile: setup.cfg
+collecting ... collected 41 items / 35 deselected / 6 selected
+
+sklearn/tests/test_pipeline.py::test_pipeline_slice PASSED               [ 16%]
+sklearn/tests/test_pipeline.py::test_pipeline_index PASSED               [ 33%]
+sklearn/tests/test_pipeline.py::test_set_pipeline_steps PASSED           [ 50%]
+sklearn/tests/test_pipeline.py::test_pipeline_named_steps PASSED         [ 66%]
+sklearn/tests/test_pipeline.py::test_pipeline_correctly_adjusts_steps[None] PASSED [ 83%]
+sklearn/tests/test_pipeline.py::test_pipeline_correctly_adjusts_steps[passthrough] PASSED [100%]
+
+======================= 6 passed, 35 deselected in 0.52s =======================

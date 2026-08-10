@@ -1,0 +1,5 @@
+The user says they made changes to their personal site, checked out master, and now can't find those changes. They want help finding them and merging them into master.
+
+This sounds like a git situation. Let me investigate the git history and branches to find the lost changes.
+
+Let me start by checking the git status, branches, and reflog to find the lost changes.

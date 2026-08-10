@@ -1,0 +1,18 @@
+Saved working directory and index state WIP on main: d16bfe05a Merge pull request #12900 from Cadair/custom_compound_model
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[Disk2D-test_parameters3]
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[Gaussian2D-test_parameters4]
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[Ring2D-test_parameters8]
+FAILED astropy/modeling/tests/test_models.py::TestFittable2DModels::test_bounding_box2D_peak[TrapezoidDisk2D-test_parameters10]
+=========== 13 failed, 64 passed, 5 skipped, 180 deselected in 0.59s ===========
+On branch main
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   astropy/modeling/separable.py
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	.opencode/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+Dropped refs/stash@{0} (1fc073f1c244362af15e1eea451b502b3adbed47)

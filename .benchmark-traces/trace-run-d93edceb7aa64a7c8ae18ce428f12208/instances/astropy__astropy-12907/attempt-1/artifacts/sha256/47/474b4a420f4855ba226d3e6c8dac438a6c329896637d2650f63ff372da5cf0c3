@@ -1,0 +1,1 @@
+{"command":"cd /testbed && python -m pytest astropy/modeling/tests/test_core.py astropy/modeling/tests/test_separable.py astropy/modeling/tests/test_models.py -k \"not bounding_box\" 2>&1 | tail -10"}

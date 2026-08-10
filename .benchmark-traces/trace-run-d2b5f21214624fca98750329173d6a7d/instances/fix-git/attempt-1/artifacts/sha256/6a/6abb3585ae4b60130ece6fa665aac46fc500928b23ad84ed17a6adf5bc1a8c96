@@ -1,0 +1,17 @@
+Your changes have been successfully recovered and merged into master. Here's a summary of what happened and what I did:
+
+## What happened
+While on master (at commit `d7d3e4b`), you checked out `HEAD~1` into a **detached HEAD** state, made a commit (`c499730` — "Move to Stanford"), and then checked out master again. This left your "Move to Stanford" commit unreachable from master, which is why you couldn't find your changes.
+
+## How I found them
+I used `git reflog` to trace your recent actions. The reflog showed the checkout from `c499730` to master, revealing the lost commit. Since that commit's parent (`c4e38a1`) was already in master's history, it was safe to merge.
+
+## The merge
+I merged commit `c499730` into master. There was one conflict in `_includes/about.md` — master had a slightly different version of your bio line ("sixth PhD candidate at UW") from a later commit, while your lost commit had updated it to "Postdoctoral Researcher at Stanford CS." I resolved the conflict in favor of your Stanford version, since that was the whole point of the "Move to Stanford" commit.
+
+## Final state
+- **New merge commit** `d94965d` on master containing all your "Move to Stanford" changes
+- Working tree is clean
+- Your changes to both `_includes/about.md` (bio update) and `_layouts/default.html` (header + formatting) are now on master
+
+**Tip for the future:** To avoid this situation, consider creating a branch before making commits when you're in a detached HEAD state, or use `git switch -` to toggle back to your previous branch. You can also use `git reflog` anytime to find lost commits.

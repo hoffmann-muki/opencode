@@ -1,0 +1,32 @@
+All 14 tests pass, including the 3 new test cases (cm8, cm9, cm10).
+
+Let me also verify the fix doesn't break the `_cstack` test directly. Let me check the `test_cstack` test:
+
+```python
+def test_cstack():
+    result = _cstack(sh1, scl1)
+    assert_allclose(result, np.array([[1, 0], [0, 1]]))
+
+    result = _cstack(sh1, rot)
+    assert_allclose(result,
+                    np.array([[1, 0, 0],
+                              [0, 1, 1],
+                              [0, 1, 1]])
+                    )
+    result = _cstack(rot, sh1)
+    assert_allclose(result,
+                    np.array([[1, 1, 0],
+                              [1, 1, 0],
+                              [0, 0, 1]])
+                    )
+```
+
+These tests pass `Model` objects directly to `_cstack`, so they go through the `isinstance(right, Model)` branch, not the `else` branch. So my fix doesn't affect these tests.
+
+But wait, let me also add a test case to `test_cstack` that tests the array case (nested compound model). Actually, the `test_separable` tests already cover this through the `compound_models` dictionary. Let me also add a direct `_cstack` test with arrays.
+
+Actually, let me check if the `test_cstack` test should be updated. The current tests pass Model objects. Let me add a test with arrays to directly test the fix.
+
+Actually, the `test_separable` tests with cm8, cm9, cm10 already cover the nested compound model case. Let me also add a direct `_cstack` test with arrays to be thorough.
+
+Let me add a test case to `test_cstack` that tests the array case.

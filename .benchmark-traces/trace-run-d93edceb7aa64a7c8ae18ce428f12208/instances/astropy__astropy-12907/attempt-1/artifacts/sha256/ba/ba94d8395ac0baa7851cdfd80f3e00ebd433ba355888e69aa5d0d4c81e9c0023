@@ -1,0 +1,1 @@
+{"command":"cd /testbed && git stash && python -m pytest astropy/modeling/tests/test_models.py -k \"bounding_box\" 2>&1 | tail -5 && git stash pop"}

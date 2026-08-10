@@ -1,0 +1,10 @@
+Now I understand the situation clearly:
+
+1. The user was on master at commit `d7d3e4b` ("off the job market woo").
+2. They checked out `HEAD~1` (commit `c4e38a1` "Add code link for BLADE") in detached HEAD state.
+3. They made a commit `c499730` ("Move to Stanford") with changes to `_includes/about.md` and `_layouts/default.html`.
+4. They then checked out master (back to `d7d3e4b`), leaving the "Move to Stanford" commit unreachable from master.
+
+The lost commit `c499730` is a child of `c4e38a1`, which is also in master's history. So I can merge this commit into master.
+
+Let me look at the actual diff to understand the changes, then merge it into master.

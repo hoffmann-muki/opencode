@@ -1,0 +1,10 @@
+
+astropy/modeling/tests/test_core.py .................................s.. [ 15%]
+.....                                                                    [ 17%]
+astropy/modeling/tests/test_separable.py ..............                  [ 23%]
+astropy/modeling/tests/test_models.py s.................s............... [ 37%]
+...........s............ssssssssssssssssssssssssssssssssssssssssssssssss [ 68%]
+sssssss........s..s........s..ssssssssssssssssssssssss....sssssssss...s. [ 99%]
+..                                                                       [100%]
+
+=============== 139 passed, 96 skipped, 100 deselected in 1.07s ================

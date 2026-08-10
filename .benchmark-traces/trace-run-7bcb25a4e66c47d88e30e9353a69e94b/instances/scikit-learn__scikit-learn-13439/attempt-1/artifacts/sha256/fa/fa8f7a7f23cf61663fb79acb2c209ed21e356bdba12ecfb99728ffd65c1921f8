@@ -1,0 +1,31 @@
+<path>/testbed/doc/whats_new/v0.21.rst</path>
+<type>file</type>
+<content>
+400: - |Fix| Fixed a bug in :class:`neural_network.MLPClassifier` and
+401:   :class:`neural_network.MLPRegressor` where the option :code:`shuffle=False`
+402:   was being ignored. :issue:`12582` by :user:`Sam Waterbury <samwaterbury>`.
+403: 
+404: :mod:`sklearn.pipeline`
+405: .......................
+406: 
+407: - |Feature| :class:`pipeline.Pipeline` can now use indexing notation (e.g.
+408:   ``my_pipeline[0:-1]``) to extract a subsequence of steps as another Pipeline
+409:   instance.  A Pipeline can also be indexed directly to extract a particular
+410:   step (e.g. ``my_pipeline['svc']``), rather than accessing ``named_steps``.
+411:   :issue:`2568` by `Joel Nothman`_.
+412: 
+413: - |API| :class:`pipeline.Pipeline` now supports using ``'passthrough'`` as a
+414:   transformer. :issue:`11144` by :user:`Thomas Fan <thomasjpfan>`.
+415: 
+416: :mod:`sklearn.preprocessing`
+417: ............................
+418: 
+419: - |Feature| :class:`OneHotEncoder` now supports dropping one feature per category
+420:   with a new drop parameter. :issue:`12908` by
+421:   :user:`Drew Johnston <drewmjohnston>`.
+422: 
+423: - |Efficiency| Make :class:`preprocessing.MultiLabelBinarizer` to cache class
+424:   mappings instead of calculating it every time on the fly.
+
+(Showing lines 400-424 of 507. Use offset=425 to continue.)
+</content>

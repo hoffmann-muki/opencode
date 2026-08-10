@@ -1,0 +1,1 @@
+{"include":"*.py","path":"/testbed/sklearn/tests","pattern":"__len__|len\\(pipe|len\\(pipeline|def test.*len"}

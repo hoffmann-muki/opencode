@@ -1,0 +1,36 @@
+<path>/testbed/sklearn/pipeline.py</path>
+<type>file</type>
+<content>
+202:     def __getitem__(self, ind):
+203:         """Returns a sub-pipeline or a single esimtator in the pipeline
+204: 
+205:         Indexing with an integer will return an estimator; using a slice
+206:         returns another Pipeline instance which copies a slice of this
+207:         Pipeline. This copy is shallow: modifying (or fitting) estimators in
+208:         the sub-pipeline will affect the larger pipeline and vice-versa.
+209:         However, replacing a value in `step` will not affect a copy.
+210:         """
+211:         if isinstance(ind, slice):
+212:             if ind.step not in (1, None):
+213:                 raise ValueError('Pipeline slicing only supports a step of 1')
+214:             return self.__class__(self.steps[ind])
+215:         try:
+216:             name, est = self.steps[ind]
+217:         except TypeError:
+218:             # Not an int, try get step by name
+219:             return self.named_steps[ind]
+220:         return est
+221: 
+222:     def __len__(self):
+223:         """__len__"""
+224:         return len(self.steps)
+225: 
+226:     @property
+227:     def _estimator_type(self):
+228:         return self.steps[-1][1]._estimator_type
+229: 
+230:     @property
+231:     def named_steps(self):
+
+(Showing lines 202-231 of 935. Use offset=232 to continue.)
+</content>

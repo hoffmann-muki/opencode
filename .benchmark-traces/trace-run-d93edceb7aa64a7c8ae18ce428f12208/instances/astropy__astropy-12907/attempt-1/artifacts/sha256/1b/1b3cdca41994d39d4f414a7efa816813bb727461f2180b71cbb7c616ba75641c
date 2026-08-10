@@ -1,0 +1,21 @@
+cm8: sh1 & (sh2 & sh1)
+is_separable: [ True  True  True]
+matrix:
+[[ True False False]
+ [False  True False]
+ [False False  True]]
+
+cm9: (sh1 & sh2) & sh1
+is_separable: [ True  True  True]
+matrix:
+[[ True False False]
+ [False  True False]
+ [False False  True]]
+
+cm10: rot & (sh1 & sh2)
+is_separable: [False False  True  True]
+matrix:
+[[ True  True False False]
+ [ True  True False False]
+ [False False  True False]
+ [False False False  True]]

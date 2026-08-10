@@ -1,0 +1,60 @@
+I've confirmed the bug. The nested case `Pix2Sky_TAN & cm` gives the wrong result. The bottom-right 2x2 block should be diagonal `[[True, False], [False, True]]` but it's `[[True, True], [True, True]]`.
+
+Now let me trace through the code to confirm my analysis.
+
+The issue is in `_cstack`. When `right` is an array (from a nested compound model), the code sets the bottom-right block to 1 instead of using the actual content of `right`.
+
+Let me look at the `_cstack` function again:
+
+```python
+def _cstack(left, right):
+    noutp = _compute_n_outputs(left, right)
+
+    if isinstance(left, Model):
+        cleft = _coord_matrix(left, 'left', noutp)
+    else:
+        cleft = np.zeros((noutp, left.shape[1]))
+        cleft[: left.shape[0], : left.shape[1]] = left
+    if isinstance(right, Model):
+        cright = _coord_matrix(right, 'right', noutp)
+    else:
+        cright = np.zeros((noutp, right.shape[1]))
+        cright[-right.shape[0]:, -right.shape[1]:] = 1
+
+    return np.hstack([cleft, cright])
+```
+
+The fix is to change line 245 from `= 1` to `= right`.
+
+Let me verify this by tracing through the code.
+
+For `Pix2Sky_TAN() & cm` where `cm = Linear1D(10) & Linear1D(5)`:
+
+`_separable(Pix2Sky_TAN() & cm)`:
+- CompoundModel with op `&`.
+- `sepleft = _separable(Pix2Sky_TAN())` = `_coord_matrix(Pix2Sky_TAN(), 'left', 2)`.
+  - Pix2Sky_TAN is not separable.
+  - `mat = np.zeros((2, 2))`, `mat[:2, :2] = 1`, so `mat = [[1,1],[1,1]]`.
+  - returns `[[1,1],[1,1]]`.
+- `sepright = _separable(cm)`:
+  - cm is a CompoundModel with op `&`.
+  - `sepleft = _separable(Linear1D(10))` = `_coord_matrix(Linear1D(10), 'left', 1)` = `[[1]]`.
+  - `sepright = _separable(Linear1D(5))` = `_coord_matrix(Linear1D(5), 'left', 1)` = `[[1]]`.
+  - `_cstack([[1]], [[1]])`:
+    - noutp = 2.
+    - cleft = `np.zeros((2, 1))`, `cleft[:1, :1] = [[1]]` → `[[1],[0]]`.
+    - cright = `np.zeros((2, 1))`, `cright[-1:, -1:] = 1` → `[[0],[1]]`.
+    - hstack = `[[1,0],[0,1]]`.
+  - returns `[[1,0],[0,1]]`.
+- `_cstack([[1,1],[1,1]], [[1,0],[0,1]])`:
+  - noutp = 2 + 2 = 4.
+  - cleft = `np.zeros((4, 2))`, `cleft[:2, :2] = [[1,1],[1,1]]` → `[[1,1],[1,1],[0,0],[0,0]]`.
+  - cright = `np.zeros((4, 2))`.
+  - Current: `cright[-2:, -2:] = 1` → `[[0,0],[0,0],[1,1],[1,1]]`.
+  - Fix: `cright[-2:, -2:] = [[1,0],[0,1]]` → `[[0,0],[0,0],[1,0],[0,1]]`.
+  - hstack (current): `[[1,1,0,0],[1,1,0,0],[0,0,1,1],[0,0,1,1]]`.
+  - hstack (fix): `[[1,1,0,0],[1,1,0,0],[0,0,1,0],[0,0,0,1]]`.
+
+The fix gives the correct result!
+
+Now let me implement the fix.

@@ -1,0 +1,3 @@
+I've confirmed the bug. The nested case `Pix2Sky_TAN & cm` produces `[[True, True], [True, True]]` in the bottom-right block instead of the expected diagonal `[[True, False], [False, True]]`.
+
+Let me trace through the code to understand the root cause. The issue is in `_cstack` when the `right` operand is an array (from a nested compound model). Let me examine the function closely:

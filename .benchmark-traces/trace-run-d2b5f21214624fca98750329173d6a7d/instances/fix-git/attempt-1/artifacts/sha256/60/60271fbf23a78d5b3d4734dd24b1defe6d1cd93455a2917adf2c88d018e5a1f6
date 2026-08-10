@@ -1,0 +1,9 @@
+Now I have a clear picture. The lost commit `c499730` ("Move to Stanford") contains changes to:
+1. `_includes/about.md` - Updated the bio to reflect moving from PhD student at UW to Postdoc at Stanford
+2. `_layouts/default.html` - Updated the header from "PhD Student @ UW CSE" to "Postdoc @ Stanford", reformatted some HTML, and cleaned up trailing whitespace
+
+This commit was made in a detached HEAD state (after checking out `HEAD~1` from master). When the user checked out master, this commit became unreachable.
+
+The commit `c499730` is a child of `c4e38a1`, which is in master's history. So I can merge this commit into master.
+
+Let me merge it into master now.
