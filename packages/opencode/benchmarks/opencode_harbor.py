@@ -5,6 +5,7 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import subprocess
 import tomllib
 from contextlib import contextmanager
@@ -12,6 +13,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterator, override
 
+from harbor.agents.installed.base import NonZeroAgentExitCodeError, with_prompt_template
 from harbor.agents.installed.opencode import OpenCode
 from harbor.environments.base import BaseEnvironment
 from harbor.models.agent.context import AgentContext
@@ -19,6 +21,11 @@ from harbor.models.task.id import PackageTaskId
 
 from packages.opencode.benchmarks.tracing.agentsight_harbor import (
     HarborAgentSightProfiler,
+)
+from packages.opencode.benchmarks.harbor_secrets import (
+    remove_secret_environment,
+    source_secret_environment,
+    stage_secret_environment,
 )
 
 
@@ -28,6 +35,43 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 TRACE_METADATA_FILENAME = "benchmark-trace.json"
 TRACE_ALLOCATION_FILENAME = ".harbor-attempts.json"
 TRACE_LOCK_FILENAME = ".harbor-attempts.lock"
+PROVIDER_ENVIRONMENT = {
+    "amazon-bedrock": (
+        "AWS_ACCESS_KEY_ID",
+        "AWS_SECRET_ACCESS_KEY",
+        "AWS_REGION",
+    ),
+    "anthropic": ("ANTHROPIC_API_KEY",),
+    "azure": ("AZURE_RESOURCE_NAME", "AZURE_API_KEY"),
+    "deepseek": ("DEEPSEEK_API_KEY",),
+    "github-copilot": ("GITHUB_TOKEN",),
+    "google": (
+        "GEMINI_API_KEY",
+        "GOOGLE_GENERATIVE_AI_API_KEY",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "GOOGLE_CLOUD_PROJECT",
+        "GOOGLE_CLOUD_LOCATION",
+        "GOOGLE_GENAI_USE_VERTEXAI",
+        "GOOGLE_API_KEY",
+    ),
+    "groq": ("GROQ_API_KEY",),
+    "huggingface": ("HF_TOKEN",),
+    "llama": ("LLAMA_API_KEY",),
+    "mistral": ("MISTRAL_API_KEY",),
+    "openai": ("OPENAI_API_KEY", "OPENAI_BASE_URL"),
+    "opencode": ("OPENCODE_API_KEY",),
+    "openrouter": ("OPENROUTER_API_KEY",),
+    "xai": ("XAI_API_KEY",),
+}
+NON_SECRET_ENVIRONMENT = {
+    "AWS_REGION",
+    "AZURE_RESOURCE_NAME",
+    "GOOGLE_APPLICATION_CREDENTIALS",
+    "GOOGLE_CLOUD_LOCATION",
+    "GOOGLE_CLOUD_PROJECT",
+    "GOOGLE_GENAI_USE_VERTEXAI",
+    "OPENAI_BASE_URL",
+}
 
 
 class BenchmarkOpenCode(OpenCode):
@@ -162,14 +206,16 @@ class BenchmarkOpenCode(OpenCode):
         )
 
     @override
+    @with_prompt_template
     async def run(
         self,
         instruction: str,
         environment: BaseEnvironment,
         context: AgentContext,
     ) -> None:
+        del context
         if self._trace_root is None:
-            await super().run(instruction, environment, context)
+            await self._run_agent(instruction, environment)
             return
         if (
             self._trace_instance_id is None
@@ -216,7 +262,7 @@ class BenchmarkOpenCode(OpenCode):
         }
         try:
             _atomic_write_json(self.logs_dir / TRACE_METADATA_FILENAME, metadata)
-            await super().run(instruction, environment, context)
+            await self._run_agent(instruction, environment)
         except BaseException as error:
             _atomic_write_json(
                 self.logs_dir / TRACE_METADATA_FILENAME,
@@ -243,6 +289,64 @@ class BenchmarkOpenCode(OpenCode):
             )
         finally:
             await asyncio.to_thread(self._agentsight_profiler.finish)
+
+    async def _run_agent(
+        self,
+        instruction: str,
+        environment: BaseEnvironment,
+    ) -> None:
+        self._instruction = instruction
+        if not self.model_name or "/" not in self.model_name:
+            raise ValueError("Model name must be in the format provider/model_name")
+        provider = self.model_name.split("/", 1)[0]
+        values = {
+            key: os.environ[key]
+            for key in PROVIDER_ENVIRONMENT.get(provider, ())
+            if os.environ.get(key)
+        }
+        env = {
+            key: value for key, value in values.items() if key in NON_SECRET_ENVIRONMENT
+        }
+        env.update(
+            {
+                "OPENCODE_FAKE_VCS": "git",
+                "XDG_DATA_HOME": "/logs/agent/opencode/xdg-data",
+                "XDG_STATE_HOME": "/logs/agent/opencode/xdg-state",
+            }
+        )
+
+        if skills_command := self._build_register_skills_command():
+            await self.exec_as_agent(environment, command=skills_command, env=env)
+        if mcp_command := self._build_register_config_command():
+            await self.exec_as_agent(environment, command=mcp_command, env=env)
+
+        secrets = {key: value for key, value in values.items() if key not in env}
+        secret_path = (
+            await stage_secret_environment(environment, self.logs_dir, secrets)
+            if secrets
+            else None
+        )
+        cli_flags = self.build_cli_flags()
+        command = (
+            source_secret_environment(secret_path) if secret_path is not None else ""
+        ) + (
+            ". ~/.nvm/nvm.sh; "
+            f"opencode --model={shlex.quote(self.model_name)} run --format=json "
+            f"{'--continue ' if self._resume else ''}"
+            f"{cli_flags + ' ' if cli_flags else ''}--thinking "
+            "--dangerously-skip-permissions -- "
+            f"{shlex.quote(instruction)} "
+            "2>&1 </dev/null | stdbuf -oL tee /logs/agent/opencode.txt"
+        )
+        try:
+            await self.exec_as_agent(environment, command=command, env=env)
+        finally:
+            if secret_path is not None:
+                await remove_secret_environment(environment, secret_path)
+        if messages := self._error_messages():
+            raise NonZeroAgentExitCodeError(
+                "OpenCode emitted error event(s): " + "; ".join(messages[:3])
+            )
 
 
 def _trial_metadata(logs_dir: Path) -> dict[str, Any]:
