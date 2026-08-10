@@ -44,7 +44,16 @@ export async function benchmarkSourceIdentity(): Promise<BenchmarkSourceIdentity
 
   const [commit, status] = await Promise.all([
     run(["git", "rev-parse", "HEAD"]),
-    run(["git", "status", "--porcelain", "--untracked-files=all"]),
+    // Traces are immutable experiment outputs, not inputs to the agent runtime.
+    run([
+      "git",
+      "status",
+      "--porcelain",
+      "--untracked-files=all",
+      "--",
+      ".",
+      ":(exclude).benchmark-traces/**",
+    ]),
   ])
   if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error(`Invalid opencode source revision: ${commit}`)
   if (status) {
