@@ -169,6 +169,7 @@ describe("Terminal-Bench runner", () => {
     const args = buildHarborArgs({ ...options, runtime }, "/runs/harbor-jobs")
 
     expect(options.agentTopology).toBe(SINGLE_BENCHMARK_AGENT_TOPOLOGY)
+    expect(options.traceDir).toBe(resolve(import.meta.dir, "../../../..", ".benchmark-traces"))
     expect(config.default_agent).toBe(BENCHMARK_SINGLE_AGENT)
     expect(Object.keys(config.agent)).toEqual(["title", BENCHMARK_SINGLE_AGENT])
     expect(agent.mode).toBe("primary")

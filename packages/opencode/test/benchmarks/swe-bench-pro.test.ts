@@ -155,6 +155,7 @@ describe("SWE-bench Pro runner", () => {
     expect(options.timeoutMs).toBe(30 * 60 * 1000)
     expect(options.inferenceWorkers).toBe(1)
     expect(options.maxInfrastructureRetries).toBe(0)
+    expect(options.traceDir).toBe(resolve(import.meta.dir, "../../../..", ".benchmark-traces"))
     expect(prompt).toContain("sole coding agent")
     expect(prompt).toContain("Do not delegate")
     expect(prompt).not.toContain("navigator -> patcher -> reviewer")

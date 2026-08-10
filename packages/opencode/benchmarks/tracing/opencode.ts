@@ -83,6 +83,7 @@ export class OpenCodeTraceAdapter {
   private readonly startupSpan: string
   private readonly executionSpan: string
   private readonly shutdownSpan: string
+  private readonly delegationEnabled: boolean
   private startupStartedAt: number
   private executionStartedAt?: number
   private executionEndedAt?: number
@@ -91,6 +92,7 @@ export class OpenCodeTraceAdapter {
 
   constructor(recorder: TraceRecorder, options: { readonly delegationEnabled: boolean; readonly startedAt?: number }) {
     this.recorder = recorder
+    this.delegationEnabled = options.delegationEnabled
     this.attemptStartedAt = options?.startedAt ?? Date.now()
     this.instanceSpan = `instance-${recorder.identity.traceId}`
     this.attemptSpan = `attempt-${recorder.identity.traceId}`
@@ -354,7 +356,7 @@ export class OpenCodeTraceAdapter {
       payload: {},
       ...(error ? { error } : {}),
     })
-    this.recorder.updateCapabilities(opencodeCapabilities(this.observed))
+    this.recorder.updateCapabilities(opencodeCapabilities(this.observed, this.delegationEnabled))
     this.finished = this.recorder.finalize()
     return this.finished
   }
@@ -939,7 +941,9 @@ export class OpenCodeTraceAdapter {
 
 export function opencodeCapabilities(
   observed: ReadonlyMap<CapabilityCategory, Set<string>>,
+  delegationEnabled: boolean,
 ): readonly TraceCapability[] {
+  const disabled = new Set<CapabilityCategory>(delegationEnabled ? [] : ["delegation"])
   const unavailable = new Set<CapabilityCategory>(["provider.exchange", "memory", "evaluator.lifecycle"])
   if (!observed.has("container.lifecycle")) unavailable.add("container.lifecycle")
   const characteristics: Partial<
@@ -978,6 +982,16 @@ export function opencodeCapabilities(
 
   return TRACE_CAPABILITY_CATEGORIES.map((category) => {
     const evidence = [...(observed.get(category) ?? [])].sort()
+    if (disabled.has(category)) {
+      return {
+        category,
+        state: "disabled",
+        coverage: "none",
+        timing: "not_applicable",
+        evidence: [],
+        limitations: [],
+      }
+    }
     if (unavailable.has(category)) {
       return {
         category,

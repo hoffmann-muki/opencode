@@ -175,6 +175,41 @@ describe("benchmark tracing recorder", () => {
     expect(run.attempts).toEqual([expect.objectContaining({ status: "failed" })])
   })
 
+  test("records single-agent topology with delegation explicitly disabled", () => {
+    const trace = createAdapter(temporaryRoot(), "owner/project__single-agent", false)
+
+    const finalized = trace.adapter.finish("completed", undefined, 1_300)
+    const events = jsonl(join(trace.attemptDir, "events.jsonl"))
+    const capabilities = JSON.parse(readFileSync(join(trace.attemptDir, "capabilities.json"), "utf8")) as {
+      capabilities: Array<{
+        category: string
+        state: string
+        coverage: string
+        timing: string
+        evidence: string[]
+        limitations: string[]
+      }>
+    }
+
+    expect(finalized.health).toBe("healthy")
+    expect(events.find((event) => event.event_type === "attempt.start")?.payload).toEqual({
+      agent_configuration: {
+        delegation_enabled: false,
+        coordination_mode: "framework_native",
+        delegation_sequence: [],
+        sequence_enforcement: "prompt_guided",
+      },
+    })
+    expect(capabilities.capabilities.find((item) => item.category === "delegation")).toEqual({
+      category: "delegation",
+      state: "disabled",
+      coverage: "none",
+      timing: "not_applicable",
+      evidence: [],
+      limitations: [],
+    })
+  })
+
   test("projects paired spans and concurrent siblings into an execution tree", () => {
     const events = [
       projectionEvent(1, "attempt.start", "start", "started", "attempt", 0),
@@ -691,7 +726,7 @@ function temporaryRoot(): string {
   return root
 }
 
-function createAdapter(root: string, instanceId: string) {
+function createAdapter(root: string, instanceId: string, delegationEnabled = true) {
   const attemptDir = traceAttemptDirectory(root, instanceId, 1)
   const identity = createTraceIdentity({
     runId: "trace-run-test",
@@ -716,13 +751,13 @@ function createAdapter(root: string, instanceId: string) {
       benchmark_retries: 0,
       provider_attempts: 1,
     },
-    capabilities: opencodeCapabilities(new Map()),
+    capabilities: opencodeCapabilities(new Map(), delegationEnabled),
   })
   return {
     attemptDir,
     identity,
     recorder,
-    adapter: new OpenCodeTraceAdapter(recorder, { delegationEnabled: true, startedAt: 900 }),
+    adapter: new OpenCodeTraceAdapter(recorder, { delegationEnabled, startedAt: 900 }),
   }
 }
 

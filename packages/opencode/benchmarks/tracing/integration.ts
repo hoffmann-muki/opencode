@@ -90,7 +90,7 @@ export function createOpenCodeAttemptTrace(input: {
         benchmark_retries: input.benchmarkRetries,
         provider_attempts: 1,
       },
-      capabilities: opencodeCapabilities(new Map()),
+      capabilities: opencodeCapabilities(new Map(), input.delegationEnabled),
     }),
     {
       delegationEnabled: input.delegationEnabled,

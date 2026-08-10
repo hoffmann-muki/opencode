@@ -232,6 +232,7 @@ describe("SWE-bench Verified runner", () => {
     expect(lite.timeoutMs).toBe(15 * 60 * 1000)
     expect(lite.inferenceWorkers).toBe(1)
     expect(lite.maxInfrastructureRetries).toBe(0)
+    expect(lite.traceDir).toBe(resolve(import.meta.dir, "../../../..", ".benchmark-traces"))
     expect(() => parseArgs(["--agent", "build"], "1.18.4", SWE_BENCH_LITE, SINGLE_BENCHMARK_AGENT_TOPOLOGY)).toThrow(
       "fixes --agent",
     )
