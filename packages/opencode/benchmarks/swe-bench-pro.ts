@@ -16,6 +16,10 @@ import { StringDecoder } from "node:string_decoder"
 import { fileURLToPath } from "node:url"
 import {
   BENCHMARK_COORDINATOR_AGENT,
+  BENCHMARK_SINGLE_AGENT,
+  SINGLE_BENCHMARK_DEFAULT_MODEL,
+  SINGLE_BENCHMARK_AGENT_TOPOLOGY,
+  TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
   benchmarkAgentWorkflowInstructions,
   installBenchmarkAgentTeam,
 } from "./opencode-benchmark-agents.ts"
@@ -31,6 +35,7 @@ import { createOpenCodeAttemptTrace, finishOpenCodeTrace, traceStatus } from "./
 import { startAgentSightDockerProfile, type AgentSightProfileHandle } from "./tracing/agentsight.ts"
 
 const DATASET_NAME = "ScaleAI/SWE-bench_Pro"
+const DATASET_REVISION = "7ab5114912baf22bb098818e604c02fe7ad2c11f"
 const DATASET_CONFIG = "default"
 const DATASET_SPLIT = "test"
 const HUGGING_FACE_ROWS_URL = "https://datasets-server.huggingface.co/rows"
@@ -44,7 +49,6 @@ const DEFAULT_MAX_INFRASTRUCTURE_RETRIES = 0
 const DEFAULT_RETRY_BASE_DELAY_MS = 2_000
 const MAX_INFRASTRUCTURE_RETRIES = 10
 const DEFAULT_MODEL = "openrouter/qwen/qwen3-coder-next"
-const DEFAULT_AGENT = BENCHMARK_COORDINATOR_AGENT
 const DEFAULT_OPENCODE_TIMEOUT_MS = 30 * 60 * 1000
 const DEFAULT_EVALUATION_TIMEOUT_SECONDS = 60 * 60
 const DEFAULT_SETUP_TIMEOUT_MS = 10 * 60 * 1000
@@ -58,7 +62,7 @@ const CONTAINER_WORKDIR = "/app"
 const DATASET_PAGE_SIZE = 100
 const DATASET_FETCH_ATTEMPTS = 3
 const DATASET_FETCH_RETRY_MS = 1_000
-const MANIFEST_SCHEMA_VERSION = 2
+const MANIFEST_SCHEMA_VERSION = 3
 const OPENCODE_PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const REPO_ROOT = resolve(OPENCODE_PACKAGE_ROOT, "../..")
 const DEFAULT_TRACE_ROOT = resolve(REPO_ROOT, ".benchmark-traces")
@@ -76,6 +80,7 @@ const PROVIDER_ENV_KEYS = [
 ] as const
 
 type JsonObject = Record<string, unknown>
+export type BenchmarkAgentTopology = typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY
 
 export interface SweBenchProRow {
   readonly repo: string
@@ -111,6 +116,7 @@ interface CliOptions {
   readonly manifestPath?: string
   readonly model: string
   readonly agent: string
+  readonly agentTopology: BenchmarkAgentTopology
   readonly timeoutMs: number
   readonly setupTimeoutMs: number
   readonly opencodeVersion: string
@@ -172,11 +178,14 @@ export interface SweBenchProPredictionManifest {
   readonly schemaVersion: number
   readonly benchmark: "swe-bench-pro"
   readonly dataset: string
+  readonly datasetRevision: string
   readonly datasetConfig: string
   readonly datasetSplit: string
   readonly runId: string
   readonly model: string
   readonly agent: string
+  readonly agentTopology: BenchmarkAgentTopology
+  readonly delegationEnabled: boolean
   readonly opencodeVersion: string
   readonly opencodeCommit: string
   readonly opencodeBinarySha256: string
@@ -221,15 +230,19 @@ export interface SweBenchProEvaluationConfig {
   readonly redo: boolean
 }
 
-function usage(): string {
+function usage(agentTopology: BenchmarkAgentTopology = TERMINAL_BENCHMARK_AGENT_TOPOLOGY): string {
+  const single = agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY
+  const script = single ? "bench:swe-pro:single" : "bench:swe-pro:infer"
+  const evaluation = single ? "bench:swe-pro:single -- --evaluate-only" : "bench:swe-pro:eval --"
+  const agent = single ? BENCHMARK_SINGLE_AGENT : BENCHMARK_COORDINATOR_AGENT
   return [
     "Run opencode on SWE-bench Pro.",
     "",
     "Inference:",
-    "  bun run bench:swe-pro:infer -- [flags]",
+    `  bun run ${script} -- [flags]`,
     "",
     "Official local Docker/Modal evaluation:",
-    "  bun run bench:swe-pro:eval -- --run-id ID [flags]",
+    `  bun run ${evaluation} --run-id ID [flags]`,
     "",
     "Flags:",
     `  --max-instances N          Dataset-window size; overrides the default smoke instance. Default: ${DEFAULT_MAX_INSTANCES}.`,
@@ -255,7 +268,7 @@ function usage(): string {
     "  --redo                     Re-run evaluator outputs that already exist.",
     "  --list-instances           Print selected instances without running inference.",
     "  --model MODEL              opencode model in provider/model format.",
-    `  --agent AGENT              Primary opencode agent. Default: ${DEFAULT_AGENT}.`,
+    `  --agent AGENT              Primary opencode agent. Default: ${agent}.`,
     `  --timeout-ms N             Per-instance agent timeout. Default: ${DEFAULT_OPENCODE_TIMEOUT_MS}.`,
     `  --setup-timeout-ms N       Per-instance runtime setup timeout. Default: ${DEFAULT_SETUP_TIMEOUT_MS}.`,
     "  The agent runtime is built from the exact clean opencode checkout and cached by commit.",
@@ -280,7 +293,11 @@ function usage(): string {
   ].join("\n")
 }
 
-export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "latest"): CliOptions {
+export function parseArgs(
+  argv: readonly string[],
+  defaultOpencodeVersion = "latest",
+  agentTopology: BenchmarkAgentTopology = TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+): CliOptions {
   let maxInstances = DEFAULT_MAX_INSTANCES
   let offset = 0
   const instanceIds: string[] = []
@@ -303,8 +320,8 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   let listInstances = false
   let predictionsPath: string | undefined
   let manifestPath: string | undefined
-  let model = resolveDefaultModel()
-  let agent = DEFAULT_AGENT
+  let model = resolveDefaultModel(agentTopology)
+  let agent = agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY ? BENCHMARK_SINGLE_AGENT : BENCHMARK_COORDINATOR_AGENT
   let timeoutMs = DEFAULT_OPENCODE_TIMEOUT_MS
   let setupTimeoutMs = DEFAULT_SETUP_TIMEOUT_MS
   const opencodeVersion = defaultOpencodeVersion
@@ -434,6 +451,9 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   if (evaluateOnly && argv.includes("--trace-dir")) {
     throw new Error("--trace-dir is available only during inference.")
   }
+  if (agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY && argv.includes("--agent")) {
+    throw new Error("The single-agent benchmark command fixes --agent to benchmark-single-agent.")
+  }
   const effectiveTraceDir = evaluateOnly ? undefined : traceDir
   officialSweBenchProImage("sample-tag", imagePrefix)
 
@@ -461,6 +481,7 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
     ...(manifestPath !== undefined ? { manifestPath } : {}),
     model,
     agent,
+    agentTopology,
     timeoutMs,
     setupTimeoutMs,
     opencodeVersion,
@@ -486,7 +507,7 @@ function parseNonNegativeInt(value: string, flag: string): number {
   return parsed
 }
 
-function resolveDefaultModel(): string {
+function resolveDefaultModel(agentTopology: BenchmarkAgentTopology): string {
   if (process.env.OPENCODE_BENCH_MODEL) return process.env.OPENCODE_BENCH_MODEL
   if (process.env.OPENCODE_MODEL) return process.env.OPENCODE_MODEL
   if (process.env.OPENROUTER_MODEL) {
@@ -494,7 +515,7 @@ function resolveDefaultModel(): string {
       ? process.env.OPENROUTER_MODEL
       : `openrouter/${process.env.OPENROUTER_MODEL}`
   }
-  return DEFAULT_MODEL
+  return agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY ? SINGLE_BENCHMARK_DEFAULT_MODEL : DEFAULT_MODEL
 }
 
 async function readLocalOpencodeVersion(): Promise<string> {
@@ -591,6 +612,12 @@ async function fetchRawRowsPage(offset: number, length: number): Promise<readonl
     }
 
     if (response.ok) {
+      const revision = response.headers.get("x-revision")
+      if (revision !== DATASET_REVISION) {
+        throw new Error(
+          `SWE-bench Pro dataset revision changed or was not reported; expected ${DATASET_REVISION}, found ${revision ?? "missing"}.`,
+        )
+      }
       const parsed: unknown = await response.json()
       if (!isObject(parsed) || !Array.isArray(parsed.rows)) {
         throw new Error("SWE-bench Pro dataset response is missing its rows array.")
@@ -666,7 +693,10 @@ export function formatProblemStatement(
   return `${row.problem_statement}\n\nRequirements:\n${row.requirements}\n\nNew interfaces introduced:\n${row.interface}`
 }
 
-function buildPrompt(row: SweBenchProRow): string {
+export function buildPrompt(
+  row: SweBenchProRow,
+  agentTopology: BenchmarkAgentTopology = TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+): string {
   return [
     "Resolve this SWE-bench Pro issue using opencode.",
     "",
@@ -675,7 +705,7 @@ function buildPrompt(row: SweBenchProRow): string {
     "Do not seek or use gold patches, hidden tests, or benchmark answer artifacts.",
     "Do not modify tests or benchmark metadata unless the issue explicitly requires it.",
     "",
-    benchmarkAgentWorkflowInstructions(),
+    benchmarkAgentWorkflowInstructions(agentTopology),
     "## Repository",
     `Worktree: ${CONTAINER_WORKDIR}`,
     `Repo: ${row.repo}`,
@@ -926,7 +956,7 @@ async function prepareContainer(
 
     const stagingDir = await mkdtemp(join(tmpdir(), "opencode-swe-pro-agents-"))
     try {
-      await installBenchmarkAgentTeam(stagingDir)
+      await installBenchmarkAgentTeam(stagingDir, options.agentTopology)
       await runHostCommand("docker", ["exec", name, "mkdir", "-p", `${CONTAINER_WORKDIR}/.opencode`], {
         timeoutMs: options.setupTimeoutMs,
       })
@@ -1063,7 +1093,7 @@ async function runInstanceAttempt(
   await rm(attemptRunDir, { recursive: true, force: true })
   await mkdir(attemptRunDir, { recursive: true })
 
-  const prompt = buildPrompt(row)
+  const prompt = buildPrompt(row, options.agentTopology)
   const image = officialSweBenchProImage(row.dockerhub_tag, options.imagePrefix)
   const name = containerName(options.runId, row.instance_id, context.attempt)
   const startedAt = new Date().toISOString()
@@ -1090,7 +1120,7 @@ async function runInstanceAttempt(
         inferenceTimeoutMs: options.timeoutMs,
         evaluationTimeoutSeconds: DEFAULT_EVALUATION_TIMEOUT_SECONDS,
         benchmarkRetries: options.maxInfrastructureRetries,
-        delegationEnabled: true,
+        delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
         image,
       })
     : undefined
@@ -1217,6 +1247,8 @@ async function runInstanceAttempt(
     maxAttempts: context.maxAttempts,
     model: options.model,
     agent: options.agent,
+    agentTopology: options.agentTopology,
+    delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     opencodeVersion: options.opencodeVersion,
     opencodeCommit: runtime.commit,
     opencodeBinarySha256: runtime.binarySha256,
@@ -1312,6 +1344,20 @@ function requireStringField(value: JsonObject, field: string, description: strin
   return candidate
 }
 
+function requireAgentTopology(value: JsonObject): BenchmarkAgentTopology {
+  const topology = requireStringField(value, "agentTopology", "Prediction manifest")
+  if (topology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY || topology === SINGLE_BENCHMARK_AGENT_TOPOLOGY) {
+    return topology
+  }
+  throw new Error("Prediction manifest has an invalid agent topology.")
+}
+
+function requireBooleanField(value: JsonObject, field: string, description: string): boolean {
+  const candidate = value[field]
+  if (typeof candidate !== "boolean") throw new Error(`${description} is missing boolean field "${field}".`)
+  return candidate
+}
+
 function requireNonNegativeIntegerField(value: JsonObject, field: string, description: string): number {
   const candidate = value[field]
   if (typeof candidate !== "number" || !Number.isInteger(candidate) || candidate < 0) {
@@ -1388,11 +1434,14 @@ function buildPredictionManifest(
     schemaVersion: MANIFEST_SCHEMA_VERSION,
     benchmark: "swe-bench-pro",
     dataset: DATASET_NAME,
+    datasetRevision: DATASET_REVISION,
     datasetConfig: DATASET_CONFIG,
     datasetSplit: DATASET_SPLIT,
     runId: options.runId,
     model: options.model,
     agent: options.agent,
+    agentTopology: options.agentTopology,
+    delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     opencodeVersion: options.opencodeVersion,
     opencodeCommit: runtime.commit,
     opencodeBinarySha256: runtime.binarySha256,
@@ -1448,32 +1497,47 @@ function parsePredictionManifest(value: unknown): SweBenchProPredictionManifest 
   const retryBaseDelayMs = requireNonNegativeIntegerField(value, "retryBaseDelayMs", "Prediction manifest")
   const predictionCount = requireNonNegativeIntegerField(value, "predictionCount", "Prediction manifest")
   const nonEmptyPatchCount = requireNonNegativeIntegerField(value, "nonEmptyPatchCount", "Prediction manifest")
-  if (schemaVersion !== 1 && schemaVersion !== MANIFEST_SCHEMA_VERSION) {
+  if (schemaVersion !== 1 && schemaVersion !== 2 && schemaVersion !== MANIFEST_SCHEMA_VERSION) {
     throw new Error(`Unsupported SWE-bench Pro prediction manifest schema: ${schemaVersion}.`)
   }
   const opencodeCommit =
-    schemaVersion === MANIFEST_SCHEMA_VERSION
+    schemaVersion === 2 || schemaVersion === MANIFEST_SCHEMA_VERSION
       ? requireStringField(value, "opencodeCommit", "Prediction manifest")
       : "legacy-unrecorded"
   const opencodeBinarySha256 =
-    schemaVersion === MANIFEST_SCHEMA_VERSION
+    schemaVersion === 2 || schemaVersion === MANIFEST_SCHEMA_VERSION
       ? requireStringField(value, "opencodeBinarySha256", "Prediction manifest")
       : "legacy-unrecorded"
   const providerAttemptsPerTurn =
-    schemaVersion === MANIFEST_SCHEMA_VERSION && typeof value.providerAttemptsPerTurn === "number"
+    (schemaVersion === 2 || schemaVersion === MANIFEST_SCHEMA_VERSION) &&
+    typeof value.providerAttemptsPerTurn === "number"
       ? value.providerAttemptsPerTurn
       : 0
   if (
-    schemaVersion === MANIFEST_SCHEMA_VERSION &&
+    (schemaVersion === 2 || schemaVersion === MANIFEST_SCHEMA_VERSION) &&
     (!/^[a-f0-9]{40}$/.test(opencodeCommit) ||
       !/^[a-f0-9]{64}$/.test(opencodeBinarySha256) ||
       providerAttemptsPerTurn !== 1)
   ) {
     throw new Error("Prediction manifest has invalid agent provenance or provider-attempt metadata.")
   }
+  const agentTopology =
+    schemaVersion === MANIFEST_SCHEMA_VERSION ? requireAgentTopology(value) : TERMINAL_BENCHMARK_AGENT_TOPOLOGY
+  const delegationEnabled =
+    schemaVersion === MANIFEST_SCHEMA_VERSION
+      ? requireBooleanField(value, "delegationEnabled", "Prediction manifest")
+      : true
+  const datasetRevision =
+    schemaVersion === MANIFEST_SCHEMA_VERSION
+      ? requireStringField(value, "datasetRevision", "Prediction manifest")
+      : "legacy-unrecorded"
+  if (delegationEnabled !== (agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY)) {
+    throw new Error("Prediction manifest has inconsistent agent topology metadata.")
+  }
   if (
     value.benchmark !== "swe-bench-pro" ||
     value.dataset !== DATASET_NAME ||
+    (schemaVersion === MANIFEST_SCHEMA_VERSION && datasetRevision !== DATASET_REVISION) ||
     value.datasetConfig !== DATASET_CONFIG ||
     value.datasetSplit !== DATASET_SPLIT ||
     value.inferenceRuntime !== "official-swebench-pro-instance-image"
@@ -1513,11 +1577,14 @@ function parsePredictionManifest(value: unknown): SweBenchProPredictionManifest 
     schemaVersion,
     benchmark: "swe-bench-pro",
     dataset: DATASET_NAME,
+    datasetRevision,
     datasetConfig: DATASET_CONFIG,
     datasetSplit: DATASET_SPLIT,
     runId: requireStringField(value, "runId", "Prediction manifest"),
     model: requireStringField(value, "model", "Prediction manifest"),
     agent: requireStringField(value, "agent", "Prediction manifest"),
+    agentTopology,
+    delegationEnabled,
     opencodeVersion: requireStringField(value, "opencodeVersion", "Prediction manifest"),
     opencodeCommit,
     opencodeBinarySha256,
@@ -1996,8 +2063,13 @@ function assertManifestMatchesRun(
   }))
   const mismatches = [
     manifest.runId !== options.runId ? "run id" : undefined,
+    manifest.datasetRevision !== DATASET_REVISION ? "dataset revision" : undefined,
     manifest.model !== options.model ? "model" : undefined,
     manifest.agent !== options.agent ? "agent" : undefined,
+    manifest.agentTopology !== options.agentTopology ? "agent topology" : undefined,
+    manifest.delegationEnabled !== (options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY)
+      ? "delegation policy"
+      : undefined,
     manifest.opencodeVersion !== options.opencodeVersion ? "opencode version" : undefined,
     options.runtime && manifest.opencodeCommit !== options.runtime.commit ? "opencode commit" : undefined,
     options.runtime && manifest.opencodeBinarySha256 !== options.runtime.binarySha256
@@ -2130,10 +2202,13 @@ async function writeRunProgress(
   await writeJsonAtomic(paths.summaryPath, {
     runId: options.runId,
     dataset: DATASET_NAME,
+    datasetRevision: DATASET_REVISION,
     datasetConfig: DATASET_CONFIG,
     datasetSplit: DATASET_SPLIT,
     model: options.model,
     agent: options.agent,
+    agentTopology: options.agentTopology,
+    delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     opencodeVersion: options.opencodeVersion,
     opencodeCommit: manifest.opencodeCommit,
     opencodeBinarySha256: manifest.opencodeBinarySha256,
@@ -2264,11 +2339,14 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
   console.log(`Wrote summary: ${paths.summaryPath}`)
 }
 
-async function main(): Promise<void> {
+export async function runSweBenchPro(
+  agentTopology: BenchmarkAgentTopology,
+  argv: readonly string[] = process.argv.slice(2),
+): Promise<void> {
   const localVersion = await readLocalOpencodeVersion()
-  const options = parseArgs(process.argv.slice(2), localVersion)
+  const options = parseArgs(argv, localVersion, agentTopology)
   if (options.help) {
-    console.log(usage())
+    console.log(usage(agentTopology))
     return
   }
 
@@ -2289,7 +2367,7 @@ async function main(): Promise<void> {
 }
 
 if (import.meta.main) {
-  main().catch((error) => {
+  runSweBenchPro(TERMINAL_BENCHMARK_AGENT_TOPOLOGY).catch((error) => {
     console.error(error instanceof Error ? error.message : error)
     process.exitCode = 1
   })

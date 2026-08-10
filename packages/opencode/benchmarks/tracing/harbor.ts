@@ -81,6 +81,7 @@ export async function collectOpenCodeHarborTraces(input: {
   readonly maxTasks?: number
   readonly officialTaskCount: number
   readonly attempts: number
+  readonly delegationEnabled: boolean
 }): Promise<string | undefined> {
   try {
     const metadataPaths = Array.from(
@@ -139,7 +140,7 @@ export async function collectOpenCodeHarborTraces(input: {
         evaluationWorkers: metadata.evaluationWorkers,
         inferenceTimeoutMs: metadata.inferenceTimeoutSeconds * 1_000,
         benchmarkRetries: metadata.benchmarkRetries,
-        delegationEnabled: true,
+        delegationEnabled: input.delegationEnabled,
         image: metadata.image,
         harnessRevision: metadata.harborVersion,
         startedAt,

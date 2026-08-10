@@ -16,6 +16,10 @@ import { StringDecoder } from "node:string_decoder"
 import { fileURLToPath } from "node:url"
 import {
   BENCHMARK_COORDINATOR_AGENT,
+  BENCHMARK_SINGLE_AGENT,
+  SINGLE_BENCHMARK_DEFAULT_MODEL,
+  SINGLE_BENCHMARK_AGENT_TOPOLOGY,
+  TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
   benchmarkAgentWorkflowInstructions,
   installBenchmarkAgentTeam,
 } from "./opencode-benchmark-agents.ts"
@@ -30,12 +34,9 @@ import { DirectTraceHarness, createTraceRun, finalizeTraceRun, type TraceRun } f
 import { createOpenCodeAttemptTrace, finishOpenCodeTrace, traceStatus } from "./tracing/integration.ts"
 import { startAgentSightDockerProfile, type AgentSightProfileHandle } from "./tracing/agentsight.ts"
 
-const DATASET_NAME = "princeton-nlp/SWE-bench_Verified"
 const DATASET_CONFIG = "default"
 const DATASET_SPLIT = "test"
 const HUGGING_FACE_ROWS_URL = "https://datasets-server.huggingface.co/rows"
-const DEFAULT_RUN_ROOT = ".benchmark-runs/swe-bench-verified"
-const DEFAULT_SMOKE_INSTANCE_ID = "scikit-learn__scikit-learn-13439"
 const DEFAULT_MAX_INSTANCES = 1
 const DEFAULT_MAX_WORKERS = 1
 const DEFAULT_EVALUATION_TIMEOUT_SECONDS = 60 * 60
@@ -44,7 +45,6 @@ const DEFAULT_MAX_INFRASTRUCTURE_RETRIES = 0
 const DEFAULT_RETRY_BASE_DELAY_MS = 2_000
 const MAX_INFRASTRUCTURE_RETRIES = 10
 const DEFAULT_MODEL = "openrouter/qwen/qwen3-coder-next"
-const DEFAULT_AGENT = BENCHMARK_COORDINATOR_AGENT
 const DEFAULT_OPENCODE_TIMEOUT_MS = 15 * 60 * 1000
 const DEFAULT_SETUP_TIMEOUT_MS = 10 * 60 * 1000
 const DEFAULT_DOCKER_COMMAND_TIMEOUT_MS = 60_000
@@ -55,7 +55,7 @@ const CONTAINER_WORKDIR = "/testbed"
 const DATASET_PAGE_SIZE = 100
 const DATASET_FETCH_ATTEMPTS = 3
 const DATASET_FETCH_RETRY_MS = 1_000
-const MANIFEST_SCHEMA_VERSION = 3
+const MANIFEST_SCHEMA_VERSION = 4
 const OPENCODE_PACKAGE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..")
 const REPO_ROOT = resolve(OPENCODE_PACKAGE_ROOT, "../..")
 const DEFAULT_TRACE_ROOT = resolve(REPO_ROOT, ".benchmark-traces")
@@ -74,6 +74,38 @@ const PROVIDER_ENV_KEYS = [
 
 type JsonObject = Record<string, unknown>
 
+export interface ClassicSweBenchVariant {
+  readonly benchmark: "swe-bench-lite" | "swe-bench-verified"
+  readonly displayName: "SWE-bench Lite" | "SWE-bench Verified"
+  readonly datasetName: string
+  readonly defaultRunRoot: string
+  readonly defaultSmokeInstanceId: string
+  readonly runIdPrefix: string
+  readonly scriptPrefix: string
+}
+
+export const SWE_BENCH_VERIFIED: ClassicSweBenchVariant = {
+  benchmark: "swe-bench-verified",
+  displayName: "SWE-bench Verified",
+  datasetName: "princeton-nlp/SWE-bench_Verified",
+  defaultRunRoot: ".benchmark-runs/swe-bench-verified",
+  defaultSmokeInstanceId: "scikit-learn__scikit-learn-13439",
+  runIdPrefix: "swe-verified",
+  scriptPrefix: "bench:swe-verified",
+}
+
+export const SWE_BENCH_LITE: ClassicSweBenchVariant = {
+  benchmark: "swe-bench-lite",
+  displayName: "SWE-bench Lite",
+  datasetName: "princeton-nlp/SWE-bench_Lite",
+  defaultRunRoot: ".benchmark-runs/swe-bench-lite",
+  defaultSmokeInstanceId: "astropy__astropy-12907",
+  runIdPrefix: "swe-lite",
+  scriptPrefix: "bench:swe-lite:single",
+}
+
+export type BenchmarkAgentTopology = typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY
+
 interface SweBenchRow {
   readonly repo: string
   readonly instance_id: string
@@ -84,6 +116,8 @@ interface SweBenchRow {
 }
 
 interface CliOptions {
+  readonly variant: ClassicSweBenchVariant
+  readonly agentTopology: BenchmarkAgentTopology
   readonly maxInstances: number
   readonly offset: number
   readonly instanceIds: readonly string[]
@@ -160,13 +194,15 @@ interface ExistingProgress {
 
 export interface PredictionManifest {
   readonly schemaVersion: number
-  readonly benchmark: "swe-bench-verified"
+  readonly benchmark: ClassicSweBenchVariant["benchmark"]
   readonly dataset: string
   readonly datasetConfig: string
   readonly datasetSplit: string
   readonly runId: string
   readonly model: string
   readonly agent: string
+  readonly agentTopology: BenchmarkAgentTopology
+  readonly delegationEnabled: boolean
   readonly opencodeVersion: string
   readonly opencodeCommit: string
   readonly opencodeBinarySha256: string
@@ -208,22 +244,26 @@ export interface SweBenchEvaluationConfig {
   readonly namespaceEmpty: boolean
 }
 
-function usage(): string {
+function usage(
+  variant: ClassicSweBenchVariant = SWE_BENCH_VERIFIED,
+  agentTopology: BenchmarkAgentTopology = TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+): string {
+  const agent = agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY ? BENCHMARK_SINGLE_AGENT : BENCHMARK_COORDINATOR_AGENT
   return [
-    "Run opencode on SWE-bench Verified.",
+    `Run opencode on ${variant.displayName}.`,
     "",
     "Inference:",
-    "  bun run bench:swe-verified:infer -- [flags]",
+    `  bun run ${variant.scriptPrefix}${agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY && variant === SWE_BENCH_VERIFIED ? ":single" : ""} -- [flags]`,
     "",
     "Official Docker evaluation:",
-    "  bun run bench:swe-verified:eval -- --run-id ID [flags]",
+    `  bun run ${variant.scriptPrefix}${agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY && variant === SWE_BENCH_VERIFIED ? ":single" : ""} -- --evaluate-only --run-id ID [flags]`,
     "",
     "Flags:",
     `  --max-instances N          Dataset-window size; overrides the default smoke instance. Default: ${DEFAULT_MAX_INSTANCES}.`,
     "  --offset N                 Dataset offset; overrides the default smoke instance.",
-    `  --instance-id ID           Specific instance; repeatable. Inference default: ${DEFAULT_SMOKE_INSTANCE_ID}.`,
+    `  --instance-id ID           Specific instance; repeatable. Inference default: ${variant.defaultSmokeInstanceId}.`,
     "  --run-id ID                Stable inference/evaluation run id.",
-    "  --output-dir DIR           Output directory. Default: .benchmark-runs/swe-bench-verified.",
+    `  --output-dir DIR           Output directory. Default: ${variant.defaultRunRoot}.`,
     "  --include-hints            Include public hints_text in the opencode prompt.",
     "  --evaluate-only            Evaluate a completed predictions artifact and exit.",
     "  --predictions-path PATH    Existing predictions JSONL to evaluate.",
@@ -236,7 +276,7 @@ function usage(): string {
     '  --namespace-empty          Pass --namespace "" to the official harness.',
     "  --list-instances           Print selected instances without running inference.",
     "  --model MODEL              opencode model in provider/model format.",
-    `  --agent AGENT              Primary opencode agent. Default: ${DEFAULT_AGENT}.`,
+    `  --agent AGENT              Primary opencode agent. Default: ${agent}.`,
     `  --timeout-ms N             Per-instance agent timeout. Default: ${DEFAULT_OPENCODE_TIMEOUT_MS}.`,
     `  --setup-timeout-ms N       Per-instance runtime setup timeout. Default: ${DEFAULT_SETUP_TIMEOUT_MS}.`,
     "  The agent runtime is built from the exact clean opencode checkout and cached by commit.",
@@ -262,13 +302,18 @@ function usage(): string {
   ].join("\n")
 }
 
-export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "latest"): CliOptions {
+export function parseArgs(
+  argv: readonly string[],
+  defaultOpencodeVersion = "latest",
+  variant: ClassicSweBenchVariant = SWE_BENCH_VERIFIED,
+  agentTopology: BenchmarkAgentTopology = TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+): CliOptions {
   let maxInstances = DEFAULT_MAX_INSTANCES
   let offset = 0
   const instanceIds: string[] = []
   let datasetSelectionWasSet = false
-  let outputDir = DEFAULT_RUN_ROOT
-  let runId = `swe-verified-${new Date().toISOString().replaceAll(/[:.]/g, "-")}`
+  let outputDir = variant.defaultRunRoot
+  let runId = `${variant.runIdPrefix}-${new Date().toISOString().replaceAll(/[:.]/g, "-")}`
   let includeHints = false
   let evaluateOnly = false
   let maxWorkers = DEFAULT_MAX_WORKERS
@@ -280,8 +325,8 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   let listInstances = false
   let predictionsPath: string | undefined
   let manifestPath: string | undefined
-  let model = resolveDefaultModel()
-  let agent = DEFAULT_AGENT
+  let model = resolveDefaultModel(agentTopology)
+  let agent = agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY ? BENCHMARK_SINGLE_AGENT : BENCHMARK_COORDINATOR_AGENT
   let timeoutMs = DEFAULT_OPENCODE_TIMEOUT_MS
   let setupTimeoutMs = DEFAULT_SETUP_TIMEOUT_MS
   const opencodeVersion = defaultOpencodeVersion
@@ -403,13 +448,18 @@ export function parseArgs(argv: readonly string[], defaultOpencodeVersion = "lat
   if (evaluateOnly && argv.includes("--trace-dir")) {
     throw new Error("--trace-dir is available only during inference.")
   }
+  if (agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY && argv.includes("--agent")) {
+    throw new Error("The single-agent benchmark command fixes --agent to benchmark-single-agent.")
+  }
   const effectiveTraceDir = evaluateOnly ? undefined : traceDir
   officialSweBenchImage("owner__repo-1", imageTemplate)
 
   return {
+    variant,
+    agentTopology,
     maxInstances,
     offset,
-    instanceIds: !evaluateOnly && !datasetSelectionWasSet ? [DEFAULT_SMOKE_INSTANCE_ID] : instanceIds,
+    instanceIds: !evaluateOnly && !datasetSelectionWasSet ? [variant.defaultSmokeInstanceId] : instanceIds,
     outputDir,
     runId,
     includeHints,
@@ -452,7 +502,7 @@ function parseNonNegativeInt(value: string, flag: string): number {
   return parsed
 }
 
-function resolveDefaultModel(): string {
+function resolveDefaultModel(agentTopology: BenchmarkAgentTopology): string {
   if (process.env.OPENCODE_BENCH_MODEL) return process.env.OPENCODE_BENCH_MODEL
   if (process.env.OPENCODE_MODEL) return process.env.OPENCODE_MODEL
   if (process.env.OPENROUTER_MODEL) {
@@ -460,7 +510,7 @@ function resolveDefaultModel(): string {
       ? process.env.OPENROUTER_MODEL
       : `openrouter/${process.env.OPENROUTER_MODEL}`
   }
-  return DEFAULT_MODEL
+  return agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY ? SINGLE_BENCHMARK_DEFAULT_MODEL : DEFAULT_MODEL
 }
 
 async function readLocalOpencodeVersion(): Promise<string> {
@@ -474,8 +524,8 @@ async function readLocalOpencodeVersion(): Promise<string> {
 
 function buildPaths(options: CliOptions): BenchmarkPaths {
   const root =
-    options.outputDir === DEFAULT_RUN_ROOT
-      ? resolve(REPO_ROOT, DEFAULT_RUN_ROOT)
+    options.outputDir === options.variant.defaultRunRoot
+      ? resolve(REPO_ROOT, options.variant.defaultRunRoot)
       : resolvePathFromRepoRoot(options.outputDir)
   const runs = join(root, "runs", options.runId)
   const predictionsPath =
@@ -502,17 +552,20 @@ function resolvePathFromRepoRoot(path: string): string {
 }
 
 async function fetchSweBenchRows(options: CliOptions): Promise<readonly SweBenchRow[]> {
-  if (options.instanceIds.length > 0) return fetchSpecificRows(options.instanceIds)
-  const rows = await fetchRowsPage(options.offset, options.maxInstances)
+  if (options.instanceIds.length > 0) return fetchSpecificRows(options.instanceIds, options.variant)
+  const rows = await fetchRowsPage(options.offset, options.maxInstances, options.variant)
   return rows.slice(0, options.maxInstances)
 }
 
-async function fetchSpecificRows(instanceIds: readonly string[]): Promise<readonly SweBenchRow[]> {
+async function fetchSpecificRows(
+  instanceIds: readonly string[],
+  variant: ClassicSweBenchVariant,
+): Promise<readonly SweBenchRow[]> {
   const wanted = new Set(instanceIds)
   const found = new Map<string, SweBenchRow>()
 
   for (let offset = 0; found.size < wanted.size; offset += DATASET_PAGE_SIZE) {
-    const rows = await fetchRowsPage(offset, DATASET_PAGE_SIZE)
+    const rows = await fetchRowsPage(offset, DATASET_PAGE_SIZE, variant)
     if (rows.length === 0) break
     for (const row of rows) {
       if (wanted.has(row.instance_id)) found.set(row.instance_id, row)
@@ -524,9 +577,13 @@ async function fetchSpecificRows(instanceIds: readonly string[]): Promise<readon
   return instanceIds.map((id) => found.get(id)!)
 }
 
-async function fetchRowsPage(offset: number, length: number): Promise<readonly SweBenchRow[]> {
+async function fetchRowsPage(
+  offset: number,
+  length: number,
+  variant: ClassicSweBenchVariant,
+): Promise<readonly SweBenchRow[]> {
   const url = new URL(HUGGING_FACE_ROWS_URL)
-  url.searchParams.set("dataset", DATASET_NAME)
+  url.searchParams.set("dataset", variant.datasetName)
   url.searchParams.set("config", DATASET_CONFIG)
   url.searchParams.set("split", DATASET_SPLIT)
   url.searchParams.set("offset", String(offset))
@@ -635,18 +692,21 @@ function datasetArtifactRow(row: SweBenchRow): JsonObject {
   }
 }
 
-function buildPrompt(row: SweBenchRow, includeHints: boolean): string {
-  const hints = includeHints && row.hints_text?.trim() ? ["## Hints", row.hints_text.trim(), ""].join("\n") : ""
+function buildPrompt(
+  row: SweBenchRow,
+  options: Pick<CliOptions, "includeHints" | "variant" | "agentTopology">,
+): string {
+  const hints = options.includeHints && row.hints_text?.trim() ? ["## Hints", row.hints_text.trim(), ""].join("\n") : ""
 
   return [
-    "Resolve this SWE-bench Verified issue using opencode.",
+    `Resolve this ${options.variant.displayName} issue using opencode.`,
     "",
     `You are running inside the official SWE-bench task image at ${CONTAINER_WORKDIR}.`,
     "Edit repository files directly; do not merely describe a patch.",
     "Do not seek or use gold patches, hidden tests, or benchmark answer artifacts.",
     "Do not modify tests or benchmark metadata unless the issue explicitly requires it.",
     "",
-    benchmarkAgentWorkflowInstructions(),
+    benchmarkAgentWorkflowInstructions(options.agentTopology),
     "## Repository",
     `Worktree: ${CONTAINER_WORKDIR}`,
     `Repo: ${row.repo}`,
@@ -868,7 +928,7 @@ async function prepareContainer(
 
     const stagingDir = await mkdtemp(join(tmpdir(), "opencode-swe-agents-"))
     try {
-      await installBenchmarkAgentTeam(stagingDir)
+      await installBenchmarkAgentTeam(stagingDir, options.agentTopology)
       await runHostCommand("docker", ["exec", name, "mkdir", "-p", `${CONTAINER_WORKDIR}/.opencode`], {
         timeoutMs: options.setupTimeoutMs,
       })
@@ -1010,7 +1070,7 @@ async function runInstanceAttempt(
   await mkdir(instanceRunDir, { recursive: true })
   await mkdir(attemptRunDir, { recursive: true })
 
-  const prompt = buildPrompt(row, options.includeHints)
+  const prompt = buildPrompt(row, options)
   const image = officialSweBenchImage(row.instance_id, options.imageTemplate)
   const name = containerName(options.runId, row.instance_id, context.attempt)
   const startedAt = new Date().toISOString()
@@ -1038,7 +1098,7 @@ async function runInstanceAttempt(
         inferenceTimeoutMs: options.timeoutMs,
         evaluationTimeoutSeconds: options.evaluationTimeoutSeconds,
         benchmarkRetries: options.maxInfrastructureRetries,
-        delegationEnabled: true,
+        delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
         image,
       })
     : undefined
@@ -1165,6 +1225,8 @@ async function runInstanceAttempt(
     maxAttempts: context.maxAttempts,
     model: options.model,
     agent: options.agent,
+    agentTopology: options.agentTopology,
+    delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     opencodeVersion: options.opencodeVersion,
     opencodeCommit: runtime.commit,
     opencodeBinarySha256: runtime.binarySha256,
@@ -1385,6 +1447,20 @@ function requireStringField(value: JsonObject, field: string, description: strin
   return candidate
 }
 
+function requireAgentTopology(value: JsonObject): BenchmarkAgentTopology {
+  const topology = requireStringField(value, "agentTopology", "Prediction manifest")
+  if (topology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY || topology === SINGLE_BENCHMARK_AGENT_TOPOLOGY) {
+    return topology
+  }
+  throw new Error("Prediction manifest has an invalid agent topology.")
+}
+
+function requireBooleanField(value: JsonObject, field: string, description: string): boolean {
+  const candidate = value[field]
+  if (typeof candidate !== "boolean") throw new Error(`${description} is missing boolean field "${field}".`)
+  return candidate
+}
+
 function encodeJsonl(rows: readonly unknown[]): string {
   if (rows.length === 0) return ""
   return rows.map((row) => JSON.stringify(row)).join("\n") + "\n"
@@ -1477,13 +1553,15 @@ function buildPredictionManifest(
   const content = encodeJsonl(predictions)
   return {
     schemaVersion: MANIFEST_SCHEMA_VERSION,
-    benchmark: "swe-bench-verified",
-    dataset: DATASET_NAME,
+    benchmark: options.variant.benchmark,
+    dataset: options.variant.datasetName,
     datasetConfig: DATASET_CONFIG,
     datasetSplit: DATASET_SPLIT,
     runId: options.runId,
     model: options.model,
     agent: options.agent,
+    agentTopology: options.agentTopology,
+    delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     opencodeVersion: options.opencodeVersion,
     opencodeCommit: runtime.commit,
     opencodeBinarySha256: runtime.binarySha256,
@@ -1528,11 +1606,14 @@ async function writeRunProgress(
   await writeJsonAtomic(paths.manifestPath, manifest)
   await writeJsonAtomic(paths.summaryPath, {
     runId: options.runId,
-    dataset: DATASET_NAME,
+    benchmark: options.variant.benchmark,
+    dataset: options.variant.datasetName,
     datasetConfig: DATASET_CONFIG,
     datasetSplit: DATASET_SPLIT,
     model: options.model,
     agent: options.agent,
+    agentTopology: options.agentTopology,
+    delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     opencodeVersion: options.opencodeVersion,
     opencodeCommit: manifest.opencodeCommit,
     opencodeBinarySha256: manifest.opencodeBinarySha256,
@@ -1576,7 +1657,7 @@ async function loadExistingProgress(
     throw new Error(`Run ${options.runId} has incomplete checkpoint metadata. Use --restart to replace it.`)
   }
 
-  const manifest = parsePredictionManifest(JSON.parse(await readFile(paths.manifestPath, "utf8")))
+  const manifest = parsePredictionManifest(JSON.parse(await readFile(paths.manifestPath, "utf8")), options.variant)
   assertManifestMatchesRun(manifest, options, rows)
   if (manifest.complete) {
     if (!summaryExists || !predictionsExist) {
@@ -1639,7 +1720,10 @@ async function loadExistingProgress(
   return { summaries, predictions, initialAttempts }
 }
 
-function parsePredictionManifest(value: unknown): PredictionManifest {
+function parsePredictionManifest(
+  value: unknown,
+  variant: ClassicSweBenchVariant = SWE_BENCH_VERIFIED,
+): PredictionManifest {
   if (!isObject(value)) throw new Error("Prediction manifest must be an object.")
   const benchmark = requireStringField(value, "benchmark", "Prediction manifest")
   const dataset = requireStringField(value, "dataset", "Prediction manifest")
@@ -1648,17 +1732,24 @@ function parsePredictionManifest(value: unknown): PredictionManifest {
   const runId = requireStringField(value, "runId", "Prediction manifest")
   const model = requireStringField(value, "model", "Prediction manifest")
   const agent = requireStringField(value, "agent", "Prediction manifest")
+  const agentTopology =
+    value.schemaVersion === MANIFEST_SCHEMA_VERSION ? requireAgentTopology(value) : TERMINAL_BENCHMARK_AGENT_TOPOLOGY
+  const delegationEnabled =
+    value.schemaVersion === MANIFEST_SCHEMA_VERSION
+      ? requireBooleanField(value, "delegationEnabled", "Prediction manifest")
+      : true
   const opencodeVersion = requireStringField(value, "opencodeVersion", "Prediction manifest")
   const opencodeCommit =
-    value.schemaVersion === MANIFEST_SCHEMA_VERSION
+    value.schemaVersion === 3 || value.schemaVersion === MANIFEST_SCHEMA_VERSION
       ? requireStringField(value, "opencodeCommit", "Prediction manifest")
       : "legacy-unrecorded"
   const opencodeBinarySha256 =
-    value.schemaVersion === MANIFEST_SCHEMA_VERSION
+    value.schemaVersion === 3 || value.schemaVersion === MANIFEST_SCHEMA_VERSION
       ? requireStringField(value, "opencodeBinarySha256", "Prediction manifest")
       : "legacy-unrecorded"
   const providerAttemptsPerTurn =
-    value.schemaVersion === MANIFEST_SCHEMA_VERSION && typeof value.providerAttemptsPerTurn === "number"
+    (value.schemaVersion === 3 || value.schemaVersion === MANIFEST_SCHEMA_VERSION) &&
+    typeof value.providerAttemptsPerTurn === "number"
       ? value.providerAttemptsPerTurn
       : 0
   const inferenceRuntime = requireStringField(value, "inferenceRuntime", "Prediction manifest")
@@ -1666,11 +1757,16 @@ function parsePredictionManifest(value: unknown): PredictionManifest {
   const dockerPlatform = requireStringField(value, "dockerPlatform", "Prediction manifest")
   const predictionsSha256 = requireStringField(value, "predictionsSha256", "Prediction manifest")
   const generatedAt = requireStringField(value, "generatedAt", "Prediction manifest")
-  if (value.schemaVersion !== 1 && value.schemaVersion !== 2 && value.schemaVersion !== MANIFEST_SCHEMA_VERSION) {
+  if (
+    value.schemaVersion !== 1 &&
+    value.schemaVersion !== 2 &&
+    value.schemaVersion !== 3 &&
+    value.schemaVersion !== MANIFEST_SCHEMA_VERSION
+  ) {
     throw new Error(`Unsupported prediction manifest schema: ${String(value.schemaVersion)}`)
   }
-  if (benchmark !== "swe-bench-verified" || dataset !== DATASET_NAME) {
-    throw new Error("Prediction manifest does not describe this SWE-bench Verified runner.")
+  if (benchmark !== variant.benchmark || dataset !== variant.datasetName) {
+    throw new Error(`Prediction manifest does not describe this ${variant.displayName} runner.`)
   }
   if (datasetConfig !== DATASET_CONFIG || datasetSplit !== DATASET_SPLIT) {
     throw new Error("Prediction manifest has an unexpected dataset config or split.")
@@ -1715,12 +1811,18 @@ function parsePredictionManifest(value: unknown): PredictionManifest {
     throw new Error("Prediction manifest has an invalid SHA-256 digest.")
   }
   if (
-    value.schemaVersion === MANIFEST_SCHEMA_VERSION &&
+    (value.schemaVersion === 3 || value.schemaVersion === MANIFEST_SCHEMA_VERSION) &&
     (!/^[a-f0-9]{40}$/.test(opencodeCommit) ||
       !/^[a-f0-9]{64}$/.test(opencodeBinarySha256) ||
       providerAttemptsPerTurn !== 1)
   ) {
     throw new Error("Prediction manifest has invalid agent provenance or provider-attempt metadata.")
+  }
+  if (
+    value.schemaVersion === MANIFEST_SCHEMA_VERSION &&
+    delegationEnabled !== (agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY)
+  ) {
+    throw new Error("Prediction manifest has inconsistent agent topology metadata.")
   }
   const selectedInstances = value.selectedInstances.map((candidate, index) => {
     const description = `Prediction manifest instance ${index + 1}`
@@ -1740,13 +1842,15 @@ function parsePredictionManifest(value: unknown): PredictionManifest {
   }
   return {
     schemaVersion: MANIFEST_SCHEMA_VERSION,
-    benchmark: "swe-bench-verified",
-    dataset: DATASET_NAME,
+    benchmark: variant.benchmark,
+    dataset: variant.datasetName,
     datasetConfig,
     datasetSplit,
     runId,
     model,
     agent,
+    agentTopology,
+    delegationEnabled,
     opencodeVersion,
     opencodeCommit,
     opencodeBinarySha256,
@@ -1779,6 +1883,10 @@ function assertManifestMatchesRun(
     manifest.runId !== options.runId ? "run id" : undefined,
     manifest.model !== options.model ? "model" : undefined,
     manifest.agent !== options.agent ? "agent" : undefined,
+    manifest.agentTopology !== options.agentTopology ? "agent topology" : undefined,
+    manifest.delegationEnabled !== (options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY)
+      ? "delegation policy"
+      : undefined,
     manifest.opencodeVersion !== options.opencodeVersion ? "opencode version" : undefined,
     options.runtime && manifest.opencodeCommit !== options.runtime.commit ? "opencode commit" : undefined,
     options.runtime && manifest.opencodeBinarySha256 !== options.runtime.binarySha256
@@ -1801,8 +1909,9 @@ function assertManifestMatchesRun(
 export async function verifyPredictionArtifact(
   predictionsPath: string,
   manifestPath: string,
+  variant: ClassicSweBenchVariant = SWE_BENCH_VERIFIED,
 ): Promise<{ manifest: PredictionManifest; predictions: readonly SweBenchPrediction[]; digest: string }> {
-  const manifest = parsePredictionManifest(JSON.parse(await readFile(manifestPath, "utf8")))
+  const manifest = parsePredictionManifest(JSON.parse(await readFile(manifestPath, "utf8")), variant)
   if (!manifest.complete) throw new Error("Prediction manifest is incomplete; resume inference before evaluation.")
   const content = await readFile(predictionsPath, "utf8")
   const digest = sha256(content)
@@ -1837,7 +1946,7 @@ async function installedSweBenchVersion(pythonExecutable: string): Promise<strin
 }
 
 async function runEvaluation(options: CliOptions, paths: BenchmarkPaths): Promise<void> {
-  const artifact = await verifyPredictionArtifact(paths.predictionsPath, paths.manifestPath)
+  const artifact = await verifyPredictionArtifact(paths.predictionsPath, paths.manifestPath, options.variant)
   if (artifact.manifest.runId !== options.runId) {
     throw new Error(
       `Prediction manifest run id "${artifact.manifest.runId}" does not match requested run id "${options.runId}".`,
@@ -1852,7 +1961,7 @@ async function runEvaluation(options: CliOptions, paths: BenchmarkPaths): Promis
   if (missing.length > 0) throw new Error(`Prediction artifact does not contain: ${missing.join(", ")}`)
 
   const args = buildEvaluationArgs({
-    datasetName: DATASET_NAME,
+    datasetName: options.variant.datasetName,
     predictionsPath: paths.predictionsPath,
     maxWorkers: options.maxWorkers,
     timeoutSeconds: options.evaluationTimeoutSeconds,
@@ -1889,9 +1998,9 @@ async function runEvaluation(options: CliOptions, paths: BenchmarkPaths): Promis
   const startedAt = new Date().toISOString()
   await writeJsonAtomic(paths.evaluationManifestPath, {
     schemaVersion: 1,
-    benchmark: "swe-bench-verified",
+    benchmark: options.variant.benchmark,
     status: "running",
-    dataset: DATASET_NAME,
+    dataset: options.variant.datasetName,
     runId: options.runId,
     predictionsPath: paths.predictionsPath,
     predictionManifestPath: paths.manifestPath,
@@ -1911,9 +2020,9 @@ async function runEvaluation(options: CliOptions, paths: BenchmarkPaths): Promis
   await writeProcessArtifacts(paths.runs, "evaluation", result)
   await writeJsonAtomic(paths.evaluationManifestPath, {
     schemaVersion: 1,
-    benchmark: "swe-bench-verified",
+    benchmark: options.variant.benchmark,
     status: result.exitCode === 0 ? "completed" : "failed",
-    dataset: DATASET_NAME,
+    dataset: options.variant.datasetName,
     runId: options.runId,
     predictionsPath: paths.predictionsPath,
     predictionManifestPath: paths.manifestPath,
@@ -2111,7 +2220,7 @@ async function preflightInference(options: CliOptions): Promise<void> {
 }
 
 async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise<void> {
-  console.log(`Fetching ${DATASET_NAME} instances...`)
+  console.log(`Fetching ${options.variant.datasetName} instances...`)
   const rows = await fetchSweBenchRows(options)
   if (options.listInstances || options.dryRun) {
     const plan = rows.map((row) => ({
@@ -2129,7 +2238,14 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
           {
             mode: "inference",
             runId: options.runId,
+            benchmark: options.variant.benchmark,
+            dataset: options.variant.datasetName,
             model: options.model,
+            agent: options.agent,
+            agentTopology: options.agentTopology,
+            delegationEnabled: options.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+            agentBudget: 24,
+            timeoutMs: options.timeoutMs,
             opencodeVersion: options.opencodeVersion,
             dockerPlatform: options.dockerPlatform,
             inferenceWorkers: options.inferenceWorkers,
@@ -2153,7 +2269,9 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
   if (options.traceDir && progress.summaries.length > 0) {
     throw new Error("Tracing requires a fresh benchmark run; use --restart or a new --run-id instead of resuming.")
   }
-  const traceRun = options.traceDir ? createTraceRun(options.traceDir, "swe-bench-verified", "opencode") : undefined
+  const traceRun = options.traceDir
+    ? createTraceRun(options.traceDir, options.variant.benchmark, "opencode")
+    : undefined
   const effectiveOptions = traceRun ? { ...options, traceRun } : options
   await writeJsonlAtomic(paths.datasetPath, rows.map(datasetArtifactRow))
   const summariesById = new Map<string, JsonObject>()
@@ -2234,13 +2352,19 @@ async function runInference(options: CliOptions, paths: BenchmarkPaths): Promise
   console.log(`\nWrote predictions: ${paths.predictionsPath}`)
   console.log(`Wrote immutable prediction manifest: ${paths.manifestPath}`)
   console.log(`Wrote summary: ${paths.summaryPath}`)
-  console.log("Inference is complete. Run bench:swe-verified:eval separately on a Docker-capable machine.")
+  console.log(
+    `Inference is complete. Run ${options.variant.scriptPrefix} evaluation separately on a Docker-capable machine.`,
+  )
 }
 
-async function main(): Promise<void> {
-  const options = parseArgs(process.argv.slice(2), await readLocalOpencodeVersion())
+export async function runClassicSweBench(
+  variant: ClassicSweBenchVariant,
+  agentTopology: BenchmarkAgentTopology,
+  argv: readonly string[] = process.argv.slice(2),
+): Promise<void> {
+  const options = parseArgs(argv, await readLocalOpencodeVersion(), variant, agentTopology)
   if (options.help) {
-    console.log(usage())
+    console.log(usage(variant, agentTopology))
     return
   }
 
@@ -2261,7 +2385,7 @@ async function main(): Promise<void> {
 }
 
 if (import.meta.main) {
-  main().catch((error) => {
+  runClassicSweBench(SWE_BENCH_VERIFIED, TERMINAL_BENCHMARK_AGENT_TOPOLOGY).catch((error) => {
     console.error(errorMessage(error))
     process.exitCode = 1
   })

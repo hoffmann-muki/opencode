@@ -17,8 +17,11 @@ import {
   BENCHMARK_NAVIGATOR_AGENT,
   BENCHMARK_PATCHER_AGENT,
   BENCHMARK_REVIEWER_AGENT,
+  BENCHMARK_SINGLE_AGENT,
+  SINGLE_BENCHMARK_AGENT_TOPOLOGY,
   TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
   terminalBenchmarkAgentConfig,
+  terminalSingleBenchmarkAgentConfig,
 } from "../../benchmarks/opencode-benchmark-agents"
 
 const defaults = {
@@ -122,20 +125,12 @@ describe("Terminal-Bench runner", () => {
     expect(normalizeTerminalBenchTaskName("write-compressor")).toBe("write-compressor")
     expect(normalizeTerminalBenchTaskName("terminal-bench/write-compressor")).toBe("write-compressor")
     expect(
-      parseArgs(
-        ["--task-name", "terminal-bench/write-compressor", "--task-name", "git-*"],
-        defaults,
-      ).taskNames,
+      parseArgs(["--task-name", "terminal-bench/write-compressor", "--task-name", "git-*"], defaults).taskNames,
     ).toEqual(["write-compressor", "git-*"])
     expect(() =>
-      parseArgs(
-        ["--task-name", "write-compressor", "--task-name", "terminal-bench/write-compressor"],
-        defaults,
-      ),
+      parseArgs(["--task-name", "write-compressor", "--task-name", "terminal-bench/write-compressor"], defaults),
     ).toThrow("must be unique")
-    expect(() => normalizeTerminalBenchTaskName("another-package/task")).toThrow(
-      "official Terminal-Bench task name",
-    )
+    expect(() => normalizeTerminalBenchTaskName("another-package/task")).toThrow("official Terminal-Bench task name")
   })
 
   test("accepts trace-only recovery without a provider run", () => {
@@ -165,6 +160,23 @@ describe("Terminal-Bench runner", () => {
     expect(config.agent[BENCHMARK_REVIEWER_AGENT].steps).toBe(12)
     expect(coordinator.prompt.match(/fresh benchmark-/g)).toHaveLength(3)
     expect(coordinator.prompt).toContain("Do not use background delegation")
+  })
+
+  test("configures one native primary agent without delegation capability", () => {
+    const options = parseArgs([], { ...defaults, agentTopology: SINGLE_BENCHMARK_AGENT_TOPOLOGY })
+    const config = terminalSingleBenchmarkAgentConfig()
+    const agent = config.agent[BENCHMARK_SINGLE_AGENT]
+    const args = buildHarborArgs({ ...options, runtime }, "/runs/harbor-jobs")
+
+    expect(options.agentTopology).toBe(SINGLE_BENCHMARK_AGENT_TOPOLOGY)
+    expect(config.default_agent).toBe(BENCHMARK_SINGLE_AGENT)
+    expect(Object.keys(config.agent)).toEqual(["title", BENCHMARK_SINGLE_AGENT])
+    expect(agent.mode).toBe("primary")
+    expect(agent.steps).toBe(24)
+    expect(agent.temperature).toBe(0.1)
+    expect(agent.tools.task).toBe(false)
+    expect(agent.prompt).toContain("Do not delegate")
+    expect(args).toContain(`opencode_config=${JSON.stringify(config)}`)
   })
 
   test("leaderboard mode enforces the complete public five-attempt protocol", () => {
@@ -211,6 +223,7 @@ describe("Terminal-Bench runner", () => {
 
   test("normalizes model environment defaults without embedding credentials", () => {
     expect(resolveDefaultModel({ OPENROUTER_MODEL: "qwen/qwen3-coder-next" })).toBe("openrouter/qwen/qwen3-coder-next")
+    expect(resolveDefaultModel({}, SINGLE_BENCHMARK_AGENT_TOPOLOGY)).toBe("openrouter/poolside/laguna-s-2.1:free")
     expect(resolveDefaultModel({ OPENCODE_BENCH_MODEL: "anthropic/claude-sonnet-4" })).toBe("anthropic/claude-sonnet-4")
   })
 
@@ -337,6 +350,7 @@ describe("Terminal-Bench runner", () => {
           schemaVersion: 2,
           benchmark: "terminal-bench",
           agent: "opencode",
+          agentTopology: TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
           runId: "job",
           traceDir: run.root,
           traceRunId: run.id,

@@ -2,15 +2,40 @@ import { mkdir, writeFile } from "node:fs/promises"
 import { join } from "node:path"
 
 export const BENCHMARK_COORDINATOR_AGENT = "benchmark-coordinator"
+export const BENCHMARK_SINGLE_AGENT = "benchmark-single-agent"
 export const BENCHMARK_NAVIGATOR_AGENT = "benchmark-navigator"
 export const BENCHMARK_PATCHER_AGENT = "benchmark-patcher"
 export const BENCHMARK_REVIEWER_AGENT = "benchmark-reviewer"
 
 export const TERMINAL_BENCHMARK_AGENT_TOPOLOGY = "supervisor-delegation" as const
+export const SINGLE_BENCHMARK_AGENT_TOPOLOGY = "single-agent" as const
+export const SINGLE_BENCHMARK_DEFAULT_MODEL = "openrouter/poolside/laguna-s-2.1:free"
 
 const AGENT_DIR = join(".opencode", "agent")
 
 const AGENTS: readonly { readonly filename: string; readonly content: string }[] = [
+  {
+    filename: `${BENCHMARK_SINGLE_AGENT}.md`,
+    content: [
+      "---",
+      "mode: primary",
+      "description: Solves a benchmark coding task independently from investigation through final review.",
+      "temperature: 0.1",
+      "steps: 24",
+      "tools:",
+      '  "*": true',
+      "  task: false",
+      "  todowrite: false",
+      "---",
+      "",
+      "You are the sole benchmark coding agent.",
+      "",
+      "Do not delegate or create child agents. Personally investigate the task using repository evidence, implement the smallest complete fix, run focused verification when feasible, inspect the final diff or generated files, and correct any defects you find before answering.",
+      "",
+      "The worktree changes—not prose—are the benchmark answer. Report changed paths, verification commands and outcomes, and residual risk. Never seek hidden benchmark tests, gold patches, or external solution artifacts.",
+      "",
+    ].join("\n"),
+  },
   {
     filename: `${BENCHMARK_COORDINATOR_AGENT}.md`,
     content: [
@@ -106,7 +131,19 @@ const AGENTS: readonly { readonly filename: string; readonly content: string }[]
   },
 ]
 
-export function benchmarkAgentWorkflowInstructions(): string {
+export function benchmarkAgentWorkflowInstructions(
+  topology:
+    | typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY
+    | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY = TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+): string {
+  if (topology === SINGLE_BENCHMARK_AGENT_TOPOLOGY) {
+    return [
+      "## Benchmark agent workflow",
+      "You are the sole coding agent. Do not delegate or create child agents.",
+      "Personally investigate, implement, verify, inspect the final diff, and correct defects before answering.",
+      "",
+    ].join("\n")
+  }
   return [
     "## Benchmark agent workflow",
     "A project-local opencode benchmark team is available in this workspace.",
@@ -204,9 +241,52 @@ export function terminalBenchmarkAgentConfig() {
   } as const
 }
 
-export async function installBenchmarkAgentTeam(workspace: string): Promise<void> {
+/**
+ * Terminal-Bench installs OpenCode inside an isolated task environment. Keep
+ * the single-agent definition self-contained so no delegation-capable agents
+ * or task permission enter that environment.
+ */
+export function terminalSingleBenchmarkAgentConfig() {
+  return {
+    default_agent: BENCHMARK_SINGLE_AGENT,
+    agent: {
+      title: {
+        disable: true,
+      },
+      [BENCHMARK_SINGLE_AGENT]: {
+        mode: "primary",
+        description: "Solves a Terminal-Bench task independently from investigation through final verification.",
+        temperature: 0.1,
+        steps: 24,
+        tools: {
+          "*": true,
+          task: false,
+          todowrite: false,
+        },
+        prompt: [
+          "You are the sole Terminal-Bench coding agent.",
+          "",
+          "Do not delegate or create child agents. Personally inspect the environment and task constraints, implement the smallest complete solution, run focused verification when feasible, and review the final environment state for defects before answering.",
+          "",
+          "The environment changes—not prose—are the benchmark answer. Report the work performed, verification commands and outcomes, and any residual risk. Never seek hidden benchmark tests or external solution artifacts.",
+        ].join("\n"),
+      },
+    },
+  } as const
+}
+
+export async function installBenchmarkAgentTeam(
+  workspace: string,
+  topology:
+    | typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY
+    | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY = TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+): Promise<void> {
   const agentDir = join(workspace, AGENT_DIR)
   await mkdir(agentDir, { recursive: true })
 
-  await Promise.all(AGENTS.map((agent) => writeFile(join(agentDir, agent.filename), agent.content, "utf8")))
+  const agents =
+    topology === SINGLE_BENCHMARK_AGENT_TOPOLOGY
+      ? AGENTS.filter((agent) => agent.filename === `${BENCHMARK_SINGLE_AGENT}.md`)
+      : AGENTS.filter((agent) => agent.filename !== `${BENCHMARK_SINGLE_AGENT}.md`)
+  await Promise.all(agents.map((agent) => writeFile(join(agentDir, agent.filename), agent.content, "utf8")))
 }

@@ -14,6 +14,32 @@ both cases, one benchmark attempt remains one outer attempt; the subagent calls
 are the multi-agent work inside it. SWE runners still allow `--agent` to
 override the primary agent for experiments.
 
+Dedicated single-agent commands preserve the same harness safeguards while
+installing only one native primary agent with the task/delegation tool disabled:
+
+```bash
+bun run bench:swe-verified:single -- --run-id swe-verified-single
+bun run bench:swe-lite:single -- --run-id swe-lite-single
+bun run bench:swe-pro:single -- --run-id swe-pro-single
+```
+
+All default to `openrouter/poolside/laguna-s-2.1:free` with one worker, one
+benchmark attempt, one provider attempt, temperature `0.1`, and a 24-step agent
+budget. Lite and Verified retain a 15-minute
+deadline; Pro retains its peer-aligned 30-minute deadline. The lone agent owns
+investigation, implementation, focused verification, and final-diff review.
+Lite selects `princeton-nlp/SWE-bench_Lite` and defaults to
+`astropy__astropy-12907`; Verified retains the dataset and smoke ID below.
+Tracing and AgentSight profiling remain automatic, with topology recorded as
+`single-agent`. These commands intentionally reject `--agent` overrides so a
+nominal single-agent run cannot silently select a delegation-capable primary.
+Score Lite and Verified artifacts through the same topology-bound command:
+
+```bash
+bun run bench:swe-lite:single -- --evaluate-only --run-id swe-lite-single
+bun run bench:swe-verified:single -- --evaluate-only --run-id swe-verified-single
+```
+
 ## SWE-bench Verified
 
 This runner follows the official dataset, per-instance task images, JSONL
@@ -122,7 +148,8 @@ harness command without starting evaluation.
 
 SWE-bench Pro uses Scale AI's official test split and its separate evaluator:
 
-- Dataset: <https://huggingface.co/datasets/ScaleAI/SWE-bench_Pro>
+- Dataset: <https://huggingface.co/datasets/ScaleAI/SWE-bench_Pro>, pinned to revision
+  `7ab5114912baf22bb098818e604c02fe7ad2c11f`
 - Evaluator: <https://github.com/scaleapi/SWE-bench_Pro-os>
 
 Run one prediction instance:
@@ -171,6 +198,15 @@ the Scale harness at the pinned commit used by this integration; an explicit
 ```bash
 bun run bench:swe-pro:eval -- \
   --run-id swe-pro-example \
+  --max-workers 1
+```
+
+A single-agent prediction manifest is topology-bound. Evaluate it through the
+same immutable entrypoint:
+
+```bash
+bun run bench:swe-pro:single -- --evaluate-only \
+  --run-id swe-pro-single \
   --max-workers 1
 ```
 
@@ -350,6 +386,20 @@ Each trial uses a supervisor-led foreground
 sequence of investigation, execution, and independent verification. The
 coordinator and three fresh phases have iteration caps of 24, 10, 18, and 12,
 with temperature `0.1` throughout.
+
+For a framework-native single-agent comparison, use the dedicated command:
+
+```bash
+OPENROUTER_API_KEY=... bun run bench:terminal:single -- \
+  --run-id laguna-terminal-single
+```
+
+It supplies one 24-step primary OpenCode agent using
+`openrouter/poolside/laguna-s-2.1:free` at temperature `0.1`, with the same
+Harbor task, attempt, retry, concurrency, provenance, tracing, and profiling
+defaults. The task tool is disabled and no subagent definitions are installed.
+The sole agent is explicitly responsible for investigation, implementation,
+focused verification, and final-state review.
 
 - Dataset: <https://hub.harborframework.com/datasets/terminal-bench/terminal-bench-2-1/6>
 - Harbor evaluation guide: <https://www.harborframework.com/docs/run-jobs/run-evals>

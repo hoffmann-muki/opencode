@@ -13,8 +13,12 @@ import { dirname, isAbsolute, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 import {
   BENCHMARK_COORDINATOR_AGENT,
+  BENCHMARK_SINGLE_AGENT,
+  SINGLE_BENCHMARK_DEFAULT_MODEL,
+  SINGLE_BENCHMARK_AGENT_TOPOLOGY,
   TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
   terminalBenchmarkAgentConfig,
+  terminalSingleBenchmarkAgentConfig,
 } from "./opencode-benchmark-agents.ts"
 import { benchmarkSourceIdentity, ensureBenchmarkRuntime, type BenchmarkRuntime } from "./opencode-runtime.ts"
 import { createTraceRun, type TraceRun } from "./tracing/coordination.ts"
@@ -39,6 +43,7 @@ const SAFE_RUN_ID = /^[A-Za-z0-9][A-Za-z0-9._-]*$/
 const HARBOR_AGENT = "packages.opencode.benchmarks.opencode_harbor:BenchmarkOpenCode"
 
 interface CliOptions {
+  readonly agentTopology: typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY
   readonly taskNames: readonly string[]
   readonly maxTasks?: number
   readonly attempts: number
@@ -86,8 +91,10 @@ interface RunManifest {
   readonly model: string
   readonly agent: "opencode"
   readonly agentAdapter: typeof HARBOR_AGENT
-  readonly primaryAgent: typeof BENCHMARK_COORDINATOR_AGENT
-  readonly agentTopology: typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY
+  readonly primaryAgent: typeof BENCHMARK_COORDINATOR_AGENT | typeof BENCHMARK_SINGLE_AGENT
+  readonly agentTopology: typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY
+  readonly agentSequence: readonly string[]
+  readonly delegationEnabled: boolean
   readonly opencodeVersion: string
   readonly opencodeCommit: string
   readonly opencodeBinarySha256: string
@@ -123,6 +130,7 @@ export function usage(): string {
     "",
     "Usage:",
     "  bun run bench:terminal -- [flags]",
+    "  bun run bench:terminal:single -- [flags]",
     "",
     "Flags:",
     `  --max-tasks N          Maximum tasks after filtering. Default: ${DEFAULT_MAX_TASKS}.`,
@@ -157,7 +165,12 @@ export function usage(): string {
 
 export function parseArgs(
   argv: readonly string[],
-  defaults: { readonly model: string; readonly opencodeVersion: string; readonly now?: Date },
+  defaults: {
+    readonly model: string
+    readonly opencodeVersion: string
+    readonly agentTopology?: typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY
+    readonly now?: Date
+  },
 ): CliOptions {
   const taskNames: string[] = []
   let maxTasks: number | undefined = DEFAULT_MAX_TASKS
@@ -287,6 +300,7 @@ export function parseArgs(
   }
 
   return {
+    agentTopology: defaults.agentTopology ?? TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     taskNames: normalizedTaskNames,
     ...(maxTasks !== undefined ? { maxTasks } : {}),
     attempts,
@@ -320,13 +334,18 @@ function parseNonNegativeInt(value: string, flag: string): number {
   return parsed
 }
 
-export function resolveDefaultModel(env: NodeJS.ProcessEnv = process.env): string {
+export function resolveDefaultModel(
+  env: NodeJS.ProcessEnv = process.env,
+  agentTopology:
+    | typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY
+    | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY = TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+): string {
   if (env.OPENCODE_BENCH_MODEL) return env.OPENCODE_BENCH_MODEL
   if (env.OPENCODE_MODEL) return env.OPENCODE_MODEL
   if (env.OPENROUTER_MODEL) {
     return env.OPENROUTER_MODEL.startsWith("openrouter/") ? env.OPENROUTER_MODEL : `openrouter/${env.OPENROUTER_MODEL}`
   }
-  return DEFAULT_MODEL
+  return agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY ? SINGLE_BENCHMARK_DEFAULT_MODEL : DEFAULT_MODEL
 }
 
 export function normalizeTerminalBenchTaskName(taskName: string): string {
@@ -343,7 +362,11 @@ export function normalizeTerminalBenchTaskName(taskName: string): string {
 
 export function buildHarborArgs(options: CliOptions, jobsDir: string): readonly string[] {
   if (!options.runtime) throw new Error("The exact opencode benchmark runtime has not been prepared.")
-  const opencodeConfig = JSON.stringify(terminalBenchmarkAgentConfig())
+  const opencodeConfig = JSON.stringify(
+    options.agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY
+      ? terminalSingleBenchmarkAgentConfig()
+      : terminalBenchmarkAgentConfig(),
+  )
   const args = [
     "run",
     "--dataset",
@@ -531,6 +554,7 @@ export async function collectTerminalBenchTraces(input: {
   readonly taskNames: readonly string[]
   readonly maxTasks?: number
   readonly attempts: number
+  readonly delegationEnabled: boolean
 }): Promise<string | undefined> {
   return collectOpenCodeHarborTraces({
     ...input,
@@ -560,6 +584,7 @@ export async function recoverTerminalBenchTraces(manifestPath: string): Promise<
     taskNames: value.taskNames,
     ...(value.maxTasks !== undefined ? { maxTasks: value.maxTasks } : {}),
     attempts: value.attempts,
+    delegationEnabled: value.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
   })
   if (warning) throw new Error(warning)
   return run.root
@@ -569,11 +594,16 @@ export function stripTerminalBenchmarkTraceFrames(output: string): string {
   return stripHarborTraceFrames(output)
 }
 
-async function main(): Promise<void> {
+export async function runTerminalBench(
+  agentTopology:
+    | typeof TERMINAL_BENCHMARK_AGENT_TOPOLOGY
+    | typeof SINGLE_BENCHMARK_AGENT_TOPOLOGY = TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+): Promise<void> {
   const opencodeVersion = await readLocalOpencodeVersion()
   const options = parseArgs(process.argv.slice(2), {
-    model: resolveDefaultModel(),
+    model: resolveDefaultModel(process.env, agentTopology),
     opencodeVersion,
+    agentTopology,
   })
   if (options.help) {
     console.log(usage())
@@ -615,8 +645,16 @@ async function main(): Promise<void> {
     model: resolvedOptions.model,
     agent: "opencode",
     agentAdapter: HARBOR_AGENT,
-    primaryAgent: BENCHMARK_COORDINATOR_AGENT,
-    agentTopology: TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
+    primaryAgent:
+      resolvedOptions.agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY
+        ? BENCHMARK_SINGLE_AGENT
+        : BENCHMARK_COORDINATOR_AGENT,
+    agentTopology: resolvedOptions.agentTopology,
+    agentSequence:
+      resolvedOptions.agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY
+        ? ["agent"]
+        : ["coordinator", "navigator", "patcher", "reviewer"],
+    delegationEnabled: resolvedOptions.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     opencodeVersion: resolvedOptions.opencodeVersion,
     opencodeCommit: runtime.commit,
     opencodeBinarySha256: runtime.binarySha256,
@@ -659,6 +697,7 @@ async function main(): Promise<void> {
       taskNames: executionOptions.taskNames,
       ...(executionOptions.maxTasks !== undefined ? { maxTasks: executionOptions.maxTasks } : {}),
       attempts: executionOptions.attempts,
+      delegationEnabled: executionOptions.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY,
     })
     if (warning) console.warn(warning)
   }
@@ -736,6 +775,9 @@ function isRecoverableManifest(value: unknown): value is RunManifest & {
     typeof value.attempts === "number" &&
     Number.isInteger(value.attempts) &&
     value.attempts > 0 &&
+    "agentTopology" in value &&
+    (value.agentTopology === TERMINAL_BENCHMARK_AGENT_TOPOLOGY ||
+      value.agentTopology === SINGLE_BENCHMARK_AGENT_TOPOLOGY) &&
     (!("maxTasks" in value) ||
       value.maxTasks === undefined ||
       (typeof value.maxTasks === "number" && Number.isInteger(value.maxTasks) && value.maxTasks > 0))
@@ -743,7 +785,7 @@ function isRecoverableManifest(value: unknown): value is RunManifest & {
 }
 
 if (import.meta.main) {
-  main().catch((error) => {
+  runTerminalBench().catch((error) => {
     console.error(error instanceof Error ? error.message : error)
     process.exitCode = 1
   })

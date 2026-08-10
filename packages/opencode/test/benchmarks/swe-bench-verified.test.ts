@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { createHash } from "node:crypto"
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises"
 import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import {
@@ -16,7 +16,9 @@ import {
   parseSweBenchRow,
   stripBenchmarkTraceFrames,
   verifyPredictionArtifact,
+  SWE_BENCH_LITE,
 } from "../../benchmarks/swe-bench-verified"
+import { SINGLE_BENCHMARK_AGENT_TOPOLOGY, installBenchmarkAgentTeam } from "../../benchmarks/opencode-benchmark-agents"
 
 describe("SWE-bench Verified runner", () => {
   test("distinguishes process completion from prediction production", () => {
@@ -187,7 +189,7 @@ describe("SWE-bench Verified runner", () => {
     expect(inference.evaluateOnly).toBe(false)
     expect(inference.instanceIds).toEqual(["scikit-learn__scikit-learn-13439"])
     expect(inference.model).toBe("openrouter/qwen/qwen3-coder-next")
-    expect(inference.timeoutMs).toBe(30 * 60 * 1000)
+    expect(inference.timeoutMs).toBe(15 * 60 * 1000)
     expect(inference.maxWorkers).toBe(1)
     expect(inference.opencodeVersion).toBe("1.18.4")
     expect(inference.inferenceWorkers).toBe(1)
@@ -218,6 +220,34 @@ describe("SWE-bench Verified runner", () => {
     expect(evaluationTimeout.evaluationTimeoutSeconds).toBe(1800)
     expect(() => parseArgs(["--evaluate"], "1.18.4")).toThrow("Unknown argument")
     expect(() => parseArgs(["--opencode-version", "1.18.4"], "1.18.4")).toThrow("Unknown argument")
+  })
+
+  test("configures Lite and Verified single-agent runs without delegation", async () => {
+    const lite = parseArgs([], "1.18.4", SWE_BENCH_LITE, SINGLE_BENCHMARK_AGENT_TOPOLOGY)
+    expect(lite.instanceIds).toEqual(["astropy__astropy-12907"])
+    expect(lite.variant.datasetName).toBe("princeton-nlp/SWE-bench_Lite")
+    expect(lite.agent).toBe("benchmark-single-agent")
+    expect(lite.agentTopology).toBe("single-agent")
+    expect(lite.model).toBe("openrouter/poolside/laguna-s-2.1:free")
+    expect(lite.timeoutMs).toBe(15 * 60 * 1000)
+    expect(lite.inferenceWorkers).toBe(1)
+    expect(lite.maxInfrastructureRetries).toBe(0)
+    expect(() => parseArgs(["--agent", "build"], "1.18.4", SWE_BENCH_LITE, SINGLE_BENCHMARK_AGENT_TOPOLOGY)).toThrow(
+      "fixes --agent",
+    )
+
+    const directory = await mkdtemp(join(tmpdir(), "opencode-single-agent-"))
+    try {
+      await installBenchmarkAgentTeam(directory, SINGLE_BENCHMARK_AGENT_TOPOLOGY)
+      const agentDirectory = join(directory, ".opencode", "agent")
+      expect(await readdir(agentDirectory)).toEqual(["benchmark-single-agent.md"])
+      const definition = await readFile(join(agentDirectory, "benchmark-single-agent.md"), "utf8")
+      expect(definition).toContain("steps: 24")
+      expect(definition).toContain("task: false")
+      expect(definition).toContain("Do not delegate")
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
   })
 
   test("keeps private native trace frames out of legacy run artifacts", () => {
@@ -398,6 +428,72 @@ describe("SWE-bench Verified runner", () => {
       expect(verificationError).toBeInstanceOf(Error)
       if (!(verificationError instanceof Error)) throw new Error("Expected prediction verification to fail.")
       expect(verificationError.message).toContain("Predictions have changed since inference")
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  test("verifies current Lite single-agent manifests against the selected variant", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "opencode-swe-lite-artifact-"))
+    const predictionsPath = join(directory, "predictions.jsonl")
+    const manifestPath = join(directory, "prediction-manifest.json")
+    const predictions = `${JSON.stringify({
+      instance_id: "astropy__astropy-12907",
+      model_name_or_path: "opencode@source:openrouter/model",
+      model_patch: "",
+    })}\n`
+
+    try {
+      await writeFile(predictionsPath, predictions, "utf8")
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          schemaVersion: 4,
+          benchmark: "swe-bench-lite",
+          dataset: "princeton-nlp/SWE-bench_Lite",
+          datasetConfig: "default",
+          datasetSplit: "test",
+          runId: "lite-single",
+          model: "openrouter/model",
+          agent: "benchmark-single-agent",
+          agentTopology: "single-agent",
+          delegationEnabled: false,
+          opencodeVersion: "1.2.3",
+          opencodeCommit: "a".repeat(40),
+          opencodeBinarySha256: "b".repeat(64),
+          providerAttemptsPerTurn: 1,
+          inferenceRuntime: "official-swebench-instance-image",
+          imageTemplate: "official/{instance_id}",
+          dockerPlatform: "linux/amd64",
+          includeHints: false,
+          inferenceWorkers: 1,
+          maxInfrastructureRetries: 0,
+          retryBaseDelayMs: 2_000,
+          selectedInstances: [
+            {
+              instanceId: "astropy__astropy-12907",
+              repo: "astropy/astropy",
+              baseCommit: "abc123",
+              image: "official/astropy__astropy-12907",
+            },
+          ],
+          completedInstanceIds: ["astropy__astropy-12907"],
+          complete: true,
+          predictionCount: 1,
+          nonEmptyPatchCount: 0,
+          predictionsSha256: createHash("sha256").update(predictions).digest("hex"),
+          generatedAt: "2026-08-09T00:00:00.000Z",
+        }),
+        "utf8",
+      )
+
+      const artifact = await verifyPredictionArtifact(predictionsPath, manifestPath, SWE_BENCH_LITE)
+      expect(artifact.manifest).toMatchObject({
+        benchmark: "swe-bench-lite",
+        agentTopology: "single-agent",
+        delegationEnabled: false,
+      })
+      await expect(verifyPredictionArtifact(predictionsPath, manifestPath)).rejects.toThrow("SWE-bench Verified")
     } finally {
       await rm(directory, { recursive: true, force: true })
     }

@@ -5,6 +5,7 @@ import { tmpdir } from "node:os"
 import { join, resolve } from "node:path"
 import {
   assessPrediction,
+  buildPrompt,
   buildDockerRunArgs,
   buildEvaluationArgs,
   buildOpencodeExecArgs,
@@ -17,6 +18,7 @@ import {
   stripBenchmarkTraceFrames,
   verifyPredictionArtifact,
 } from "../../benchmarks/swe-bench-pro"
+import { SINGLE_BENCHMARK_AGENT_TOPOLOGY } from "../../benchmarks/opencode-benchmark-agents"
 
 describe("SWE-bench Pro runner", () => {
   test("retains only public inference fields and the official image tag", () => {
@@ -141,6 +143,22 @@ describe("SWE-bench Pro runner", () => {
     expect(evaluation.traceDir).toBeUndefined()
     expect(() => parseArgs(["--evaluate"], "1.18.4")).toThrow("Unknown argument")
     expect(() => parseArgs(["--opencode-version", "1.18.4"], "1.18.4")).toThrow("Unknown argument")
+  })
+
+  test("configures a native single-agent Pro run with the peer budget", () => {
+    const options = parseArgs([], "1.18.4", SINGLE_BENCHMARK_AGENT_TOPOLOGY)
+    const prompt = buildPrompt(parseSweBenchProRow(proRow()), SINGLE_BENCHMARK_AGENT_TOPOLOGY)
+
+    expect(options.agent).toBe("benchmark-single-agent")
+    expect(options.agentTopology).toBe("single-agent")
+    expect(options.model).toBe("openrouter/poolside/laguna-s-2.1:free")
+    expect(options.timeoutMs).toBe(30 * 60 * 1000)
+    expect(options.inferenceWorkers).toBe(1)
+    expect(options.maxInfrastructureRetries).toBe(0)
+    expect(prompt).toContain("sole coding agent")
+    expect(prompt).toContain("Do not delegate")
+    expect(prompt).not.toContain("navigator -> patcher -> reviewer")
+    expect(() => parseArgs(["--agent", "build"], "1.18.4", SINGLE_BENCHMARK_AGENT_TOPOLOGY)).toThrow("fixes --agent")
   })
 
   test("keeps private native trace frames out of legacy run artifacts", () => {
@@ -349,6 +367,76 @@ describe("SWE-bench Pro runner", () => {
       expect(verificationError).toBeInstanceOf(Error)
       if (!(verificationError instanceof Error)) throw new Error("Expected prediction verification to fail.")
       expect(verificationError.message).toContain("Predictions have changed since inference")
+    } finally {
+      await rm(directory, { recursive: true, force: true })
+    }
+  })
+
+  test("verifies current single-agent Pro topology metadata", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "opencode-swe-pro-single-artifact-"))
+    const predictionsPath = join(directory, "predictions.json")
+    const manifestPath = join(directory, "prediction-manifest.json")
+    const predictions = `${JSON.stringify(
+      [{ instance_id: "instance_owner__repo-1", patch: "", prefix: "single" }],
+      null,
+      2,
+    )}\n`
+
+    try {
+      await writeFile(predictionsPath, predictions)
+      await writeFile(
+        manifestPath,
+        JSON.stringify({
+          schemaVersion: 3,
+          benchmark: "swe-bench-pro",
+          dataset: "ScaleAI/SWE-bench_Pro",
+          datasetRevision: "7ab5114912baf22bb098818e604c02fe7ad2c11f",
+          datasetConfig: "default",
+          datasetSplit: "test",
+          runId: "single",
+          model: "openrouter/model",
+          agent: "benchmark-single-agent",
+          agentTopology: "single-agent",
+          delegationEnabled: false,
+          opencodeVersion: "1.2.3",
+          opencodeCommit: "a".repeat(40),
+          opencodeBinarySha256: "b".repeat(64),
+          providerAttemptsPerTurn: 1,
+          inferenceRuntime: "official-swebench-pro-instance-image",
+          imagePrefix: "docker.io/jefzda/sweap-images",
+          dockerPlatform: "linux/amd64",
+          inferenceWorkers: 1,
+          maxInfrastructureRetries: 0,
+          retryBaseDelayMs: 2_000,
+          selectedInstances: [
+            {
+              instanceId: "instance_owner__repo-1",
+              repo: "owner/repo",
+              baseCommit: "abc123",
+              image: "docker.io/jefzda/sweap-images:owner.repo-instance_owner__repo-1",
+            },
+          ],
+          completedInstanceIds: ["instance_owner__repo-1"],
+          complete: true,
+          predictionCount: 1,
+          nonEmptyPatchCount: 0,
+          predictionsSha256: createHash("sha256").update(predictions).digest("hex"),
+          generatedAt: "2026-08-09T00:00:00.000Z",
+        }),
+      )
+
+      const artifact = await verifyPredictionArtifact(predictionsPath, manifestPath)
+      expect(artifact.manifest).toMatchObject({
+        datasetRevision: "7ab5114912baf22bb098818e604c02fe7ad2c11f",
+        agentTopology: "single-agent",
+        delegationEnabled: false,
+      })
+
+      const manifest = JSON.parse(await Bun.file(manifestPath).text())
+      await writeFile(manifestPath, JSON.stringify({ ...manifest, datasetRevision: "a".repeat(40) }))
+      expect(verifyPredictionArtifact(predictionsPath, manifestPath)).rejects.toThrow(
+        "does not describe this SWE-bench Pro runner",
+      )
     } finally {
       await rm(directory, { recursive: true, force: true })
     }
