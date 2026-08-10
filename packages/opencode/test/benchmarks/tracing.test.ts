@@ -89,6 +89,23 @@ describe("benchmark tracing recorder", () => {
     const trace = createAdapter(temporaryRoot(), "owner/project__native-error")
     trace.adapter.consume(
       frame(1, 1_000, "session-root", {
+        type: "message.updated",
+        properties: {
+          sessionID: "session-root",
+          info: {
+            id: "message-failed",
+            sessionID: "session-root",
+            role: "assistant",
+            agent: "benchmark",
+            modelID: "model",
+            providerID: "provider",
+            time: { created: 1_000 },
+          },
+        },
+      }),
+    )
+    trace.adapter.consume(
+      frame(2, 1_100, "session-root", {
         type: "session.error",
         properties: {
           sessionID: "session-root",
@@ -99,16 +116,34 @@ describe("benchmark tracing recorder", () => {
         },
       }),
     )
+    trace.adapter.consume(
+      frame(3, 1_100, "session-root", {
+        type: "session.status",
+        properties: {
+          sessionID: "session-root",
+          status: { type: "idle" },
+        },
+      }),
+    )
 
-    trace.adapter.finish("failed", "Synthetic provider failure", 1_100)
+    const finalized = trace.adapter.finish("failed", "Synthetic provider failure", 1_200)
 
-    const error = jsonl(join(trace.attemptDir, "events.jsonl")).find(
-      (event) => event.event_type === "agent.error",
-    )?.error
-    expect(error).toEqual({
+    const events = jsonl(join(trace.attemptDir, "events.jsonl"))
+    const expected = {
       code: "opencode.api_error",
       message: "Synthetic provider failure",
+    }
+    expect(events.find((event) => event.event_type === "agent.error")?.error).toEqual(expected)
+    expect(events.find((event) => event.event_type === "model.turn_end")).toMatchObject({
+      status: "failed",
+      payload: {
+        finish_reason: "error",
+        boundary: "session.error",
+      },
+      error: expected,
     })
+    expect(finalized.health).toBe("healthy")
+    expect(finalized.complete).toBe(true)
   })
 
   test("rejects malformed native boundaries without finalizing invalid documents", () => {

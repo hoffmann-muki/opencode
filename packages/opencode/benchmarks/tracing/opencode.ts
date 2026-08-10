@@ -416,6 +416,37 @@ export class OpenCodeTraceAdapter {
 
     if (nativeEventType === "session.error") {
       const error = object(properties.error)
+      const failure = {
+        code: nativeErrorCode(error?.name),
+        message: errorMessage(error),
+      }
+      Array.from(this.models.entries())
+        .filter(([, pending]) => pending.sessionId === sessionId)
+        .forEach(([key, pending]) => {
+          const event = this.record({
+            eventType: "model.turn_end",
+            eventFamily: "model",
+            phase: "end",
+            status: "failed",
+            spanId: pending.spanId,
+            parentSpanId: this.sessions.get(sessionId)?.spanId ?? this.attemptSpan,
+            sessionId,
+            agentId: pending.agentId,
+            turnId: pending.turnId,
+            occurredAt: iso(frame.timestamp),
+            origin: nativeOrigin(nativeEventType, nativeEventId(frame)),
+            timing: wallDuration(pending.startedAt, frame.timestamp),
+            payload: {
+              finish_reason: "error",
+              boundary: "session.error",
+            },
+            relations: [{ type: "caused_by", event_id: pending.startEventId }],
+            error: failure,
+          })
+          this.models.delete(key)
+          this.finishedModels.add(key)
+          if (event) observed.push({ eventId: event, eventType: "model.turn_end" })
+        })
       const event = this.record({
         eventType: "agent.error",
         eventFamily: "agent",
@@ -427,10 +458,7 @@ export class OpenCodeTraceAdapter {
         occurredAt: iso(frame.timestamp),
         origin: nativeOrigin(nativeEventType, nativeEventId(frame)),
         payload: {},
-        error: {
-          code: nativeErrorCode(error?.name),
-          message: errorMessage(error),
-        },
+        error: failure,
       })
       if (event) observed.push({ eventId: event, eventType: "agent.error" })
       return observed
