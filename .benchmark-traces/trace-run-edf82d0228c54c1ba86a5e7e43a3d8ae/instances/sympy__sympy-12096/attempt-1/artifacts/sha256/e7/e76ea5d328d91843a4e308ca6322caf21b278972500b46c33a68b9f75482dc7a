@@ -1,0 +1,1 @@
+I'll investigate this issue. Let me start by finding the relevant code in `Function._eval_evalf`.

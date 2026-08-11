@@ -1,0 +1,1 @@
+{"filePath":"/testbed/astropy/io/fits/tests/test_connect.py","newString":"from astropy.io import fits\nfrom astropy.io.fits import BinTableHDU, HDUList, ImageHDU, PrimaryHDU, table_to_hdu\nfrom astropy.io.fits.connect import is_fits","oldString":"from astropy.io import fits\nfrom astropy.io.fits import BinTableHDU, HDUList, ImageHDU, PrimaryHDU, table_to_hdu"}

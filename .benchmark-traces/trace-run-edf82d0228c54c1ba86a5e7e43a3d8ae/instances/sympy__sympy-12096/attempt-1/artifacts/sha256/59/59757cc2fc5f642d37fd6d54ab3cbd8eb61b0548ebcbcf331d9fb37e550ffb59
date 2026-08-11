@@ -1,0 +1,46 @@
+<path>/testbed/sympy/core/tests/test_evalf.py</path>
+<type>file</type>
+<content>
+300:     assert abs(
+301:         complex(pi + E*I) - (3.1415926535897931 + 2.7182818284590451j)) < 1e-10
+302:     raises(TypeError, lambda: float(pi + x))
+303: 
+304: 
+305: def test_evalf_power_subs_bugs():
+306:     assert (x**2).evalf(subs={x: 0}) == 0
+307:     assert sqrt(x).evalf(subs={x: 0}) == 0
+308:     assert (x**Rational(2, 3)).evalf(subs={x: 0}) == 0
+309:     assert (x**x).evalf(subs={x: 0}) == 1
+310:     assert (3**x).evalf(subs={x: 0}) == 1
+311:     assert exp(x).evalf(subs={x: 0}) == 1
+312:     assert ((2 + I)**x).evalf(subs={x: 0}) == 1
+313:     assert (0**x).evalf(subs={x: 0}) == 1
+314: 
+315: 
+316: def test_evalf_arguments():
+317:     raises(TypeError, lambda: pi.evalf(method="garbage"))
+318: 
+319: 
+320: def test_implemented_function_evalf():
+321:     from sympy.utilities.lambdify import implemented_function
+322:     f = Function('f')
+323:     f = implemented_function(f, lambda x: x + 1)
+324:     assert str(f(x)) == "f(x)"
+325:     assert str(f(2)) == "f(2)"
+326:     assert f(2).evalf() == 3
+327:     assert f(x).evalf() == f(x)
+328:     del f._imp_     # XXX: due to caching _imp_ would influence all other tests
+329: 
+330: 
+331: def test_evaluate_false():
+332:     for no in [0, False]:
+333:         assert Add(3, 2, evaluate=no).is_Add
+334:         assert Mul(3, 2, evaluate=no).is_Mul
+335:         assert Pow(3, 2, evaluate=no).is_Pow
+336:     assert Pow(y, 2, evaluate=True) - Pow(y, 2, evaluate=True) == 0
+337: 
+338: 
+339: def test_evalf_relational():
+
+(Showing lines 300-339 of 509. Use offset=340 to continue.)
+</content>

@@ -1,0 +1,4 @@
+ecsv read (real file): ['ascii.ecsv']
+ecsv write (real file): ['ascii.ecsv']
+fits read (real file): ['fits']
+fits write (real file): ['fits']

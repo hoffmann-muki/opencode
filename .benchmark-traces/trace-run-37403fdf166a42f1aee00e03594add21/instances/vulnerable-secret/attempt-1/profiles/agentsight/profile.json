@@ -1,0 +1,22 @@
+{
+  "captureTls": true,
+  "correlation": {
+    "attempt": 1,
+    "benchmark": "terminal-bench-2.1",
+    "framework": "opencode",
+    "instanceId": "vulnerable-secret",
+    "runId": "trace-run-37403fdf166a42f1aee00e03594add21"
+  },
+  "image": "agentsight:play",
+  "imageId": "sha256:a4e394353e6944f94815de2d624af996fe87f002aa78fcd8fc17cd2688b059df",
+  "profileId": "agentsight-2e09f72656e6f55ead5d51f57da0561f",
+  "schema": "benchmark-agentsight-profile/v1",
+  "sourceScopes": [
+    "task-container"
+  ],
+  "startedAt": "2026-08-10T20:37:42.918053+00:00",
+  "status": "completed",
+  "targetContainer": "45c08fe38579",
+  "topology": "docker-pid-host-sidecar",
+  "updatedAt": "2026-08-10T20:49:24.012795+00:00"
+}

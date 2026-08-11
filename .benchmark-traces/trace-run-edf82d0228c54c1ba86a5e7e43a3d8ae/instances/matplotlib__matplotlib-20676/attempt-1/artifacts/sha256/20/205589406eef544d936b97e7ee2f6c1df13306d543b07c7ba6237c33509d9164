@@ -1,0 +1,3 @@
+Now let me look at the `set_visible` method of `_SelectorWidget` (line 1984) and the `update` method. The issue is that when `interactive=True`, the axes limits are expanded to include 0.
+
+Let me look at the `set_visible` method of `_SelectorWidget`:

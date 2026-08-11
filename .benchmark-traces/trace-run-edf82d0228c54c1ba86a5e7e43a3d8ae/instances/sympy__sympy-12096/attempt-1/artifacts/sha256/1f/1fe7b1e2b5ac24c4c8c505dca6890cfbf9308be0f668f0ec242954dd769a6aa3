@@ -1,0 +1,7 @@
+So `f(g(2))` is an `AppliedUndef` (or `Function` application). The `func` is `f` (an `UndefinedFunction` subclass). The `func.__name__` is `f`.
+
+When `evalf` is called:
+1. `evalf` calls `evalf(self, prec + 4, options)`.
+2. `evalf` looks up `evalf_table[x.func]`. The `x.func` is `f` (the UndefinedFunction class). Let me check if `f` is in the evalf_table.
+
+Let me check the evalf_table.

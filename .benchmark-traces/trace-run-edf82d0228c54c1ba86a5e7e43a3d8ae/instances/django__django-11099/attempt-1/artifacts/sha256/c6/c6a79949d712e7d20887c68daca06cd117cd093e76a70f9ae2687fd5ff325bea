@@ -1,0 +1,1 @@
+{"command":"cd /testbed && python -m pytest django/contrib/auth/tests/test_validators.py -v 2>&1 | tail -40"}

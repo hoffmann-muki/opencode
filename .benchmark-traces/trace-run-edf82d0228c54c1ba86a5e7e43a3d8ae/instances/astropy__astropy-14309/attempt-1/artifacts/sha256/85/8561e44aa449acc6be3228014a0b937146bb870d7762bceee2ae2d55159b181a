@@ -1,0 +1,5 @@
+062a2b578 Fix D202 - NoBlankLineAfterFunction
+62073f722 Merge pull request #14274 from nstarman/ruff-fix-SIM
+2a0c5c6f5 fix SIM103 - ReturnBoolConditionDirectly
+b4f3daeae fix D415 - EndsInPunctuation
+6750c7f86 [black] Allow `black` to run on `astropy.io.fits`

@@ -1,0 +1,53 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "trace_id": "trace-e15041f6a3ba430db81aac1b13de88e0",
+  "run_id": "trace-run-edf82d0228c54c1ba86a5e7e43a3d8ae",
+  "benchmark": "swe-bench-verified",
+  "framework": "opencode",
+  "instance_id": "sympy__sympy-12096",
+  "attempt": 1,
+  "created_at": "2026-08-10T20:04:24.794Z",
+  "finalized_at": "2026-08-10T20:20:01.504Z",
+  "complete": false,
+  "producer": {
+    "name": "opencode.benchmarks.tracing.opencode",
+    "version": "1.2.0"
+  },
+  "provenance": {
+    "benchmark": {
+      "name": "opencode-benchmarks",
+      "revision": "dbf13e39a2878763a576ad7129592b91e651f1ca"
+    },
+    "framework": {
+      "name": "OpenCode",
+      "revision": "dbf13e39a2878763a576ad7129592b91e651f1ca"
+    },
+    "adapter": {
+      "name": "opencode.benchmarks.tracing.opencode",
+      "revision": "dbf13e39a2878763a576ad7129592b91e651f1ca"
+    },
+    "agent_image": "docker.io/swebench/sweb.eval.x86_64.sympy_1776_sympy-12096:latest"
+  },
+  "execution": {
+    "model": "openrouter/poolside/laguna-s-2.1:free",
+    "evaluation_workers": 1,
+    "inference_timeout_seconds": 900,
+    "evaluation_timeout_seconds": 3600,
+    "benchmark_retries": 0,
+    "provider_attempts": 1
+  },
+  "files": {
+    "journal": "journal.jsonl",
+    "events": "events.jsonl",
+    "execution_tree": "execution-tree.json",
+    "capabilities": "capabilities.json",
+    "health": "health.json",
+    "native_index": "native/index.jsonl",
+    "artifacts": "artifacts/sha256"
+  }
+}

@@ -1,0 +1,14 @@
+/usr/bin/objdump
+/usr/bin/nm
+/usr/bin/readelf
+---
+gcc-nm
+gcc-nm-12
+nm
+objdump
+readelf
+x86_64-linux-gnu-gcc-nm
+x86_64-linux-gnu-gcc-nm-12
+x86_64-linux-gnu-nm
+x86_64-linux-gnu-objdump
+x86_64-linux-gnu-readelf

@@ -1,0 +1,1 @@
+{"command":"cd /testbed && grep -rn \"is_fits\\|identify_format\\|_identifiers\" astropy/io/registry/base.py | head -40"}

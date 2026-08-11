@@ -1,0 +1,3 @@
+48:def is_fits(origin, filepath, fileobj, *args, **kwargs):
+59:    is_fits : bool
+454:io_registry.register_identifier("fits", Table, is_fits)

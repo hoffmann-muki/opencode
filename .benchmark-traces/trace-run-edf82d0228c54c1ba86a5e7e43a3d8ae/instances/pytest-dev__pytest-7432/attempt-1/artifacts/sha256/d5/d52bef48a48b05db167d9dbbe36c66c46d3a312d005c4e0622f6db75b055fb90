@@ -1,0 +1,1 @@
+I need to actually restructure the code. Let me replace the entire block to move the location-fixing logic out of the `elif` chain:

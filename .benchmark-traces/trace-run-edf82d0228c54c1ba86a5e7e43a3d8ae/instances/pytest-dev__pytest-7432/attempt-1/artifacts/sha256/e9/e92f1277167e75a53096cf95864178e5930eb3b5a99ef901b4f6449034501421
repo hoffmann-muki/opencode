@@ -1,0 +1,1 @@
+Now I'll make the actual structural change. I'll move the location-fixing block out of the `elif` chain so it runs independently of the `--runxfail` check:

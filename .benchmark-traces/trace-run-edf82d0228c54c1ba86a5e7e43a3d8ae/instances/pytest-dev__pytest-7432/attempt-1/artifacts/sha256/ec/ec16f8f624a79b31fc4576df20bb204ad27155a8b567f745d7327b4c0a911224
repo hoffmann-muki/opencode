@@ -1,0 +1,21 @@
+Found 9 matches
+/testbed/src/_pytest/skipping.py:
+  Line 33:         "--runxfail",
+
+  Line 35:         dest="runxfail",
+
+  Line 50:     if config.option.runxfail:
+
+  Line 241:     if not item.config.option.runxfail:
+
+  Line 253:     if not item.config.option.runxfail:
+
+  Line 273:     elif item.config.option.runxfail:
+
+
+/testbed/testing/test_skipping.py:
+  Line 233:         result = testdir.runpytest("--runxfail")
+
+  Line 334:         result = testdir.runpytest(p, "--runxfail")
+
+  Line 352:         result = testdir.runpytest(p, "--runxfail")

@@ -1,0 +1,11 @@
+I've reproduced the issue. The xlimits are expanded to include x=0 (the lower limit is -1.0 instead of around 10).
+
+Now let me understand the root cause. The edge handles are created with `ax.axvline(0, ...)` because the initial extents are (0, 0). Let me verify this.
+
+Let me check what happens with the edge handles. The `_setup_edge_handle` is called with `self.extents` which is `(0, 0)` initially. So the `ToolLineHandles` creates `ax.axvline(0, ...)` lines.
+
+Let me check the `axvline` behavior - does it affect the data limits?
+
+Actually, `axvline` creates a vertical line at x=0. The line's x-data is [0, 0] and y-data is [0, 1] in axes coordinates. When matplotlib computes the data limits, it includes the x=0 from the axvline, which forces the x-limits to include 0.
+
+Let me verify by checking the data limits.

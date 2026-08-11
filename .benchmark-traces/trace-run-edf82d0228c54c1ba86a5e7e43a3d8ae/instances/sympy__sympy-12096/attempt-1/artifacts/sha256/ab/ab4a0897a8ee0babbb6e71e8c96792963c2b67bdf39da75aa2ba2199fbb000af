@@ -1,0 +1,1 @@
+{"command":"cd /testbed && python -c \"\nfrom sympy import Float, Symbol\nfrom sympy.utilities.lambdify import implemented_function\ng = implemented_function('g', lambda x: 2 * x)\nexpr = g(2) ** 2\nprint('expr:', expr)\ntry:\n    print(Float(expr, 53))\nexcept Exception as e:\n    print('Error:', type(e).__name__, e)\n\" 2>/dev/null"}

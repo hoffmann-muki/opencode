@@ -1,0 +1,3 @@
+All tests pass. Now let me also check if there's a test that specifically tests the `is_fits` function or the `identify_format` with empty args. Let me look at the test_connect.py file to see if I should add a test.
+
+Let me look at the existing tests for `is_fits`.

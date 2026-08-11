@@ -1,0 +1,126 @@
+<path>/testbed/sympy/core/evalf.py</path>
+<type>file</type>
+<content>
+1274: def evalf(x, prec, options):
+1275:     from sympy import re as re_, im as im_
+1276:     try:
+1277:         rf = evalf_table[x.func]
+1278:         r = rf(x, prec, options)
+1279:     except KeyError:
+1280:         try:
+1281:             # Fall back to ordinary evalf if possible
+1282:             if 'subs' in options:
+1283:                 x = x.subs(evalf_subs(prec, options['subs']))
+1284:             xe = x._eval_evalf(prec)
+1285:             re, im = xe.as_real_imag()
+1286:             if re.has(re_) or im.has(im_):
+1287:                 raise NotImplementedError
+1288:             if re == 0:
+1289:                 re = None
+1290:                 reprec = None
+1291:             elif re.is_number:
+1292:                 re = re._to_mpmath(prec, allow_ints=False)._mpf_
+1293:                 reprec = prec
+1294:             if im == 0:
+1295:                 im = None
+1296:                 imprec = None
+1297:             elif im.is_number:
+1298:                 im = im._to_mpmath(prec, allow_ints=False)._mpf_
+1299:                 imprec = prec
+1300:             r = re, im, reprec, imprec
+1301:         except AttributeError:
+1302:             raise NotImplementedError
+1303:     if options.get("verbose"):
+1304:         print("### input", x)
+1305:         print("### output", to_str(r[0] or fzero, 50))
+1306:         print("### raw", r) # r[0], r[2]
+1307:         print()
+1308:     chop = options.get('chop', False)
+1309:     if chop:
+1310:         if chop is True:
+1311:             chop_prec = prec
+1312:         else:
+1313:             # convert (approximately) from given tolerance;
+1314:             # the formula here will will make 1e-i rounds to 0 for
+1315:             # i in the range +/-27 while 2e-i will not be chopped
+1316:             chop_prec = int(round(-3.321*math.log10(chop) + 2.5))
+1317:             if chop_prec == 3:
+1318:                 chop_prec -= 1
+1319:         r = chop_parts(r, chop_prec)
+1320:     if options.get("strict"):
+1321:         check_target(x, r, prec)
+1322:     return r
+1323: 
+1324: 
+1325: class EvalfMixin(object):
+1326:     """Mixin class adding evalf capabililty."""
+1327: 
+1328:     __slots__ = []
+1329: 
+1330:     def evalf(self, n=15, subs=None, maxn=100, chop=False, strict=False, quad=None, verbose=False):
+1331:         """
+1332:         Evaluate the given formula to an accuracy of n digits.
+1333:         Optional keyword arguments:
+1334: 
+1335:             subs=<dict>
+1336:                 Substitute numerical values for symbols, e.g.
+1337:                 subs={x:3, y:1+pi}. The substitutions must be given as a
+1338:                 dictionary.
+1339: 
+1340:             maxn=<integer>
+1341:                 Allow a maximum temporary working precision of maxn digits
+1342:                 (default=100)
+1343: 
+1344:             chop=<bool>
+1345:                 Replace tiny real or imaginary parts in subresults
+1346:                 by exact zeros (default=False)
+1347: 
+1348:             strict=<bool>
+1349:                 Raise PrecisionExhausted if any subresult fails to evaluate
+1350:                 to full accuracy, given the available maxprec
+1351:                 (default=False)
+1352: 
+1353:             quad=<str>
+1354:                 Choose algorithm for numerical quadrature. By default,
+1355:                 tanh-sinh quadrature is used. For oscillatory
+1356:                 integrals on an infinite interval, try quad='osc'.
+1357: 
+1358:             verbose=<bool>
+1359:                 Print debug information (default=False)
+1360: 
+1361:         """
+1362:         from sympy import Float, Number
+1363:         n = n if n is not None else 15
+1364: 
+1365:         if subs and is_sequence(subs):
+1366:             raise TypeError('subs must be given as a dictionary')
+1367: 
+1368:         # for sake of sage that doesn't like evalf(1)
+1369:         if n == 1 and isinstance(self, Number):
+1370:             from sympy.core.expr import _mag
+1371:             rv = self.evalf(2, subs, maxn, chop, strict, quad, verbose)
+1372:             m = _mag(rv)
+1373:             rv = rv.round(1 - m)
+1374:             return rv
+1375: 
+1376:         if not evalf_table:
+1377:             _create_evalf_table()
+1378:         prec = dps_to_prec(n)
+1379:         options = {'maxprec': max(prec, int(maxn*LG10)), 'chop': chop,
+1380:                'strict': strict, 'verbose': verbose}
+1381:         if subs is not None:
+1382:             options['subs'] = subs
+1383:         if quad is not None:
+1384:             options['quad'] = quad
+1385:         try:
+1386:             result = evalf(self, prec + 4, options)
+1387:         except NotImplementedError:
+1388:             # Fall back to the ordinary evalf
+1389:             v = self._eval_evalf(prec)
+1390:             if v is None:
+1391:                 return self
+1392:             try:
+1393:                 # If the result is numerical, normalize it
+
+(Showing lines 1274-1393 of 1481. Use offset=1394 to continue.)
+</content>

@@ -1,0 +1,13 @@
+Trace Monitoring
+============================================================
+============================================================
+Starting flexible trace monitoring with 3 runners and 2 global analyzers...
+Press Ctrl+C to stop
+
+
+Received shutdown signal, shutting down...
+[HTTPFilter Global Metrics] No metrics available
+[SSLFilter Global Metrics] No metrics available
+✓ Shutdown requested. Stopping monitoring.
+[2026-08-10T20:04:53Z WARN  agentsight_capture::runners::common] [SSL] STDERR: libbpf: elf: 'SSL_write' is 0 in symtab for '/proc/226546/root/usr/local/bin/opencode': try using shared library path instead
+[2026-08-10T20:04:54Z WARN  agentsight_capture::runners::common] [SSL] STDERR: BoringSSL byte-pattern detected in /proc/226546/root/usr/local/bin/opencode. Attaching by offset...

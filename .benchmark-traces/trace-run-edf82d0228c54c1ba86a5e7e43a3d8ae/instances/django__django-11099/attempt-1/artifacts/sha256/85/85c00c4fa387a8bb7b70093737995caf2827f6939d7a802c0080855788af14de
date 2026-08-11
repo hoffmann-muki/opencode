@@ -1,0 +1,1 @@
+Now I understand the issue. The regex `r'^[\w.@+-]+$'` uses `$` which matches a trailing newline. I need to change it to use `\A` and `\Z` instead. Let me make the changes.

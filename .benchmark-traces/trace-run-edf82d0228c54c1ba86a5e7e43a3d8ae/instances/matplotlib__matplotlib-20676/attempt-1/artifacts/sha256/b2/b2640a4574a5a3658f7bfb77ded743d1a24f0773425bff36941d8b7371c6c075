@@ -1,0 +1,1 @@
+I've reproduced the issue. The xlimits are expanded to include x=0. Let me investigate the root cause:

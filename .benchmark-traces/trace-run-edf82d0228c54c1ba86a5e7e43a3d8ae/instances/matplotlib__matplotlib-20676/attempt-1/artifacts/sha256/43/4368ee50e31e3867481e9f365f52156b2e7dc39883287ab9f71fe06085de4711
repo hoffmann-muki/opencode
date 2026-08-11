@@ -1,0 +1,206 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+2190:             self.visible = True
+2191:         else:
+2192:             self.set_visible(True)
+2193: 
+2194:         return False
+2195: 
+2196:     @property
+2197:     def direction(self):
+2198:         """Direction of the span selector: 'vertical' or 'horizontal'."""
+2199:         return self._direction
+2200: 
+2201:     @direction.setter
+2202:     def direction(self, direction):
+2203:         """Set the direction of the span selector."""
+2204:         _api.check_in_list(['horizontal', 'vertical'], direction=direction)
+2205:         if hasattr(self, '_direction') and direction != self._direction:
+2206:             # remove previous artists
+2207:             self._rect.remove()
+2208:             if self._interactive:
+2209:                 self._edge_handles.remove()
+2210:                 for artist in self._edge_handles.artists:
+2211:                     self.artists.remove(artist)
+2212:             self._direction = direction
+2213:             self.new_axes(self.ax)
+2214:             if self._interactive:
+2215:                 self._setup_edge_handle(self._edge_handles._line_props)
+2216:         else:
+2217:             self._direction = direction
+2218: 
+2219:     def _release(self, event):
+2220:         """Button release event handler."""
+2221:         if not self._interactive:
+2222:             self._rect.set_visible(False)
+2223: 
+2224:         vmin, vmax = self.extents
+2225:         span = vmax - vmin
+2226:         if span <= self.minspan:
+2227:             self.set_visible(False)
+2228:             self.update()
+2229:             return
+2230: 
+2231:         self.onselect(vmin, vmax)
+2232:         self.update()
+2233: 
+2234:         # self._pressv is deprecated but we still need to maintain it
+2235:         self._pressv = None
+2236: 
+2237:         return False
+2238: 
+2239:     def _onmove(self, event):
+2240:         """Motion notify event handler."""
+2241: 
+2242:         # self._prev are deprecated but we still need to maintain it
+2243:         self._prev = self._get_data(event)
+2244: 
+2245:         v = event.xdata if self.direction == 'horizontal' else event.ydata
+2246:         if self.direction == 'horizontal':
+2247:             vpress = self._eventpress.xdata
+2248:         else:
+2249:             vpress = self._eventpress.ydata
+2250: 
+2251:         # move existing span
+2252:         # When "dragging from anywhere", `self._active_handle` is set to 'C'
+2253:         # (match notation used in the RectangleSelector)
+2254:         if self._active_handle == 'C' and self._extents_on_press is not None:
+2255:             vmin, vmax = self._extents_on_press
+2256:             dv = v - vpress
+2257:             vmin += dv
+2258:             vmax += dv
+2259: 
+2260:         # resize an existing shape
+2261:         elif self._active_handle and self._active_handle != 'C':
+2262:             vmin, vmax = self._extents_on_press
+2263:             if self._active_handle == 'min':
+2264:                 vmin = v
+2265:             else:
+2266:                 vmax = v
+2267:         # new shape
+2268:         else:
+2269:             vmin, vmax = vpress, v
+2270:             if vmin > vmax:
+2271:                 vmin, vmax = vmax, vmin
+2272: 
+2273:         self.extents = vmin, vmax
+2274: 
+2275:         if self.onmove_callback is not None:
+2276:             self.onmove_callback(vmin, vmax)
+2277: 
+2278:         return False
+2279: 
+2280:     def _draw_shape(self, vmin, vmax):
+2281:         if vmin > vmax:
+2282:             vmin, vmax = vmax, vmin
+2283:         if self.direction == 'horizontal':
+2284:             self._rect.set_x(vmin)
+2285:             self._rect.set_width(vmax - vmin)
+2286:         else:
+2287:             self._rect.set_y(vmin)
+2288:             self._rect.set_height(vmax - vmin)
+2289: 
+2290:     def _set_active_handle(self, event):
+2291:         """Set active handle based on the location of the mouse event."""
+2292:         # Note: event.xdata/ydata in data coordinates, event.x/y in pixels
+2293:         e_idx, e_dist = self._edge_handles.closest(event.x, event.y)
+2294: 
+2295:         # Prioritise center handle over other handles
+2296:         # Use 'C' to match the notation used in the RectangleSelector
+2297:         if 'move' in self._state:
+2298:             self._active_handle = 'C'
+2299:         elif e_dist > self.handle_grab_distance:
+2300:             # Not close to any handles
+2301:             self._active_handle = None
+2302:             if self.drag_from_anywhere and self._contains(event):
+2303:                 # Check if we've clicked inside the region
+2304:                 self._active_handle = 'C'
+2305:                 self._extents_on_press = self.extents
+2306:             else:
+2307:                 self._active_handle = None
+2308:                 return
+2309:         else:
+2310:             # Closest to an edge handle
+2311:             self._active_handle = self._edge_order[e_idx]
+2312: 
+2313:         # Save coordinates of rectangle at the start of handle movement.
+2314:         self._extents_on_press = self.extents
+2315: 
+2316:     def _contains(self, event):
+2317:         """Return True if event is within the patch."""
+2318:         return self._rect.contains(event, radius=0)[0]
+2319: 
+2320:     @property
+2321:     def extents(self):
+2322:         """Return extents of the span selector."""
+2323:         if self.direction == 'horizontal':
+2324:             vmin = self._rect.get_x()
+2325:             vmax = vmin + self._rect.get_width()
+2326:         else:
+2327:             vmin = self._rect.get_y()
+2328:             vmax = vmin + self._rect.get_height()
+2329:         return vmin, vmax
+2330: 
+2331:     @extents.setter
+2332:     def extents(self, extents):
+2333:         # Update displayed shape
+2334:         self._draw_shape(*extents)
+2335:         if self._interactive:
+2336:             # Update displayed handles
+2337:             self._edge_handles.set_data(self.extents)
+2338:         self.set_visible(self.visible)
+2339:         self.update()
+2340: 
+2341: 
+2342: class ToolLineHandles:
+2343:     """
+2344:     Control handles for canvas tools.
+2345: 
+2346:     Parameters
+2347:     ----------
+2348:     ax : `matplotlib.axes.Axes`
+2349:         Matplotlib axes where tool handles are displayed.
+2350:     positions : 1D array
+2351:         Positions of handles in data coordinates.
+2352:     direction : {"horizontal", "vertical"}
+2353:         Direction of handles, either 'vertical' or 'horizontal'
+2354:     line_props : dict
+2355:         Additional line properties. See `matplotlib.lines.Line2D`.
+2356:     """
+2357: 
+2358:     def __init__(self, ax, positions, direction, line_props=None,
+2359:                  useblit=True):
+2360:         self.ax = ax
+2361: 
+2362:         _api.check_in_list(['horizontal', 'vertical'], direction=direction)
+2363:         self._direction = direction
+2364: 
+2365:         if line_props is None:
+2366:             line_props = {}
+2367:         line_props.update({'visible': False, 'animated': useblit})
+2368: 
+2369:         line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline
+2370:         self._line_props = line_props
+2371: 
+2372:         self.artists = [line_fun(p, **line_props) for p in positions]
+2373: 
+2374:     @property
+2375:     def positions(self):
+2376:         """Positions of the handle in data coordinates."""
+2377:         method = 'get_xdata' if self.direction == 'horizontal' else 'get_ydata'
+2378:         return [getattr(line, method)()[0] for line in self.artists]
+2379: 
+2380:     @property
+2381:     def direction(self):
+2382:         """Direction of the handle: 'vertical' or 'horizontal'."""
+2383:         return self._direction
+2384: 
+2385:     def set_data(self, positions):
+2386:         """
+2387:         Set x or y positions of handles, depending if the lines are vertical
+2388:         of horizontal.
+2389: 
+
+(Showing lines 2190-2389 of 3409. Use offset=2390 to continue.)
+</content>

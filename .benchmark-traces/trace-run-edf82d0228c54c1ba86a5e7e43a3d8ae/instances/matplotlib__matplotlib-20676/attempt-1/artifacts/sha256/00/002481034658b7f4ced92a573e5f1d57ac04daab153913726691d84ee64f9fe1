@@ -1,0 +1,33 @@
+Found 14 matches
+/testbed/lib/matplotlib/widgets.py:
+  Line 1991: class SpanSelector(_SelectorWidget):
+
+  Line 1998:     In order to turn off the SpanSelector, set ``span_selector.active`` to
+
+  Line 2061:     >>> span = mwidgets.SpanSelector(ax, onselect, 'horizontal',
+
+  Line 2132:         """Set SpanSelector to operate on a new Axes."""
+
+  Line 3032:     similar to `RectangleSelector` and `SpanSelector`, and will continue to
+
+
+/testbed/lib/matplotlib/tests/test_widgets.py:
+  Line 208:     tool = widgets.SpanSelector(ax, onselect, *args, **kwargs)
+
+  Line 234:     tool = widgets.SpanSelector(ax, onselect, 'horizontal', interactive=True,
+
+  Line 268:     tool = widgets.SpanSelector(ax, onselect, 'horizontal', interactive=True)
+
+  Line 273:         tool = widgets.SpanSelector(ax, onselect, 'invalid_direction')
+
+
+/testbed/examples/widgets/span_selector.py:
+  Line 6: The SpanSelector is a mouse widget to select a xmin/xmax range and plot the
+
+  Line 11: from matplotlib.widgets import SpanSelector
+
+  Line 46: #    If the SpanSelector object is garbage collected you will lose the
+
+  Line 51: span = SpanSelector(
+
+  Line 72: #    - `matplotlib.widgets.SpanSelector`

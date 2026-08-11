@@ -1,0 +1,8 @@
+./tests/auth_tests/test_validators.py
+./django/contrib/auth/validators.py
+./django/contrib/auth/migrations/0007_alter_validators_add_error_messages.py
+./django/contrib/auth/__pycache__/validators.cpython-36.pyc
+---
+./tests/validation/test_validators.py
+./tests/forms_tests/tests/test_validators.py
+./tests/auth_tests/test_validators.py

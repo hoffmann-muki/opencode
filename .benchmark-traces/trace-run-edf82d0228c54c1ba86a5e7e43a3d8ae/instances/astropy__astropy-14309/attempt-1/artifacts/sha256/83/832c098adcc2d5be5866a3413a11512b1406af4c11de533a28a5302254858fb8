@@ -1,0 +1,6 @@
+All edge cases work correctly:
+- `None path, empty args`: `[]` (no error, returns empty list - correct, no format identified)
+- `None path, Table arg`: `[]` (correct, Table is not a FITS object)
+- `None path, HDUList arg`: `['fits']` (correct, HDUList is a FITS object)
+
+Now let me run the existing test suite to make sure I haven't broken anything.

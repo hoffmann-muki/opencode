@@ -1,0 +1,18 @@
+commit c499730ae050deb27e5d22972ea28daf778060f2
+Author: Test User <test@example.com>
+Date:   Fri Apr 3 07:47:18 2026 +0000
+
+    Move to Stanford
+
+ _includes/about.md    |  4 ++--
+ _layouts/default.html | 32 +++++++++++++++++---------------
+ 2 files changed, 19 insertions(+), 17 deletions(-)
+
+commit d7d3e4ba9350f634d92d39ace2b471433ee57d50
+Author: Mike Merrill <mikeam@cs.washington.edu>
+Date:   Fri Nov 8 09:52:32 2024 -0800
+
+    off the job market woo
+
+ _includes/about.md | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)

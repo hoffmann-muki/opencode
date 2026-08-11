@@ -1,0 +1,3 @@
+Let me start by investigating the issue. The problem is an `IndexError: tuple index out of range` in `identify_format` when calling `is_fits` with empty args.
+
+Let me look at the relevant files.

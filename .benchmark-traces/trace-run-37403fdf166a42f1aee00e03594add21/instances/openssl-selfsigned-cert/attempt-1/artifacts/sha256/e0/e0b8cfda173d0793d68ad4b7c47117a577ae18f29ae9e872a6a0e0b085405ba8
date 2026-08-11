@@ -1,0 +1,6 @@
+Now let me verify the certificate details and create the verification.txt file. I need to get:
+- The certificate's subject
+- The certificate's validity dates in YYYY-MM-DD format or OpenSSL format with optional timezone
+- The certificate's SHA-256 fingerprint
+
+Let me get these details.

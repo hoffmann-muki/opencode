@@ -1,0 +1,1 @@
+{"command":"cd /testbed && git stash && python -c \"\nfrom astropy.io.registry import identify_format\nfrom astropy.table import Table\ntry:\n    result = identify_format('read', Table, 'bububu.ecsv', None, [], {})\n    print('ecsv read:', result)\nexcept Exception as e:\n    print('ecsv read error (pre-existing):', type(e).__name__, e)\n\" ; git stash pop"}

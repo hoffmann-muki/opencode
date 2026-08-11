@@ -1,0 +1,16 @@
+Now let me create the Python script at `/app/check_cert.py`. The script should:
+- Verify that the certificate exists and can be loaded
+- Print certificate details including the Common Name and expiration date in YYYY-MM-DD format
+- Print "Certificate verification successful" if all checks pass
+
+I'll use the `cryptography` library if available, or fall back to using OpenSSL commands via subprocess. Let me check what's available.
+
+Actually, let me write a script that uses the `cryptography` library, which is the standard Python library for handling certificates. But I should also handle the case where it's not installed. Let me check if it's available first.
+
+Actually, let me just write the script using the `cryptography` library and also provide a fallback using subprocess with openssl commands. But to keep it simple and robust, let me check if cryptography is available.
+
+Let me write the script using the `cryptography` library since it's the most standard approach. If it's not available, I can install it or use a fallback.
+
+Actually, let me write a script that tries to use the `cryptography` library first, and falls back to using OpenSSL commands via subprocess if the library is not available. This makes the script more robust.
+
+Wait, let me think about this more carefully. The task says "Create a simple Python script" - so let me keep it simple. Let me check if the cryptography library is available.

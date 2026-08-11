@@ -1,0 +1,18 @@
+commit d7d3e4ba9350f634d92d39ace2b471433ee57d50
+Author: Mike Merrill <mikeam@cs.washington.edu>
+Date:   Fri Nov 8 09:52:32 2024 -0800
+
+    off the job market woo
+
+diff --git a/_includes/about.md b/_includes/about.md
+index 5322c14..ebf11b4 100644
+--- a/_includes/about.md
++++ b/_includes/about.md
+@@ -1,3 +1,3 @@
+-I am a sixth year PhD student at the [Paul G. Allen School of Computer Science & Engineering](https://www.cs.washington.edu/) at The University of Washington, where I am advised by [Tim Althoff](http://www.timalthoff.com/). I am affiliated with [UW NLP](https://twitter.com/uwnlp).
++I am a sixth PhD candidate at the [Paul G. Allen School of Computer Science & Engineering](https://www.cs.washington.edu/) at The University of Washington, where I am advised by [Tim Althoff](http://www.timalthoff.com/). I am affiliated with [UW NLP](https://twitter.com/uwnlp).
+ 
+-**I am looking for a full time job!** If you think we would be a good match, please reach out. Previously, I was a Student Researcher at [Google Research](https://research.google/), an ML Research Intern at [Apple Health AI](https://machinelearning.apple.com/work-with-us) and a data scientist and the second full-time employee at [HealthRhythms](https://www.healthrhythms.com). 
+\ No newline at end of file
++ Previously, I was a Student Researcher at [Google Research](https://research.google/), an ML Research Intern at [Apple Health AI](https://machinelearning.apple.com/work-with-us) and a data scientist and the second full-time employee at [HealthRhythms](https://www.healthrhythms.com). 
+\ No newline at end of file

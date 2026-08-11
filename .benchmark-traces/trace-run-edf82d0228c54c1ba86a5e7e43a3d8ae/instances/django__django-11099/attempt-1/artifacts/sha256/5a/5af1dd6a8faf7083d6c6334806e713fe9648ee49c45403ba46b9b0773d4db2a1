@@ -1,0 +1,1 @@
+{"command":"cd /testbed && find . -maxdepth 2 -name \"settings*.py\" 2>/dev/null | head; echo \"---conftest---\"; find . -maxdepth 2 -name \"conftest.py\" 2>/dev/null | head"}

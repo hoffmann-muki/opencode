@@ -1,0 +1,9 @@
+total 24
+drwxr-xr-x 2 root root 4096 Aug 10 20:23 .
+drwxr-xr-x 1 root root 4096 Aug 10 20:23 ..
+-rw-r--r-- 1 root root 1220 Aug 10 20:22 server.crt
+-rw------- 1 root root 1704 Aug 10 20:22 server.key
+-rw-r--r-- 1 root root 2924 Aug 10 20:22 server.pem
+-rw-r--r-- 1 root root  278 Aug 10 20:23 verification.txt
+---
+-rwxr-xr-x 1 root root 1746 Aug 10 20:24 /app/check_cert.py

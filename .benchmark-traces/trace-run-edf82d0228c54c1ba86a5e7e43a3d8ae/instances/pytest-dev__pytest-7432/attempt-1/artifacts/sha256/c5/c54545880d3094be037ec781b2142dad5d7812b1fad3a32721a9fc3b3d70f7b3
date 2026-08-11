@@ -1,0 +1,34 @@
+<path>/testbed/testing/test_skipping.py</path>
+<type>file</type>
+<content>
+1180:             "FAILED test_summary_list_after_errors.py::test_fail - assert 0",
+1181:         ]
+1182:     )
+1183: 
+1184: 
+1185: def test_importorskip():
+1186:     with pytest.raises(
+1187:         pytest.skip.Exception,
+1188:         match="^could not import 'doesnotexist': No module named .*",
+1189:     ):
+1190:         pytest.importorskip("doesnotexist")
+1191: 
+1192: 
+1193: def test_relpath_rootdir(testdir):
+1194:     testdir.makepyfile(
+1195:         **{
+1196:             "tests/test_1.py": """
+1197:         import pytest
+1198:         @pytest.mark.skip()
+1199:         def test_pass():
+1200:             pass
+1201:             """,
+1202:         }
+1203:     )
+1204:     result = testdir.runpytest("-rs", "tests/test_1.py", "--rootdir=tests")
+1205:     result.stdout.fnmatch_lines(
+1206:         ["SKIPPED [[]1[]] tests/test_1.py:2: unconditional skip"]
+1207:     )
+
+(End of file - total 1207 lines)
+</content>

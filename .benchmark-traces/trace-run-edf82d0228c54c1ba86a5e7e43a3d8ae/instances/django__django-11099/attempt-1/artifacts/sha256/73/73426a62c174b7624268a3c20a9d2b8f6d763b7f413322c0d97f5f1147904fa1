@@ -1,0 +1,1 @@
+{"command":"cd /testbed && find . -path \"*auth*validators*\" 2>/dev/null; echo \"---\"; find . -name \"test_validators.py\" 2>/dev/null"}

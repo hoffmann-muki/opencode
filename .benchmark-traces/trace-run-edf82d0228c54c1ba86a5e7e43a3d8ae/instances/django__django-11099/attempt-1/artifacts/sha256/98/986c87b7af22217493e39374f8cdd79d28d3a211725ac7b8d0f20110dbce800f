@@ -1,0 +1,26 @@
+The fix is complete and verified. Let me provide a summary.
+
+## Summary
+
+### Changed Files
+- `/testbed/django/contrib/auth/validators.py` — Updated the `regex` attribute in both `ASCIIUsernameValidator` and `UnicodeUsernameValidator` from `r'^[\w.@+-]+$'` to `r'\A[\w.@+-]+\Z'`.
+
+### Root Cause
+Python's `$` anchor matches at the end of the string **or** just before a trailing newline. This meant usernames ending with a newline (e.g., `"user\n"`) were incorrectly accepted by the username validators. The `^` anchor has the analogous issue with leading newlines, though `\w` doesn't match newlines so the leading case was less impactful.
+
+### Fix
+Replaced `^` and `$` with `\A` and `\Z`, which match only the absolute start and end of the string, respectively, with no special newline handling. This is the standard, recommended approach for strict full-string matching in Python regexes.
+
+### Verification
+1. **Manual behavior test** — Confirmed that:
+   - Valid usernames (e.g., `'valid_user'`) are still accepted.
+   - Usernames with trailing newlines (`'user\n'`, `'user\n\n'`) are now rejected.
+   - Usernames with embedded newlines (`'user\nname'`) are rejected.
+   - Both `ASCIIUsernameValidator` and `UnicodeUsernameValidator` behave correctly.
+
+2. **Existing test suite** — Ran `python runtests.py auth_tests.test_validators` from the `tests` directory. All 22 tests pass, including `test_ascii_validator` and `test_unicode_validator`.
+
+### Residual Risk
+- The change is minimal and targeted. The `\A`/`\Z` anchors are functionally equivalent to `^`/`$` for all inputs that don't contain newlines, so existing valid usernames remain valid.
+- The only behavioral change is the rejection of usernames containing newlines, which was the intended behavior per the issue.
+- No tests were modified, per the task constraints.

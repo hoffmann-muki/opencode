@@ -1,0 +1,1 @@
+I have `objdump`, `nm`, and `readelf`. Let me disassemble the binary and search for the FLAG string.

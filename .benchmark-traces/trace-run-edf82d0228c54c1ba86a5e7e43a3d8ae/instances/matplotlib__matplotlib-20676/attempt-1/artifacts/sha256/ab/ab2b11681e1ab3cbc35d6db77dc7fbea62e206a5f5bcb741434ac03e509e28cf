@@ -1,0 +1,126 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+2385:     def set_data(self, positions):
+2386:         """
+2387:         Set x or y positions of handles, depending if the lines are vertical
+2388:         of horizontal.
+2389: 
+2390:         Parameters
+2391:         ----------
+2392:         positions : tuple of length 2
+2393:             Set the positions of the handle in data coordinates
+2394:         """
+2395:         method = 'set_xdata' if self.direction == 'horizontal' else 'set_ydata'
+2396:         for line, p in zip(self.artists, positions):
+2397:             getattr(line, method)([p, p])
+2398: 
+2399:     def set_visible(self, value):
+2400:         """Set the visibility state of the handles artist."""
+2401:         for artist in self.artists:
+2402:             artist.set_visible(value)
+2403: 
+2404:     def set_animated(self, value):
+2405:         """Set the animated state of the handles artist."""
+2406:         for artist in self.artists:
+2407:             artist.set_animated(value)
+2408: 
+2409:     def remove(self):
+2410:         """Remove the handles artist from the figure."""
+2411:         for artist in self.artists:
+2412:             artist.remove()
+2413: 
+2414:     def closest(self, x, y):
+2415:         """
+2416:         Return index and pixel distance to closest handle.
+2417: 
+2418:         Parameters
+2419:         ----------
+2420:         x, y : float
+2421:             x, y position from which the distance will be calculated to
+2422:             determinate the closest handle
+2423: 
+2424:         Returns
+2425:         -------
+2426:         index, distance : index of the handle and its distance from
+2427:             position x, y
+2428:         """
+2429:         if self.direction == 'horizontal':
+2430:             p_pts = np.array([
+2431:                 self.ax.transData.transform((p, 0))[0] for p in self.positions
+2432:                 ])
+2433:             dist = abs(p_pts - x)
+2434:         else:
+2435:             p_pts = np.array([
+2436:                 self.ax.transData.transform((0, p))[1] for p in self.positions
+2437:                 ])
+2438:             dist = abs(p_pts - y)
+2439:         index = np.argmin(dist)
+2440:         return index, dist[index]
+2441: 
+2442: 
+2443: class ToolHandles:
+2444:     """
+2445:     Control handles for canvas tools.
+2446: 
+2447:     Parameters
+2448:     ----------
+2449:     ax : `matplotlib.axes.Axes`
+2450:         Matplotlib axes where tool handles are displayed.
+2451:     x, y : 1D arrays
+2452:         Coordinates of control handles.
+2453:     marker : str
+2454:         Shape of marker used to display handle. See `matplotlib.pyplot.plot`.
+2455:     marker_props : dict
+2456:         Additional marker properties. See `matplotlib.lines.Line2D`.
+2457:     """
+2458: 
+2459:     def __init__(self, ax, x, y, marker='o', marker_props=None, useblit=True):
+2460:         self.ax = ax
+2461:         props = {'marker': marker, 'markersize': 7, 'markerfacecolor': 'w',
+2462:                  'linestyle': 'none', 'alpha': 0.5, 'visible': False,
+2463:                  'label': '_nolegend_',
+2464:                  **cbook.normalize_kwargs(marker_props, Line2D._alias_map)}
+2465:         self._markers = Line2D(x, y, animated=useblit, **props)
+2466:         self.ax.add_line(self._markers)
+2467:         self.artist = self._markers
+2468: 
+2469:     @property
+2470:     def x(self):
+2471:         return self._markers.get_xdata()
+2472: 
+2473:     @property
+2474:     def y(self):
+2475:         return self._markers.get_ydata()
+2476: 
+2477:     def set_data(self, pts, y=None):
+2478:         """Set x and y positions of handles."""
+2479:         if y is not None:
+2480:             x = pts
+2481:             pts = np.array([x, y])
+2482:         self._markers.set_data(pts)
+2483: 
+2484:     def set_visible(self, val):
+2485:         self._markers.set_visible(val)
+2486: 
+2487:     def set_animated(self, val):
+2488:         self._markers.set_animated(val)
+2489: 
+2490:     def closest(self, x, y):
+2491:         """Return index and pixel distance to closest index."""
+2492:         pts = np.column_stack([self.x, self.y])
+2493:         # Transform data coordinates to pixel coordinates.
+2494:         pts = self.ax.transData.transform(pts)
+2495:         diff = pts - [x, y]
+2496:         dist = np.hypot(*diff.T)
+2497:         min_index = np.argmin(dist)
+2498:         return min_index, dist[min_index]
+2499: 
+2500: 
+2501: class RectangleSelector(_SelectorWidget):
+2502:     """
+2503:     Select a rectangular region of an axes.
+2504: 
+
+(Showing lines 2385-2504 of 3409. Use offset=2505 to continue.)
+</content>

@@ -1,0 +1,1 @@
+{"command":"cd /testbed && DJANGO_SETTINGS_MODULE=tests.test_settings python -m django test django.contrib.auth.tests.test_validators -v 2 2>&1 | tail -40"}

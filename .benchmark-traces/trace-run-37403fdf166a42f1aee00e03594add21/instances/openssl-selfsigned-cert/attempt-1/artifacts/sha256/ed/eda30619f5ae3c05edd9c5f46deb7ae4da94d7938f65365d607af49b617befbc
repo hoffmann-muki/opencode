@@ -1,0 +1,8 @@
+/app/check_cert.py:42: CryptographyDeprecationWarning: Properties that return a naïve datetime object have been deprecated. Please switch to not_valid_after_utc.
+  not_after = cert.not_valid_after
+/app/check_cert.py:51: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  current_time = datetime.utcnow()
+Certificate loaded successfully from: /app/ssl/server.crt
+Common Name: dev-internal.company.local
+Expiration Date: 2027-08-10
+Certificate verification successful

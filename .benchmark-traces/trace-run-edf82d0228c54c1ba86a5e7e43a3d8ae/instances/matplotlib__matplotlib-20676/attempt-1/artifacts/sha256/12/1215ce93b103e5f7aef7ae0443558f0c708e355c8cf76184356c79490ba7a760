@@ -1,0 +1,56 @@
+<path>/testbed/lib/matplotlib/axes/_axes.py</path>
+<type>file</type>
+<content>
+766:         **kwargs
+767:             Valid keyword arguments are `.Line2D` properties, with the
+768:             exception of 'transform':
+769: 
+770:             %(Line2D:kwdoc)s
+771: 
+772:         See Also
+773:         --------
+774:         vlines : Add vertical lines in data coordinates.
+775:         axvspan : Add a vertical span (rectangle) across the axis.
+776:         axline : Add a line with an arbitrary slope.
+777: 
+778:         Examples
+779:         --------
+780:         * draw a thick red vline at *x* = 0 that spans the yrange::
+781: 
+782:             >>> axvline(linewidth=4, color='r')
+783: 
+784:         * draw a default vline at *x* = 1 that spans the yrange::
+785: 
+786:             >>> axvline(x=1)
+787: 
+788:         * draw a default vline at *x* = .5 that spans the middle half of
+789:           the yrange::
+790: 
+791:             >>> axvline(x=.5, ymin=0.25, ymax=0.75)
+792:         """
+793:         self._check_no_units([ymin, ymax], ['ymin', 'ymax'])
+794:         if "transform" in kwargs:
+795:             raise ValueError("'transform' is not allowed as a keyword "
+796:                              "argument; axvline generates its own transform.")
+797:         xmin, xmax = self.get_xbound()
+798: 
+799:         # Strip away the units for comparison with non-unitized bounds.
+800:         xx, = self._process_unit_info([("x", x)], kwargs)
+801:         scalex = (xx < xmin) or (xx > xmax)
+802: 
+803:         trans = self.get_xaxis_transform(which='grid')
+804:         l = mlines.Line2D([x, x], [ymin, ymax], transform=trans, **kwargs)
+805:         self.add_line(l)
+806:         self._request_autoscale_view(scalex=scalex, scaley=False)
+807:         return l
+808: 
+809:     @staticmethod
+810:     def _check_no_units(vals, names):
+811:         # Helper method to check that vals are not unitized
+812:         for val, name in zip(vals, names):
+813:             if not munits._is_natively_supported(val):
+814:                 raise ValueError(f"{name} must be a single scalar value, "
+815:                                  f"but got {val}")
+
+(Showing lines 766-815 of 8140. Use offset=816 to continue.)
+</content>

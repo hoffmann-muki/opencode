@@ -1,0 +1,1 @@
+{"command":"python3 -c \"import cryptography; print(cryptography.__version__)\" 2>&1 || echo \"cryptography not available\"","description":"Check if cryptography library is available"}

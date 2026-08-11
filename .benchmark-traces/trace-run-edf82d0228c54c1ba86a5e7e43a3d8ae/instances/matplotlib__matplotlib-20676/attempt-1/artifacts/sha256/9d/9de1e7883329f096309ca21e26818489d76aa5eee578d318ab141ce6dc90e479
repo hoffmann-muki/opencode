@@ -1,0 +1,3 @@
+Now I see the `extents` setter. When `self._interactive` is True, it calls `self._edge_handles.set_data(self.extents)`. Let me look at the `ToolLineHandles.set_data` method and the `update` method.
+
+Let me look at the `update` method in `_SelectorWidget` and the `set_data` method in `ToolLineHandles`.

@@ -1,0 +1,2 @@
+f(x) args evalf: [None]
+Error: TypeError unsupported operand type(s) for +: 'NoneType' and 'int'

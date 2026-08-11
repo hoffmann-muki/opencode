@@ -1,0 +1,1 @@
+All 363 tests pass. Let me also run the nddata tests since `CCDData` uses `is_fits`, and a broader io test sweep:

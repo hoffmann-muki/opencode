@@ -1,0 +1,3 @@
+So evalfing the args first works. Let me now test the full fix.
+
+Let me also test the None case (f(x) where x is a Symbol).

@@ -1,0 +1,56 @@
+/lib64/ld-linux-x86-64.so.2
+puts
+exit
+gets
+fflush
+ptrace
+stdout
+__libc_start_main
+printf
+libc.so.6
+GLIBC_2.2.5
+GLIBC_2.34
+__gmon_start__
+PTE1
+<Bte
+)D$ 
+)D$0
+Debugging detected! Access denied.
+Welcome to the Security Challenge!
+This program processes user input.
+Find a way to extract the hidden information.
+Access granted! Secret: %s
+Enter your input: 
+Authentication bypassed!
+Input processed successfully.
+;*3$"
+9 v$$q0
+r4q0$.r5
+/v16q0
+prpv?BGCC: (Debian 12.2.0-14+deb12u1) 12.2.0
+.shstrtab
+.interp
+.note.gnu.property
+.note.gnu.build-id
+.note.ABI-tag
+.gnu.hash
+.dynsym
+.dynstr
+.gnu.version
+.gnu.version_r
+.rela.dyn
+.rela.plt
+.init
+.text
+.fini
+.rodata
+.eh_frame_hdr
+.eh_frame
+.init_array
+.fini_array
+.dynamic
+.got
+.got.plt
+.data
+.bss
+.comment

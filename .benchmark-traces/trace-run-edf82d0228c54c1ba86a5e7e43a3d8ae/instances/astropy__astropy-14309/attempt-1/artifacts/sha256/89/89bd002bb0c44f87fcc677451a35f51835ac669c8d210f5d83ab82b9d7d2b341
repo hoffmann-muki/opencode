@@ -1,0 +1,106 @@
+<path>/testbed/astropy/io/fits/connect.py</path>
+<type>file</type>
+<content>
+1: # Licensed under a 3-clause BSD style license - see LICENSE.rst
+2: 
+3: 
+4: import os
+5: import re
+6: import warnings
+7: from copy import deepcopy
+8: 
+9: import numpy as np
+10: 
+11: from astropy import units as u
+12: from astropy.io import registry as io_registry
+13: from astropy.table import Column, MaskedColumn, Table, meta, serialize
+14: from astropy.time import Time
+15: from astropy.utils.data_info import serialize_context_as
+16: from astropy.utils.exceptions import AstropyDeprecationWarning, AstropyUserWarning
+17: from astropy.utils.misc import NOT_OVERWRITING_MSG
+18: 
+19: from . import BinTableHDU, GroupsHDU, HDUList, TableHDU
+20: from . import append as fits_append
+21: from .column import KEYWORD_NAMES, _fortran_to_python_format
+22: from .convenience import table_to_hdu
+23: from .hdu.hdulist import FITS_SIGNATURE
+24: from .hdu.hdulist import fitsopen as fits_open
+25: from .util import first
+26: 
+27: # Keywords to remove for all tables that are read in
+28: REMOVE_KEYWORDS = [
+29:     "XTENSION",
+30:     "BITPIX",
+31:     "NAXIS",
+32:     "NAXIS1",
+33:     "NAXIS2",
+34:     "PCOUNT",
+35:     "GCOUNT",
+36:     "TFIELDS",
+37:     "THEAP",
+38: ]
+39: 
+40: # Column-specific keywords regex
+41: COLUMN_KEYWORD_REGEXP = "(" + "|".join(KEYWORD_NAMES) + ")[0-9]+"
+42: 
+43: 
+44: def is_column_keyword(keyword):
+45:     return re.match(COLUMN_KEYWORD_REGEXP, keyword) is not None
+46: 
+47: 
+48: def is_fits(origin, filepath, fileobj, *args, **kwargs):
+49:     """
+50:     Determine whether `origin` is a FITS file.
+51: 
+52:     Parameters
+53:     ----------
+54:     origin : str or readable file-like
+55:         Path or file object containing a potential FITS file.
+56: 
+57:     Returns
+58:     -------
+59:     is_fits : bool
+60:         Returns `True` if the given file is a FITS file.
+61:     """
+62:     if fileobj is not None:
+63:         pos = fileobj.tell()
+64:         sig = fileobj.read(30)
+65:         fileobj.seek(pos)
+66:         return sig == FITS_SIGNATURE
+67:     elif filepath is not None:
+68:         if filepath.lower().endswith(
+69:             (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+70:         ):
+71:             return True
+72:     return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+73: 
+74: 
+75: def _decode_mixins(tbl):
+76:     """Decode a Table ``tbl`` that has astropy Columns + appropriate meta-data into
+77:     the corresponding table with mixin columns (as appropriate).
+78:     """
+79:     # If available read in __serialized_columns__ meta info which is stored
+80:     # in FITS COMMENTS between two sentinels.
+81:     try:
+82:         i0 = tbl.meta["comments"].index("--BEGIN-ASTROPY-SERIALIZED-COLUMNS--")
+83:         i1 = tbl.meta["comments"].index("--END-ASTROPY-SERIALIZED-COLUMNS--")
+84:     except (ValueError, KeyError):
+85:         return tbl
+86: 
+87:     # The YAML data are split into COMMENT cards, with lines longer than 70
+88:     # characters being split with a continuation character \ (backslash).
+89:     # Strip the backslashes and join together.
+90:     continuation_line = False
+91:     lines = []
+92:     for line in tbl.meta["comments"][i0 + 1 : i1]:
+93:         if continuation_line:
+94:             lines[-1] = lines[-1] + line[:70]
+95:         else:
+96:             lines.append(line[:70])
+97:         continuation_line = len(line) == 71
+98: 
+99:     del tbl.meta["comments"][i0 : i1 + 1]
+100:     if not tbl.meta["comments"]:
+
+(Showing lines 1-100 of 454. Use offset=101 to continue.)
+</content>

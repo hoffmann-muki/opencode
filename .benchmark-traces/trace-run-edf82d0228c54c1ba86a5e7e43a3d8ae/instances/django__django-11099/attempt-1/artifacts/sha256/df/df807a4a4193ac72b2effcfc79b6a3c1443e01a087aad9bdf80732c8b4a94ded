@@ -1,0 +1,1 @@
+{"command":"cd /testbed && ls tests/test_settings.py 2>/dev/null; ls tests/settings.py 2>/dev/null; find /testbed -maxdepth 2 -name \"test_settings*\" 2>/dev/null"}

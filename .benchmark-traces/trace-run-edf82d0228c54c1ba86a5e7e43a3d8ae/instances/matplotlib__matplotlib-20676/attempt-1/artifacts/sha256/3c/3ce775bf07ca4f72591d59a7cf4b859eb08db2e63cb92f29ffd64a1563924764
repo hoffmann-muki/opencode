@@ -1,0 +1,66 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+1898:         event.xdata, event.ydata = self._get_data(event)
+1899:         self._prev_event = event
+1900:         return event
+1901: 
+1902:     def press(self, event):
+1903:         """Button press handler and validator."""
+1904:         if not self.ignore(event):
+1905:             event = self._clean_event(event)
+1906:             self._eventpress = event
+1907:             self._prev_event = event
+1908:             key = event.key or ''
+1909:             key = key.replace('ctrl', 'control')
+1910:             # move state is locked in on a button press
+1911:             if key == self.state_modifier_keys['move']:
+1912:                 self._state.add('move')
+1913:             self._press(event)
+1914:             return True
+1915:         return False
+1916: 
+1917:     def _press(self, event):
+1918:         """Button press event handler."""
+1919: 
+1920:     def release(self, event):
+1921:         """Button release event handler and validator."""
+1922:         if not self.ignore(event) and self._eventpress:
+1923:             event = self._clean_event(event)
+1924:             self._eventrelease = event
+1925:             self._release(event)
+1926:             self._eventpress = None
+1927:             self._eventrelease = None
+1928:             self._state.discard('move')
+1929:             return True
+1930:         return False
+1931: 
+1932:     def _release(self, event):
+1933:         """Button release event handler."""
+1934: 
+1935:     def onmove(self, event):
+1936:         """Cursor move event handler and validator."""
+1937:         if not self.ignore(event) and self._eventpress:
+1938:             event = self._clean_event(event)
+1939:             self._onmove(event)
+1940:             return True
+1941:         return False
+1942: 
+1943:     def _onmove(self, event):
+1944:         """Cursor move event handler."""
+1945: 
+1946:     def on_scroll(self, event):
+1947:         """Mouse scroll event handler and validator."""
+1948:         if not self.ignore(event):
+1949:             self._on_scroll(event)
+1950: 
+1951:     def _on_scroll(self, event):
+1952:         """Mouse scroll event handler."""
+1953: 
+1954:     def on_key_press(self, event):
+1955:         """Key press event handler and validator for all selection widgets."""
+1956:         if self.active:
+1957:             key = event.key or ''
+
+(Showing lines 1898-1957 of 3409. Use offset=1958 to continue.)
+</content>

@@ -1,0 +1,69 @@
+Found 27 matches
+/testbed/sympy/core/evalf.py:
+  Line 236: def evalf_abs(expr, prec, options):
+
+  Line 240: def evalf_re(expr, prec, options):
+
+  Line 244: def evalf_im(expr, prec, options):
+
+  Line 378: def evalf_ceiling(expr, prec, options):
+
+  Line 382: def evalf_floor(expr, prec, options):
+
+  Line 475: def evalf_add(v, prec, options):
+
+  Line 517: def evalf_mul(v, prec, options):
+
+  Line 631: def evalf_pow(v, prec, options):
+
+  Line 737: def evalf_trig(v, prec, options):
+
+  Line 798: def evalf_log(expr, prec, options):
+
+  Line 834: def evalf_atan(v, prec, options):
+
+  Line 844: def evalf_subs(prec, subs):
+
+  Line 855: def evalf_piecewise(expr, prec, options):
+
+  Line 872: def evalf_bernoulli(expr, prec, options):
+
+  Line 1000: def evalf_integral(expr, prec, options):
+
+  Line 1140: def evalf_prod(expr, prec, options):
+
+  Line 1149: def evalf_sum(expr, prec, options):
+
+  Line 1195: def evalf_symbol(x, prec, options):
+
+  Line 1274: def evalf(x, prec, options):
+
+  Line 1330:     def evalf(self, n=15, subs=None, maxn=100, chop=False, strict=False, quad=None, verbose=False):
+
+
+/testbed/sympy/holonomic/holonomic.py:
+  Line 1756:     def evalf(self, points, method='RK4', h=0.05, derivatives=False):
+
+
+/testbed/sympy/matrices/matrices.py:
+  Line 1227:     def evalf(self, prec=None, **options):
+
+
+/testbed/sympy/core/function.py:
+  Line 1687:     def evalf(self, prec=None, **options):
+
+
+/testbed/sympy/geometry/point.py:
+  Line 433:     def evalf(self, prec=None, **options):
+
+
+/testbed/sympy/vector/basisdependent.py:
+  Line 58:     def evalf(self, prec=None, **options):
+
+
+/testbed/sympy/functions/elementary/miscellaneous.py:
+  Line 456:     def evalf(self, prec=None, **options):
+
+
+/testbed/sympy/polys/domains/domain.py:
+  Line 511:     def evalf(self, a, prec=None, **options):

@@ -1,0 +1,136 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+1768: class _SelectorWidget(AxesWidget):
+1769: 
+1770:     def __init__(self, ax, onselect, useblit=False, button=None,
+1771:                  state_modifier_keys=None):
+1772:         super().__init__(ax)
+1773: 
+1774:         self.visible = True
+1775:         self.onselect = onselect
+1776:         self.useblit = useblit and self.canvas.supports_blit
+1777:         self.connect_default_events()
+1778: 
+1779:         self.state_modifier_keys = dict(move=' ', clear='escape',
+1780:                                         square='shift', center='control')
+1781:         self.state_modifier_keys.update(state_modifier_keys or {})
+1782: 
+1783:         self.background = None
+1784:         self.artists = []
+1785: 
+1786:         if isinstance(button, Integral):
+1787:             self.validButtons = [button]
+1788:         else:
+1789:             self.validButtons = button
+1790: 
+1791:         # will save the data (position at mouseclick)
+1792:         self._eventpress = None
+1793:         # will save the data (pos. at mouserelease)
+1794:         self._eventrelease = None
+1795:         self._prev_event = None
+1796:         self._state = set()
+1797: 
+1798:     eventpress = _api.deprecate_privatize_attribute("3.5")
+1799:     eventrelease = _api.deprecate_privatize_attribute("3.5")
+1800:     state = _api.deprecate_privatize_attribute("3.5")
+1801: 
+1802:     def set_active(self, active):
+1803:         super().set_active(active)
+1804:         if active:
+1805:             self.update_background(None)
+1806: 
+1807:     def update_background(self, event):
+1808:         """Force an update of the background."""
+1809:         # If you add a call to `ignore` here, you'll want to check edge case:
+1810:         # `release` can call a draw event even when `ignore` is True.
+1811:         if not self.useblit:
+1812:             return
+1813:         # Make sure that widget artists don't get accidentally included in the
+1814:         # background, by re-rendering the background if needed (and then
+1815:         # re-re-rendering the canvas with the visible widget artists).
+1816:         needs_redraw = any(artist.get_visible() for artist in self.artists)
+1817:         with ExitStack() as stack:
+1818:             if needs_redraw:
+1819:                 for artist in self.artists:
+1820:                     stack.enter_context(artist._cm_set(visible=False))
+1821:                 self.canvas.draw()
+1822:             self.background = self.canvas.copy_from_bbox(self.ax.bbox)
+1823:         if needs_redraw:
+1824:             for artist in self.artists:
+1825:                 self.ax.draw_artist(artist)
+1826: 
+1827:     def connect_default_events(self):
+1828:         """Connect the major canvas events to methods."""
+1829:         self.connect_event('motion_notify_event', self.onmove)
+1830:         self.connect_event('button_press_event', self.press)
+1831:         self.connect_event('button_release_event', self.release)
+1832:         self.connect_event('draw_event', self.update_background)
+1833:         self.connect_event('key_press_event', self.on_key_press)
+1834:         self.connect_event('key_release_event', self.on_key_release)
+1835:         self.connect_event('scroll_event', self.on_scroll)
+1836: 
+1837:     def ignore(self, event):
+1838:         # docstring inherited
+1839:         if not self.active or not self.ax.get_visible():
+1840:             return True
+1841:         # If canvas was locked
+1842:         if not self.canvas.widgetlock.available(self):
+1843:             return True
+1844:         if not hasattr(event, 'button'):
+1845:             event.button = None
+1846:         # Only do rectangle selection if event was triggered
+1847:         # with a desired button
+1848:         if (self.validButtons is not None
+1849:                 and event.button not in self.validButtons):
+1850:             return True
+1851:         # If no button was pressed yet ignore the event if it was out
+1852:         # of the axes
+1853:         if self._eventpress is None:
+1854:             return event.inaxes != self.ax
+1855:         # If a button was pressed, check if the release-button is the same.
+1856:         if event.button == self._eventpress.button:
+1857:             return False
+1858:         # If a button was pressed, check if the release-button is the same.
+1859:         return (event.inaxes != self.ax or
+1860:                 event.button != self._eventpress.button)
+1861: 
+1862:     def update(self):
+1863:         """Draw using blit() or draw_idle(), depending on ``self.useblit``."""
+1864:         if not self.ax.get_visible() or self.ax.figure._cachedRenderer is None:
+1865:             return False
+1866:         if self.useblit:
+1867:             if self.background is not None:
+1868:                 self.canvas.restore_region(self.background)
+1869:             else:
+1870:                 self.update_background(None)
+1871:             for artist in self.artists:
+1872:                 self.ax.draw_artist(artist)
+1873:             self.canvas.blit(self.ax.bbox)
+1874:         else:
+1875:             self.canvas.draw_idle()
+1876:         return False
+1877: 
+1878:     def _get_data(self, event):
+1879:         """Get the xdata and ydata for event, with limits."""
+1880:         if event.xdata is None:
+1881:             return None, None
+1882:         xdata = np.clip(event.xdata, *self.ax.get_xbound())
+1883:         ydata = np.clip(event.ydata, *self.ax.get_ybound())
+1884:         return xdata, ydata
+1885: 
+1886:     def _clean_event(self, event):
+1887:         """
+1888:         Preprocess an event:
+1889: 
+1890:         - Replace *event* by the previous event if *event* has no ``xdata``.
+1891:         - Clip ``xdata`` and ``ydata`` to the axes limits.
+1892:         - Update the previous event.
+1893:         """
+1894:         if event.xdata is None:
+1895:             event = self._prev_event
+1896:         else:
+1897:             event = copy.copy(event)
+
+(Showing lines 1768-1897 of 3409. Use offset=1898 to continue.)
+</content>

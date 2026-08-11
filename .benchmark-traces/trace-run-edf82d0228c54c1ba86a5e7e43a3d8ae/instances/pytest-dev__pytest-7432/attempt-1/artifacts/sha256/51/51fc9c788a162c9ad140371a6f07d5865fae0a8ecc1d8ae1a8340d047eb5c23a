@@ -1,0 +1,49 @@
+Found 20 matches
+/testbed/testing/test_terminal.py:
+  Line 130:         location = item.reportinfo()
+
+  Line 931:         expected = "SKIPPED [1] test_summary_s_alias.py:3: unconditional skip"
+
+
+/testbed/testing/python/integration.py:
+  Line 19:                 def reportinfo(self):
+
+  Line 50:                 def reportinfo(self):
+
+
+/testbed/testing/python/collect.py:
+  Line 1061:     def test_itemreport_reportinfo(self, testdir):
+
+  Line 1066:                 def reportinfo(self):
+
+  Line 1077:     def test_func_reportinfo(self, testdir):
+
+  Line 1079:         fspath, lineno, modpath = item.reportinfo()
+
+  Line 1084:     def test_class_reportinfo(self, testdir):
+
+  Line 1093:         fspath, lineno, msg = classcol.reportinfo()
+
+  Line 1101:     def test_reportinfo_with_nasty_getattr(self, testdir):
+
+  Line 1116:         fspath, lineno, msg = instance.reportinfo()
+
+
+/testbed/testing/test_skipping.py:
+  Line 608:         result.stdout.fnmatch_lines(["*unconditional skip*", "*1 skipped*"])
+
+  Line 649:         result.stdout.fnmatch_lines(["*unconditional skip*", "*1 skipped*"])
+
+  Line 1206:         ["SKIPPED [[]1[]] tests/test_1.py:2: unconditional skip"]
+
+
+/testbed/testing/test_doctest.py:
+  Line 777:     def test_reportinfo(self, testdir):
+
+  Line 779:         Test case to make sure that DoctestItem.reportinfo() returns lineno.
+
+  Line 782:             test_reportinfo="""
+
+  Line 792:         reportinfo = items[0].reportinfo()
+
+  Line 793:         assert reportinfo[1] == 1

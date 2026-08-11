@@ -1,0 +1,8 @@
+I found your lost changes. Here's what happened:
+
+1. You were on `master` at commit `d7d3e4b` ("off the job market woo")
+2. You checked out `HEAD~1` (commit `c4e38a1`), which put you in a **detached HEAD** state
+3. You made a commit "Move to Stanford" (`c499730`) while detached
+4. When you checked out `master` again, that commit became **dangling** — not reachable from any branch
+
+The commit `c499730` ("Move to Stanford") modified `_includes/about.md` and `_layouts/default.html`. Let me look at the actual changes and then merge them into master.

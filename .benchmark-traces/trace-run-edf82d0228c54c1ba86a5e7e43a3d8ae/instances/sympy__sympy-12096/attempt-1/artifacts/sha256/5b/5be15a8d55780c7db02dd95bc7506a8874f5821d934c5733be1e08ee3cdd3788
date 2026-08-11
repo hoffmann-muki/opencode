@@ -1,0 +1,13 @@
+Now I understand the issue. On line 510:
+
+```python
+return Float(self._imp_(*self.args), prec)
+```
+
+The `self.args` are passed directly to `_imp_` without being evalf'd first. So if an arg is itself a function application like `g(2)`, it won't be evaluated.
+
+The fix should be to evalf the args first before passing them to `_imp_`. Let me think about how to do this properly.
+
+The args should be evalf'd. Let me look at how evalf works on expressions. The `evalf` method on `Expr` calls `_eval_evalf`. 
+
+Let me look at the `evalf` method in `expr.py`.

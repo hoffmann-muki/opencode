@@ -1,0 +1,63 @@
+Found 23 matches
+/testbed/sympy/plotting/experimental_lambdify.py:
+  Line 62: # Q: What about _imp_ functions?
+
+
+/testbed/sympy/core/function.py:
+  Line 510:                 return Float(self._imp_(*self.args), prec)
+
+
+/testbed/sympy/core/tests/test_evalf.py:
+  Line 328:     del f._imp_     # XXX: due to caching _imp_ would influence all other tests
+
+
+/testbed/sympy/utilities/lambdify.py:
+  Line 312:     implementations, in a callable attached to the ``_imp_``
+
+  Line 321:     ``lambdify`` always prefers ``_imp_`` implementations to implementations
+
+  Line 367:         namespaces.append(_imp_namespace(expr))
+
+  Line 585: def _imp_namespace(expr, namespace=None):
+
+  Line 612:     >>> from sympy.utilities.lambdify import implemented_function, _imp_namespace
+
+  Line 616:     >>> namespace = _imp_namespace(f(g(x)))
+
+  Line 627:             _imp_namespace(arg, namespace)
+
+  Line 632:             _imp_namespace(key, namespace)
+
+  Line 633:             _imp_namespace(val, namespace)
+
+  Line 638:         imp = getattr(func, '_imp_', None)
+
+  Line 649:             _imp_namespace(arg, namespace)
+
+  Line 698:     symfunc._imp_ = staticmethod(implementation)
+
+
+/testbed/sympy/utilities/tests/test_autowrap.py:
+  Line 140:     assert f._imp_() == str(x + y)
+
+
+/testbed/sympy/utilities/autowrap.py:
+  Line 22: Function object.  The binary callable is attached as the _imp_ attribute and
+
+
+/testbed/sympy/utilities/tests/test_lambdify.py:
+  Line 607:     assert not hasattr(func, '_imp_')
+
+  Line 609:     assert hasattr(func, '_imp_')
+
+
+/testbed/sympy/printing/lambdarepr.py:
+  Line 305:             if hasattr(e, '_imp_'):
+
+  Line 306:                 return "(%s)" % self._print(e._imp_(*e.args))
+
+
+/testbed/sympy/printing/codeprinter.py:
+  Line 324:         elif hasattr(expr, '_imp_') and isinstance(expr._imp_, Lambda):
+
+  Line 326:             return self._print(expr._imp_(*expr.args))

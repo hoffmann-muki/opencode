@@ -1,0 +1,17 @@
+Found 7 matches
+/testbed/src/_pytest/unittest.py:
+  Line 31: from _pytest.skipping import skipped_by_mark_key
+
+  Line 218:             self._store[skipped_by_mark_key] = True
+
+
+/testbed/src/_pytest/skipping.py:
+  Line 226: skipped_by_mark_key = StoreKey[bool]()
+
+  Line 234:     item._store[skipped_by_mark_key] = False
+
+  Line 238:         item._store[skipped_by_mark_key] = True
+
+  Line 295:         item._store.get(skipped_by_mark_key, True)
+
+  Line 299:         # skipped by mark.skipif; change the location of the failure

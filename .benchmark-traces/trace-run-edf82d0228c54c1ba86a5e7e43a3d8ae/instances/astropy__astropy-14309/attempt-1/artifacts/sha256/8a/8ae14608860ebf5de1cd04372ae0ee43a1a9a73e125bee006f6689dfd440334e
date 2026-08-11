@@ -1,0 +1,20 @@
+Now I understand the original behavior clearly. In the original code:
+- The `elif isinstance(args[0], ...)` branch was only reached when `filepath is None` (because the previous `elif filepath is not None` would have been True otherwise).
+- When `filepath` is a string without a FITS extension, the `elif filepath is not None` branch was taken but didn't return, so the function fell through and returned `None` (implicitly).
+
+The ruff refactor flattened this into:
+```python
+    if fileobj is not None:
+        ...
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(...):
+            return True
+    return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+```
+
+Now the `return isinstance(args[0], ...)` is reached whenever the previous branches don't return, including when `filepath` is a non-FITS string. This causes the `IndexError` when `args` is empty.
+
+The fix: guard the `args[0]` access with a check that `args` is non-empty. This preserves the original behavior (returning falsy when there's nothing to check) while fixing the `IndexError`.
+
+Let me apply the fix.

@@ -1,0 +1,11 @@
+I've reached the maximum steps. Let me summarize what I've done so far.
+
+I've:
+1. Investigated the issue - the `is_fits` function in `astropy/io/fits/connect.py` raises `IndexError` when called with empty `args` and a non-FITS filepath.
+2. Identified the root cause - commit `2a0c5c6` refactored the `elif`/`else` chain into a flat `return isinstance(args[0], ...)`, which is now reached even when `filepath` is a non-FITS string with empty `args`.
+3. Applied a fix - guarded the `args[0]` access with `len(args) > 0 and isinstance(...)`.
+4. Added a regression test `test_is_fits_no_args` in `astropy/io/fits/tests/test_connect.py`.
+5. Verified the fix works for the reported case and edge cases.
+6. Ran the test suites for `test_connect.py`, `test_registries.py`, and `test_ccddata.py` - all pass.
+
+Let me provide a summary of the changes and verification.

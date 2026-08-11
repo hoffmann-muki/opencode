@@ -1,0 +1,169 @@
+Found 59 matches
+/testbed/lib/matplotlib/widgets.py:
+  Line 1768: class _SelectorWidget(AxesWidget):
+
+  Line 1807:     def update_background(self, event):
+
+  Line 1862:     def update(self):
+
+  Line 1984:     def set_visible(self, visible):
+
+  Line 2158:     def _setup_edge_handle(self, props):
+
+  Line 2280:     def _draw_shape(self, vmin, vmax):
+
+  Line 2399:     def set_visible(self, value):
+
+  Line 2484:     def set_visible(self, val):
+
+  Line 2870:     def _draw_shape(self, extents):
+
+  Line 2990:     def _draw_shape(self, extents):
+
+
+/testbed/lib/matplotlib/_layoutgrid.py:
+  Line 491:     def update_variables(self):
+
+
+/testbed/lib/matplotlib/backend_managers.py:
+  Line 177:     def update_keymap(self, name, key):
+
+
+/testbed/lib/matplotlib/offsetbox.py:
+  Line 559:     def update_frame(self, bbox, fontsize=None):
+
+  Line 1113:     def update_frame(self, bbox, fontsize=None):
+
+  Line 1460:     def update_positions(self, renderer):
+
+  Line 1557:         def update_offset(self, dx, dy):
+
+  Line 1644:     def update_offset(self, dx, dy):
+
+  Line 1664:     def update_offset(self, dx, dy):
+
+  Line 1686:     def update_offset(self, dx, dy):
+
+
+/testbed/lib/matplotlib/style/core.py:
+  Line 175: def update_user_library(library):
+
+  Line 195: def update_nested_dict(main_dict, new_dict):
+
+
+/testbed/lib/matplotlib/docstring.py:
+  Line 41:     def update(self, *args, **kwargs):
+
+
+/testbed/lib/matplotlib/patches.py:
+  Line 250:     def update_from(self, other):
+
+
+/testbed/lib/matplotlib/lines.py:
+  Line 1260:     def update_from(self, other):
+
+
+/testbed/lib/matplotlib/backend_tools.py:
+  Line 487:     def update_view(self):
+
+  Line 550:     def update_home_views(self, figure=None):
+
+
+/testbed/lib/matplotlib/artist.py:
+  Line 997:     def set_visible(self, b):
+
+  Line 1042:     def update(self, props):
+
+  Line 1129:     def update_from(self, other):
+
+
+/testbed/lib/matplotlib/projections/polar.py:
+  Line 306:     def update_position(self, loc):
+
+  Line 567:     def update_position(self, loc):
+
+
+/testbed/lib/matplotlib/axes/_subplots.py:
+  Line 83:     def update_params(self):
+
+
+/testbed/lib/matplotlib/colorbar.py:
+  Line 494:     def update_normal(self, mappable):
+
+  Line 763:     def update_ticks(self):
+
+
+/testbed/lib/matplotlib/collections.py:
+  Line 866:     def update_scalarmappable(self):
+
+  Line 908:     def update_from(self, other):
+
+
+/testbed/lib/matplotlib/axis.py:
+  Line 394:     def update_position(self, loc):
+
+  Line 451:     def update_position(self, loc):
+
+  Line 512:     def update_position(self, loc):
+
+  Line 1430:     def update_units(self, data):
+
+
+/testbed/lib/matplotlib/legend.py:
+  Line 665:     def update_default_handler_map(cls, handler_map):
+
+
+/testbed/lib/matplotlib/text.py:
+  Line 162:     def update(self, kwargs):
+
+  Line 260:     def update_from(self, other):
+
+  Line 494:     def update_bbox_position_size(self, renderer):
+
+  Line 1895:     def update_positions(self, renderer):
+
+
+/testbed/lib/matplotlib/backend_bases.py:
+  Line 3243:     def update(self):
+
+
+/testbed/lib/matplotlib/streamplot.py:
+  Line 301:     def update_trajectory(self, xg, yg):
+
+
+/testbed/lib/matplotlib/transforms.py:
+  Line 869:     def update_from_path(self, path, ignore=None, updatex=True, updatey=True):
+
+  Line 905:     def update_from_data_xy(self, xy, ignore=None, updatex=True, updatey=True):
+
+
+/testbed/lib/matplotlib/gridspec.py:
+  Line 409:     def update(self, **kwargs):
+
+
+/testbed/lib/matplotlib/axes/_base.py:
+  Line 2457:     def update_datalim(self, xys, updatex=True, updatey=True):
+
+
+/testbed/lib/matplotlib/category.py:
+  Line 208:     def update(self, data):
+
+
+/testbed/lib/matplotlib/figure.py:
+  Line 156:     def update(self, left=None, bottom=None, right=None, top=None,
+
+
+/testbed/lib/matplotlib/legend_handler.py:
+  Line 40: def update_from_first_child(tgt, src):
+
+  Line 75:     def update_prop(self, legend_handle, orig_handle, legend):
+
+  Line 408:     def update_prop(self, legend_handle, orig_handle, legend):
+
+
+/testbed/lib/matplotlib/backends/qt_editor/_formlayout.py:
+  Line 118:     def update_color(self):
+
+  Line 123:     def update_text(self, color):
+
+  Line 468:     def update_buttons(self):

@@ -1,0 +1,37 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a",
+  "trace_id": "trace-e15041f6a3ba430db81aac1b13de88e0",
+  "generated_at": "2026-08-10T20:20:01.504Z",
+  "status": "degraded",
+  "finalization": "partial",
+  "failure_policy": "continue_agent_without_retry",
+  "agent_outcome_affected": false,
+  "benchmark_retry_triggered": false,
+  "counters": {
+    "events_written": 103,
+    "artifacts_written": 88,
+    "artifact_bytes_written": 3457151,
+    "redactions_applied": 0,
+    "dropped_events": 0,
+    "sequence_gaps": 0
+  },
+  "issues": [
+    {
+      "severity": "warning",
+      "code": "opencode.incomplete_native_span",
+      "message": "1 OpenCode activities ended without a native result",
+      "first_seen_at": "2026-08-10T20:19:55.799Z",
+      "last_seen_at": "2026-08-10T20:19:55.799Z",
+      "count": 1
+    },
+    {
+      "severity": "warning",
+      "code": "opencode.incomplete_session",
+      "message": "1 OpenCode sessions ended without a native idle boundary",
+      "first_seen_at": "2026-08-10T20:19:55.807Z",
+      "last_seen_at": "2026-08-10T20:19:55.807Z",
+      "count": 1
+    }
+  ]
+}

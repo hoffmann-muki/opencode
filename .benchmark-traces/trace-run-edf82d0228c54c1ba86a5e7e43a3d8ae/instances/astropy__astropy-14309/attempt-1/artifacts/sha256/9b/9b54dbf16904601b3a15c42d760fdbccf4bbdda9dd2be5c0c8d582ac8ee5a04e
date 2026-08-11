@@ -1,0 +1,3 @@
+Now I understand the issue. The `is_fits` function in `/testbed/astropy/io/fits/connect.py` accesses `args[0]` without checking if `args` is non-empty. When `identify_format` is called with empty `args` (e.g., `identify_format("write", Table, "bububu.ecsv", None, [], {})`), the `args` tuple is empty, so `args[0]` raises an `IndexError`.
+
+Let me look at the commit referenced in the issue to understand the change.

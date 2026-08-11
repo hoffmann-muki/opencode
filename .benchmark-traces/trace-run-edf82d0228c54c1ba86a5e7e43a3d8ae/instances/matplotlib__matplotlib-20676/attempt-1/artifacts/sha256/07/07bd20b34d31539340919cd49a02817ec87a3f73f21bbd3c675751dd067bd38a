@@ -1,0 +1,60 @@
+Now let me understand the issue better. The edge handles are `axvline`/`axhline` lines that affect the data limits. 
+
+Let me look at how the `ToolLineHandles` creates the lines and think about the fix.
+
+The issue is that `axvline`/`axhline` lines affect the data limits. When the edge handles are at position 0, the data limits include 0.
+
+Let me think about the cleanest fix. 
+
+Looking at the `ToolLineHandles.__init__`:
+```python
+line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline
+self._line_props = line_props
+self.artists = [line_fun(p, **line_props) for p in positions]
+```
+
+The `axvline`/`axhline` functions call `_request_autoscale_view` which updates the data limits.
+
+One approach: After creating the lines, we could set them to not affect the data limits. But `Line2D` doesn't have a direct option for this.
+
+Actually, wait. Let me reconsider. The `axvline` uses a blended transform `get_xaxis_transform(which='grid')`. The x-data is in data coordinates. When the axes autoscales, it includes the x-data of the line.
+
+Hmm, but actually, the issue might be more subtle. Let me check what `_request_autoscale_view` does and whether the line's data limits are included.
+
+Actually, let me think about this from a different angle. The fix should ensure that the edge handles don't affect the axes data limits. 
+
+Looking at the matplotlib codebase, I recall that there's a way to make artists not affect the data limits. Let me check the `Line2D` class.
+
+Actually, I think the cleanest fix is to not use `axvline`/`axhline` but instead create `Line2D` objects with a transform that spans the axes but doesn't affect the data limits.
+
+Wait, but the edge handles need to span the full axes in one direction. Let me think...
+
+Actually, let me reconsider. The `axvline` creates a vertical line at x=position that spans the full y-range. The line uses a blended transform where x is in data coordinates and y is in axes coordinates.
+
+The issue is that the x-data `[x, x]` is in data coordinates, so it affects the x data limits.
+
+Hmm, but actually, I wonder if the issue is just the initial position being 0. Let me check what happens after the user interacts.
+
+Actually, let me re-read the issue. The issue says "The axes xlimits are expanded to include x=0." This is the initial state. The expected behavior is that the axes xlimits remain at (10, 20) + margins.
+
+So the fix should ensure that the edge handles don't affect the data limits, OR that the initial position is not 0.
+
+But even if we fix the initial position, the edge handles would still affect the data limits when they're at other positions. So the real fix is to make the edge handles not affect the data limits.
+
+Let me look at how to make a line not affect the data limits. 
+
+Actually, I think the issue is that `axvline`/`axhline` call `_request_autoscale_view` which updates the data limits. But the line itself, when added via `add_line`, also updates the data limits.
+
+Let me check the `add_line` method and `_request_autoscale_view`.
+
+Actually, let me think about this more carefully. The `axvline` creates a line with x-data `[x, x]` in data coordinates. When the axes autoscales (or when the data limits are computed), this x-data is included.
+
+But wait, the line uses a blended transform. Does the data limits computation use the transform? Let me check.
+
+Actually, the data limits are computed from the data coordinates of the artists, regardless of the transform. So even with a blended transform, the x-data `[x, x]` is included in the x data limits.
+
+Hmm, but actually, I'm not sure about this. Let me check how the data limits are computed for lines with blended transforms.
+
+Let me look at the `Line2D` class and how it contributes to the data limits.
+
+Actually, let me just test this. Let me check if the `axvline` at x=0 affects the data limits.

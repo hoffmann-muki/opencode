@@ -1,0 +1,21 @@
+All tasks are complete. Here's a summary of everything that was done:
+
+## Summary
+
+### 1. Directory Created
+- `/app/ssl/` directory created to store all SSL files
+
+### 2. RSA Private Key
+- Generated a 2048-bit RSA private key at `/app/ssl/server.key`
+- Permissions set to `600` (owner read/write only)
+
+### 3. Self-Signed Certificate
+- Created at `/app/ssl/server.crt` using OpenSSL
+- Valid for 365 days (Aug 10, 2026 → Aug 10, 2027)
+- Organization Name: "DevOps Team"
+- Common Name: "dev-internal.company.local"
+- The issuer matches the subject (self-signed)
+
+### 4. Combined PEM File
+- Created at `/app/ssl/server.pem` containing both the private key and certificate
+- Verified it contains both `<redacted:private_key>

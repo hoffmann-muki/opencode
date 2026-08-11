@@ -1,0 +1,3 @@
+Now I fully understand the regression. In the original code, the `elif isinstance(args[0], ...)` branch was only reached when `filepath is None` (due to the `elif filepath is not None` guard). When `filepath` was a non-FITS string, the function fell through and returned `None` (falsy). The ruff refactor flattened this into a `return isinstance(args[0], ...)` that's now reached even when `filepath` is a non-FITS string with empty `args`, causing the `IndexError`.
+
+The fix is to guard the `args[0]` access so it only runs when `args` is non-empty:

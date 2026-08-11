@@ -1,0 +1,3841 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a",
+  "format": "benchmark-trace/execution-tree-v1",
+  "trace_id": "trace-914ed492a4e241f5a2be0d2c3fe65eba",
+  "run_id": "trace-run-37403fdf166a42f1aee00e03594add21",
+  "benchmark": "terminal-bench-2.1",
+  "framework": "opencode",
+  "instance_id": "extract-elf",
+  "attempt": 1,
+  "generated_at": "2026-08-10T21:04:43.064Z",
+  "complete": true,
+  "source": {
+    "path": "events.jsonl",
+    "sha256": "4c995a4a38d555488a4bc9244fd96c743fec49b6288d61b19f67cf2c56d4c2f2",
+    "event_count": 70,
+    "represented_event_count": 70
+  },
+  "root": {
+    "node_id": "trace-root",
+    "started_at": "2026-08-10T20:50:21.615Z",
+    "ended_at": "2026-08-10T21:00:19.512Z",
+    "duration_ms": 597897,
+    "children": [
+      {
+        "node_id": "event-00000001",
+        "kind": "activity",
+        "event_type": "instance.start",
+        "event_family": "instance",
+        "status": "completed",
+        "span_id": "instance-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+        "source_event_ids": [
+          "event-00000001",
+          "event-00000070"
+        ],
+        "source_sequences": [
+          1,
+          70
+        ],
+        "started_at": "2026-08-10T20:50:21.615Z",
+        "ended_at": "2026-08-10T21:00:19.512Z",
+        "duration_ms": 597897,
+        "timing_fidelity": "native_wall",
+        "completeness": "complete",
+        "actor": {},
+        "boundaries": [
+          {
+            "event_id": "event-00000001",
+            "sequence": 1,
+            "event_type": "instance.start",
+            "phase": "start",
+            "status": "started",
+            "occurred_at": "2026-08-10T20:50:21.615Z",
+            "recorded_at": "2026-08-10T21:03:44.114Z",
+            "origin": {
+              "component": "opencode-benchmark-runner",
+              "capture_method": "generic_harness"
+            },
+            "timing": {
+              "fidelity": "native_wall"
+            }
+          },
+          {
+            "event_id": "event-00000070",
+            "sequence": 70,
+            "event_type": "instance.end",
+            "phase": "end",
+            "status": "completed",
+            "occurred_at": "2026-08-10T21:00:19.512Z",
+            "recorded_at": "2026-08-10T21:04:43.064Z",
+            "origin": {
+              "component": "opencode-benchmark-runner",
+              "capture_method": "generic_harness"
+            },
+            "timing": {
+              "fidelity": "native_wall",
+              "duration_ms": 597897
+            }
+          }
+        ],
+        "input": {
+          "payload": {},
+          "artifacts": []
+        },
+        "output": {
+          "payload": {},
+          "artifacts": []
+        },
+        "overlaps_with": [],
+        "children": [
+          {
+            "node_id": "event-00000002",
+            "kind": "activity",
+            "event_type": "attempt.start",
+            "event_family": "attempt",
+            "status": "completed",
+            "span_id": "attempt-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+            "parent_span_id": "instance-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+            "source_event_ids": [
+              "event-00000002",
+              "event-00000069"
+            ],
+            "source_sequences": [
+              2,
+              69
+            ],
+            "started_at": "2026-08-10T20:50:21.615Z",
+            "ended_at": "2026-08-10T21:00:19.512Z",
+            "duration_ms": 597897,
+            "timing_fidelity": "native_wall",
+            "completeness": "complete",
+            "actor": {},
+            "boundaries": [
+              {
+                "event_id": "event-00000002",
+                "sequence": 2,
+                "event_type": "attempt.start",
+                "phase": "start",
+                "status": "started",
+                "occurred_at": "2026-08-10T20:50:21.615Z",
+                "recorded_at": "2026-08-10T21:03:44.118Z",
+                "origin": {
+                  "component": "opencode-benchmark-runner",
+                  "capture_method": "generic_harness"
+                },
+                "timing": {
+                  "fidelity": "native_wall"
+                }
+              },
+              {
+                "event_id": "event-00000069",
+                "sequence": 69,
+                "event_type": "attempt.end",
+                "phase": "end",
+                "status": "completed",
+                "occurred_at": "2026-08-10T21:00:19.512Z",
+                "recorded_at": "2026-08-10T21:04:43.062Z",
+                "origin": {
+                  "component": "opencode-benchmark-runner",
+                  "capture_method": "generic_harness"
+                },
+                "timing": {
+                  "fidelity": "native_wall",
+                  "duration_ms": 597897
+                }
+              }
+            ],
+            "input": {
+              "payload": {
+                "agent_configuration": {
+                  "delegation_enabled": false,
+                  "coordination_mode": "framework_native",
+                  "delegation_sequence": [],
+                  "sequence_enforcement": "prompt_guided"
+                }
+              },
+              "artifacts": []
+            },
+            "output": {
+              "payload": {},
+              "artifacts": []
+            },
+            "overlaps_with": [],
+            "children": [
+              {
+                "node_id": "event-00000003",
+                "kind": "activity",
+                "event_type": "harness.startup_start",
+                "event_family": "harness",
+                "status": "completed",
+                "span_id": "opencode-startup-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                "parent_span_id": "attempt-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                "source_event_ids": [
+                  "event-00000003",
+                  "event-00000005"
+                ],
+                "source_sequences": [
+                  3,
+                  5
+                ],
+                "started_at": "2026-08-10T20:50:21.615Z",
+                "ended_at": "2026-08-10T20:50:21.615Z",
+                "duration_ms": 0,
+                "timing_fidelity": "native_wall",
+                "completeness": "complete",
+                "actor": {},
+                "boundaries": [
+                  {
+                    "event_id": "event-00000003",
+                    "sequence": 3,
+                    "event_type": "harness.startup_start",
+                    "phase": "start",
+                    "status": "started",
+                    "occurred_at": "2026-08-10T20:50:21.615Z",
+                    "recorded_at": "2026-08-10T21:03:44.120Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "derived"
+                    }
+                  },
+                  {
+                    "event_id": "event-00000005",
+                    "sequence": 5,
+                    "event_type": "harness.startup_end",
+                    "phase": "end",
+                    "status": "completed",
+                    "occurred_at": "2026-08-10T20:50:21.615Z",
+                    "recorded_at": "2026-08-10T21:03:44.126Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "native_wall",
+                      "duration_ms": 0
+                    }
+                  }
+                ],
+                "input": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "output": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "overlaps_with": [],
+                "children": [
+                  {
+                    "node_id": "event-00000004",
+                    "kind": "instant",
+                    "event_type": "container.observed",
+                    "event_family": "container",
+                    "status": "completed",
+                    "span_id": "opencode-container-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                    "parent_span_id": "opencode-startup-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                    "source_event_ids": [
+                      "event-00000004"
+                    ],
+                    "source_sequences": [
+                      4
+                    ],
+                    "started_at": "2026-08-10T20:50:21.615Z",
+                    "ended_at": "2026-08-10T20:50:21.615Z",
+                    "duration_ms": 0,
+                    "timing_fidelity": "derived",
+                    "completeness": "instant",
+                    "actor": {},
+                    "boundaries": [
+                      {
+                        "event_id": "event-00000004",
+                        "sequence": 4,
+                        "event_type": "container.observed",
+                        "phase": "instant",
+                        "status": "completed",
+                        "occurred_at": "2026-08-10T20:50:21.615Z",
+                        "recorded_at": "2026-08-10T21:03:44.123Z",
+                        "origin": {
+                          "component": "opencode-benchmark-runner",
+                          "capture_method": "generic_harness"
+                        },
+                        "timing": {
+                          "fidelity": "derived"
+                        }
+                      }
+                    ],
+                    "data": {
+                      "payload": {
+                        "image": "alexgshaw/extract-elf:20251031",
+                        "session_id": "extract-elf__NCKVyV4__agent"
+                      },
+                      "artifacts": []
+                    },
+                    "overlaps_with": [],
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "node_id": "event-00000006",
+                "kind": "activity",
+                "event_type": "agent.execution_start",
+                "event_family": "agent",
+                "status": "completed",
+                "span_id": "opencode-execution-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                "parent_span_id": "attempt-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                "source_event_ids": [
+                  "event-00000006",
+                  "event-00000066"
+                ],
+                "source_sequences": [
+                  6,
+                  66
+                ],
+                "started_at": "2026-08-10T20:50:21.615Z",
+                "ended_at": "2026-08-10T21:00:19.512Z",
+                "duration_ms": 597897,
+                "timing_fidelity": "native_wall",
+                "completeness": "complete",
+                "actor": {},
+                "boundaries": [
+                  {
+                    "event_id": "event-00000006",
+                    "sequence": 6,
+                    "event_type": "agent.execution_start",
+                    "phase": "start",
+                    "status": "started",
+                    "occurred_at": "2026-08-10T20:50:21.615Z",
+                    "recorded_at": "2026-08-10T21:03:44.129Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "derived"
+                    }
+                  },
+                  {
+                    "event_id": "event-00000066",
+                    "sequence": 66,
+                    "event_type": "agent.execution_end",
+                    "phase": "end",
+                    "status": "completed",
+                    "occurred_at": "2026-08-10T21:00:19.512Z",
+                    "recorded_at": "2026-08-10T21:04:43.055Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "native_wall",
+                      "duration_ms": 597897
+                    }
+                  }
+                ],
+                "input": {
+                  "payload": {
+                    "entered": true
+                  },
+                  "artifacts": []
+                },
+                "output": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "overlaps_with": [],
+                "children": [
+                  {
+                    "node_id": "event-00000007",
+                    "kind": "activity",
+                    "event_type": "agent.session_start",
+                    "event_family": "agent",
+                    "status": "completed",
+                    "span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                    "parent_span_id": "opencode-execution-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                    "source_event_ids": [
+                      "event-00000007",
+                      "event-00000065"
+                    ],
+                    "source_sequences": [
+                      7,
+                      65
+                    ],
+                    "started_at": "2026-08-10T20:50:27.694Z",
+                    "ended_at": "2026-08-10T21:00:19.045Z",
+                    "duration_ms": 591351,
+                    "timing_fidelity": "native_wall",
+                    "completeness": "complete",
+                    "actor": {
+                      "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk"
+                    },
+                    "boundaries": [
+                      {
+                        "event_id": "event-00000007",
+                        "sequence": 7,
+                        "event_type": "agent.session_start",
+                        "phase": "start",
+                        "status": "started",
+                        "occurred_at": "2026-08-10T20:50:27.694Z",
+                        "recorded_at": "2026-08-10T21:03:44.139Z",
+                        "origin": {
+                          "component": "opencode",
+                          "capture_method": "native_stream",
+                          "native_event_type": "server.connected",
+                          "native_event_id": "opencode-session-start-ses_0128f1731ffeEFlrIqKbbIGHRk"
+                        },
+                        "timing": {
+                          "fidelity": "native_wall"
+                        }
+                      },
+                      {
+                        "event_id": "event-00000065",
+                        "sequence": 65,
+                        "event_type": "agent.session_end",
+                        "phase": "end",
+                        "status": "completed",
+                        "occurred_at": "2026-08-10T21:00:19.045Z",
+                        "recorded_at": "2026-08-10T21:04:43.050Z",
+                        "origin": {
+                          "component": "opencode",
+                          "capture_method": "native_stream",
+                          "native_event_type": "session.status",
+                          "native_event_id": "opencode-session-end-ses_0128f1731ffeEFlrIqKbbIGHRk"
+                        },
+                        "timing": {
+                          "fidelity": "native_wall",
+                          "duration_ms": 591351
+                        }
+                      }
+                    ],
+                    "input": {
+                      "payload": {
+                        "role": "root"
+                      },
+                      "artifacts": []
+                    },
+                    "output": {
+                      "payload": {
+                        "reason": "native_idle"
+                      },
+                      "artifacts": []
+                    },
+                    "overlaps_with": [],
+                    "children": [
+                      {
+                        "node_id": "event-00000008",
+                        "kind": "activity",
+                        "event_type": "model.turn_start",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-model-msg_fed70ede5001wtmslROkO5RjHo",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000008",
+                          "event-00000010"
+                        ],
+                        "source_sequences": [
+                          8,
+                          10
+                        ],
+                        "started_at": "2026-08-10T20:50:28.965Z",
+                        "ended_at": "2026-08-10T20:50:37.252Z",
+                        "duration_ms": 8287,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed70ede5001wtmslROkO5RjHo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000008",
+                            "sequence": 8,
+                            "event_type": "model.turn_start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:28.965Z",
+                            "recorded_at": "2026-08-10T21:03:44.165Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00000007"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000010",
+                            "sequence": 10,
+                            "event_type": "model.turn_end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:37.252Z",
+                            "recorded_at": "2026-08-10T21:03:44.563Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000182"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 8287
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000008"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "model": "poolside/laguna-s-2.1:free",
+                            "provider": "openrouter"
+                          },
+                          "artifacts": []
+                        },
+                        "output": {
+                          "payload": {
+                            "finish_reason": "tool_calls",
+                            "boundary": "native_tool_start"
+                          },
+                          "artifacts": []
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000009",
+                        "kind": "instant",
+                        "event_type": "model.reasoning",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-reasoning-prt_fed7100930018IHjr1uk7Ky9sU",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000009"
+                        ],
+                        "source_sequences": [
+                          9
+                        ],
+                        "started_at": "2026-08-10T20:50:36.216Z",
+                        "ended_at": "2026-08-10T20:50:36.216Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed70ede5001wtmslROkO5RjHo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000009",
+                            "sequence": 9,
+                            "event_type": "model.reasoning",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:36.216Z",
+                            "recorded_at": "2026-08-10T21:03:44.510Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000158"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {},
+                          "artifacts": [
+                            {
+                              "sha256": "1309600cbe9c52c6eddaaad5d4581b30cd33f06ccc910fd88b74f38c3cc49a5d",
+                              "path": "artifacts/sha256/13/1309600cbe9c52c6eddaaad5d4581b30cd33f06ccc910fd88b74f38c3cc49a5d",
+                              "size_bytes": 409,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.reasoning",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000011",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed710bd9001kCFYxcp8tZLRMe",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000011",
+                          "event-00000012"
+                        ],
+                        "source_sequences": [
+                          11,
+                          12
+                        ],
+                        "started_at": "2026-08-10T20:50:37.252Z",
+                        "ended_at": "2026-08-10T20:50:37.453Z",
+                        "duration_ms": 201,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed70ede5001wtmslROkO5RjHo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000011",
+                            "sequence": 11,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:37.252Z",
+                            "recorded_at": "2026-08-10T21:03:44.568Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000182"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000012",
+                            "sequence": 12,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:37.453Z",
+                            "recorded_at": "2026-08-10T21:03:44.583Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000186"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 201
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000011"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-f3bbc8e159ca42f48bb07044fdaf5b44",
+                              "arguments": {
+                                "command": "file /app/a.out && ls -la /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "00c80018973e19387b4d5425e561665cf04038c1dfd258ae6d271828e7cf9afe",
+                              "path": "artifacts/sha256/00/00c80018973e19387b4d5425e561665cf04038c1dfd258ae6d271828e7cf9afe",
+                              "size_bytes": 67,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-f3bbc8e159ca42f48bb07044fdaf5b44"
+                            },
+                            "exit_code": 127
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "24602208ffff3b726e4feb0be5ca4d37da53e830b12600f6ff245394a88720ff",
+                              "path": "artifacts/sha256/24/24602208ffff3b726e4feb0be5ca4d37da53e830b12600f6ff245394a88720ff",
+                              "size_bytes": 47,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000013",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed710ebb001ApGypo1s0EARSI",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000013",
+                          "event-00000015"
+                        ],
+                        "source_sequences": [
+                          13,
+                          15
+                        ],
+                        "started_at": "2026-08-10T20:50:37.896Z",
+                        "ended_at": "2026-08-10T20:50:37.947Z",
+                        "duration_ms": 51,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed70ede5001wtmslROkO5RjHo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000013",
+                            "sequence": 13,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:37.896Z",
+                            "recorded_at": "2026-08-10T21:03:44.594Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000188"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000015",
+                            "sequence": 15,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:37.947Z",
+                            "recorded_at": "2026-08-10T21:03:44.618Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000192"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 51
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000013"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-fc4ed03fce2a47c2ac63d792ff0bb50a",
+                              "arguments": {
+                                "command": "xxd /app/a.out | head -50",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "fc3fe10cb233a8bde6da604aeabd30c2235c7c82c246c8de9c2b5b3b0b89009f",
+                              "path": "artifacts/sha256/fc/fc3fe10cb233a8bde6da604aeabd30c2235c7c82c246c8de9c2b5b3b0b89009f",
+                              "size_bytes": 56,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-fc4ed03fce2a47c2ac63d792ff0bb50a"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "173e65c3024bcd65fcba3516538d6769e3d152cf606d9d409c73828968be0485",
+                              "path": "artifacts/sha256/17/173e65c3024bcd65fcba3516538d6769e3d152cf606d9d409c73828968be0485",
+                              "size_bytes": 46,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000014",
+                        "kind": "instant",
+                        "event_type": "model.output",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-text-prt_fed710a41001XUxlGYUdx7Jiqx",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000014"
+                        ],
+                        "source_sequences": [
+                          14
+                        ],
+                        "started_at": "2026-08-10T20:50:37.921Z",
+                        "ended_at": "2026-08-10T20:50:37.921Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed70ede5001wtmslROkO5RjHo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000014",
+                            "sequence": 14,
+                            "event_type": "model.output",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:37.921Z",
+                            "recorded_at": "2026-08-10T21:03:44.605Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000190"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {
+                            "content_type": "text"
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "831a9345622fdf6e0002196c9a4477a679846a747dc22fc83cae67b3cc1ee5fb",
+                              "path": "artifacts/sha256/83/831a9345622fdf6e0002196c9a4477a679846a747dc22fc83cae67b3cc1ee5fb",
+                              "size_bytes": 112,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.response",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000016",
+                        "kind": "activity",
+                        "event_type": "model.turn_start",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-model-msg_fed711165001T1Gj1b0RVzTgdo",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000016",
+                          "event-00000018"
+                        ],
+                        "source_sequences": [
+                          16,
+                          18
+                        ],
+                        "started_at": "2026-08-10T20:50:38.053Z",
+                        "ended_at": "2026-08-10T20:50:41.189Z",
+                        "duration_ms": 3136,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed711165001T1Gj1b0RVzTgdo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000016",
+                            "sequence": 16,
+                            "event_type": "model.turn_start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:38.053Z",
+                            "recorded_at": "2026-08-10T21:03:44.630Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00000197"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000018",
+                            "sequence": 18,
+                            "event_type": "model.turn_end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:41.189Z",
+                            "recorded_at": "2026-08-10T21:03:44.689Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000221"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 3136
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000016"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "model": "poolside/laguna-s-2.1:free",
+                            "provider": "openrouter"
+                          },
+                          "artifacts": []
+                        },
+                        "output": {
+                          "payload": {
+                            "finish_reason": "tool_calls",
+                            "boundary": "native_tool_start"
+                          },
+                          "artifacts": []
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000017",
+                        "kind": "instant",
+                        "event_type": "model.reasoning",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-reasoning-prt_fed7113aa001BjcdUJFQmyKOQI",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000017"
+                        ],
+                        "source_sequences": [
+                          17
+                        ],
+                        "started_at": "2026-08-10T20:50:38.761Z",
+                        "ended_at": "2026-08-10T20:50:38.761Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed711165001T1Gj1b0RVzTgdo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000017",
+                            "sequence": 17,
+                            "event_type": "model.reasoning",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:38.761Z",
+                            "recorded_at": "2026-08-10T21:03:44.661Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000210"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {},
+                          "artifacts": [
+                            {
+                              "sha256": "36e7336355aabb39b2d33682fb347db5508ed30f7467bdafa55847795c16e9ed",
+                              "path": "artifacts/sha256/36/36e7336355aabb39b2d33682fb347db5508ed30f7467bdafa55847795c16e9ed",
+                              "size_bytes": 23,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.reasoning",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000019",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed7116c3001pOapz4Blw8lYbE",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000019",
+                          "event-00000020"
+                        ],
+                        "source_sequences": [
+                          19,
+                          20
+                        ],
+                        "started_at": "2026-08-10T20:50:41.189Z",
+                        "ended_at": "2026-08-10T20:50:41.255Z",
+                        "duration_ms": 66,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed711165001T1Gj1b0RVzTgdo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000019",
+                            "sequence": 19,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:41.189Z",
+                            "recorded_at": "2026-08-10T21:03:44.698Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000221"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000020",
+                            "sequence": 20,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:41.255Z",
+                            "recorded_at": "2026-08-10T21:03:44.716Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000226"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 66
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000019"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-8d9c3bcefbdf40c59845a7d8cc72a592",
+                              "arguments": {
+                                "command": "ls -la /app/a.out && which node && node --version",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "30660dd4f16d173bfefebecebafe4afb944e218098396981c657bddd295d9c56",
+                              "path": "artifacts/sha256/30/30660dd4f16d173bfefebecebafe4afb944e218098396981c657bddd295d9c56",
+                              "size_bytes": 80,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-8d9c3bcefbdf40c59845a7d8cc72a592"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "6f5b71622614ae01dc2f57f92c0a4c2be45edc7c715a96391b4c9a6299c5fbaa",
+                              "path": "artifacts/sha256/6f/6f5b71622614ae01dc2f57f92c0a4c2be45edc7c715a96391b4c9a6299c5fbaa",
+                              "size_bytes": 76,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000021",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed711e4c001Jxq1SrWqgUlLml",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000021",
+                          "event-00000023"
+                        ],
+                        "source_sequences": [
+                          21,
+                          23
+                        ],
+                        "started_at": "2026-08-10T20:50:42.300Z",
+                        "ended_at": "2026-08-10T20:50:42.371Z",
+                        "duration_ms": 71,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed711165001T1Gj1b0RVzTgdo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000021",
+                            "sequence": 21,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:42.300Z",
+                            "recorded_at": "2026-08-10T21:03:44.726Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000228"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000023",
+                            "sequence": 23,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:42.371Z",
+                            "recorded_at": "2026-08-10T21:03:44.751Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000233"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 71
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000021"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-eae55c2bd53a473facdbf1b243d49850",
+                              "arguments": {
+                                "command": "which readelf objdump nm strings od hexdump python3 2>/dev/null; echo \"---\"; ls /usr/bin/ | head -50",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "b675d5989a33414fe3e80bad9fd23fde9f2b65a33e6d4c2a98743aa7f2b060e8",
+                              "path": "artifacts/sha256/b6/b675d5989a33414fe3e80bad9fd23fde9f2b65a33e6d4c2a98743aa7f2b060e8",
+                              "size_bytes": 133,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-eae55c2bd53a473facdbf1b243d49850"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "9a2fc99bbb82bffc325146863b999bef5118fabe57d7fc80caa1270584b134b6",
+                              "path": "artifacts/sha256/9a/9a2fc99bbb82bffc325146863b999bef5118fabe57d7fc80caa1270584b134b6",
+                              "size_bytes": 519,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000022",
+                        "kind": "instant",
+                        "event_type": "model.output",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-text-prt_fed71142b001G0TY63XyOoyslV",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000022"
+                        ],
+                        "source_sequences": [
+                          22
+                        ],
+                        "started_at": "2026-08-10T20:50:42.312Z",
+                        "ended_at": "2026-08-10T20:50:42.312Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed711165001T1Gj1b0RVzTgdo"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000022",
+                            "sequence": 22,
+                            "event_type": "model.output",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:42.312Z",
+                            "recorded_at": "2026-08-10T21:03:44.737Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000230"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {
+                            "content_type": "text"
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "869f755198e2d6efb2272c633c3788d10e9a5fe244724d4032204a3f9a22162c",
+                              "path": "artifacts/sha256/86/869f755198e2d6efb2272c633c3788d10e9a5fe244724d4032204a3f9a22162c",
+                              "size_bytes": 38,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.response",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000024",
+                        "kind": "activity",
+                        "event_type": "model.turn_start",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-model-msg_fed71230c001BcWIEjoG6wBMa9",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000024",
+                          "event-00000026"
+                        ],
+                        "source_sequences": [
+                          24,
+                          26
+                        ],
+                        "started_at": "2026-08-10T20:50:42.572Z",
+                        "ended_at": "2026-08-10T20:50:46.430Z",
+                        "duration_ms": 3858,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed71230c001BcWIEjoG6wBMa9"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000024",
+                            "sequence": 24,
+                            "event_type": "model.turn_start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:42.572Z",
+                            "recorded_at": "2026-08-10T21:03:44.765Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00000238"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000026",
+                            "sequence": 26,
+                            "event_type": "model.turn_end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:46.430Z",
+                            "recorded_at": "2026-08-10T21:03:44.889Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000292"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 3858
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000024"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "model": "poolside/laguna-s-2.1:free",
+                            "provider": "openrouter"
+                          },
+                          "artifacts": []
+                        },
+                        "output": {
+                          "payload": {
+                            "finish_reason": "tool_calls",
+                            "boundary": "native_tool_start"
+                          },
+                          "artifacts": []
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000025",
+                        "kind": "instant",
+                        "event_type": "model.reasoning",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-reasoning-prt_fed7125a3001E1PvmYIsAFJBVr",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000025"
+                        ],
+                        "source_sequences": [
+                          25
+                        ],
+                        "started_at": "2026-08-10T20:50:45.699Z",
+                        "ended_at": "2026-08-10T20:50:45.699Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed71230c001BcWIEjoG6wBMa9"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000025",
+                            "sequence": 25,
+                            "event_type": "model.reasoning",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:45.699Z",
+                            "recorded_at": "2026-08-10T21:03:44.852Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000274"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {},
+                          "artifacts": [
+                            {
+                              "sha256": "372ea5b0da95a11d810c33747f87a158e5109c8a7275bbcb868a8feafd7be817",
+                              "path": "artifacts/sha256/37/372ea5b0da95a11d810c33747f87a158e5109c8a7275bbcb868a8feafd7be817",
+                              "size_bytes": 103,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.reasoning",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000027",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed713013001D4wC2gSaq12AUL",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000027",
+                          "event-00000028"
+                        ],
+                        "source_sequences": [
+                          27,
+                          28
+                        ],
+                        "started_at": "2026-08-10T20:50:46.430Z",
+                        "ended_at": "2026-08-10T20:50:46.468Z",
+                        "duration_ms": 38,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed71230c001BcWIEjoG6wBMa9"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000027",
+                            "sequence": 27,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:46.430Z",
+                            "recorded_at": "2026-08-10T21:03:44.898Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000292"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000028",
+                            "sequence": 28,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:46.468Z",
+                            "recorded_at": "2026-08-10T21:03:44.915Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000295"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 38
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000027"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-ec856570c89f4fe682c4e8b1dba65676",
+                              "arguments": {
+                                "command": "readelf -h /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "c2e6efa82bd7a11f04fb1aacb58856a33465a2e28f653c4f91725651f7da9154",
+                              "path": "artifacts/sha256/c2/c2e6efa82bd7a11f04fb1aacb58856a33465a2e28f653c4f91725651f7da9154",
+                              "size_bytes": 52,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-ec856570c89f4fe682c4e8b1dba65676"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "b56515e1b8602b9de714bc5bf3fa07f6457aafece5a7b699544cfde375afb38e",
+                              "path": "artifacts/sha256/b5/b56515e1b8602b9de714bc5bf3fa07f6457aafece5a7b699544cfde375afb38e",
+                              "size_bytes": 979,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000029",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed713286001uUBff7YT3H5rF1",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000029",
+                          "event-00000030"
+                        ],
+                        "source_sequences": [
+                          29,
+                          30
+                        ],
+                        "started_at": "2026-08-10T20:50:47.051Z",
+                        "ended_at": "2026-08-10T20:50:47.087Z",
+                        "duration_ms": 36,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed71230c001BcWIEjoG6wBMa9"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000029",
+                            "sequence": 29,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:47.051Z",
+                            "recorded_at": "2026-08-10T21:03:44.930Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000297"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000030",
+                            "sequence": 30,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:47.087Z",
+                            "recorded_at": "2026-08-10T21:03:44.946Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000300"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 36
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000029"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-38a6c7a098c74ac0babffa1f62e5c5b4",
+                              "arguments": {
+                                "command": "readelf -S /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "a4060d81cae2ab3212b219eb7aa4f6e990a63a5d9a12b9c0c5ba340102795c76",
+                              "path": "artifacts/sha256/a4/a4060d81cae2ab3212b219eb7aa4f6e990a63a5d9a12b9c0c5ba340102795c76",
+                              "size_bytes": 52,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-38a6c7a098c74ac0babffa1f62e5c5b4"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "5c39e78abeedde15c5544e173f455a35d87ca496c83459bb5fe776075fef268a",
+                              "path": "artifacts/sha256/5c/5c39e78abeedde15c5544e173f455a35d87ca496c83459bb5fe776075fef268a",
+                              "size_bytes": 4663,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000031",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed713552001wtpzN8u6bP041D",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000031",
+                          "event-00000033"
+                        ],
+                        "source_sequences": [
+                          31,
+                          33
+                        ],
+                        "started_at": "2026-08-10T20:50:47.817Z",
+                        "ended_at": "2026-08-10T20:50:47.867Z",
+                        "duration_ms": 50,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed71230c001BcWIEjoG6wBMa9"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000031",
+                            "sequence": 31,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:47.817Z",
+                            "recorded_at": "2026-08-10T21:03:44.962Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000303"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000033",
+                            "sequence": 33,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:47.867Z",
+                            "recorded_at": "2026-08-10T21:03:44.987Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000307"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 50
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000031"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-df208603c0084dc5a07d059595e42e21",
+                              "arguments": {
+                                "command": "readelf -s /app/a.out 2>/dev/null | head -80",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "f5e55f614a0ecdf35dd44a421163f23ca5df984068217688570bb4452adb14c6",
+                              "path": "artifacts/sha256/f5/f5e55f614a0ecdf35dd44a421163f23ca5df984068217688570bb4452adb14c6",
+                              "size_bytes": 75,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-df208603c0084dc5a07d059595e42e21"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "948ac36bb55ef826ba6eecfaf28cd759c8008e1e2d41b387697c60a4fb22a313",
+                              "path": "artifacts/sha256/94/948ac36bb55ef826ba6eecfaf28cd759c8008e1e2d41b387697c60a4fb22a313",
+                              "size_bytes": 3352,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000032",
+                        "kind": "instant",
+                        "event_type": "model.output",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-text-prt_fed712f47001miNMC0hLRrRAfb",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000032"
+                        ],
+                        "source_sequences": [
+                          32
+                        ],
+                        "started_at": "2026-08-10T20:50:47.853Z",
+                        "ended_at": "2026-08-10T20:50:47.853Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed71230c001BcWIEjoG6wBMa9"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000032",
+                            "sequence": 32,
+                            "event_type": "model.output",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:50:47.853Z",
+                            "recorded_at": "2026-08-10T21:03:44.974Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00000305"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {
+                            "content_type": "text"
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "97c1bbe2ff3ed0d53450d5909f71ecd93f10b4d62d4357d089240cacfc8458e4",
+                              "path": "artifacts/sha256/97/97c1bbe2ff3ed0d53450d5909f71ecd93f10b4d62d4357d089240cacfc8458e4",
+                              "size_bytes": 74,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.response",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000034",
+                        "kind": "activity",
+                        "event_type": "model.turn_start",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-model-msg_fed713889001vxPOClqHNbyri1",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000034",
+                          "event-00000036"
+                        ],
+                        "source_sequences": [
+                          34,
+                          36
+                        ],
+                        "started_at": "2026-08-10T20:50:48.073Z",
+                        "ended_at": "2026-08-10T20:51:11.350Z",
+                        "duration_ms": 23277,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed713889001vxPOClqHNbyri1"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000034",
+                            "sequence": 34,
+                            "event_type": "model.turn_start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:50:48.073Z",
+                            "recorded_at": "2026-08-10T21:03:45.003Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00000312"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000036",
+                            "sequence": 36,
+                            "event_type": "model.turn_end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:51:11.350Z",
+                            "recorded_at": "2026-08-10T21:03:47.256Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001408"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 23277
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000034"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "model": "poolside/laguna-s-2.1:free",
+                            "provider": "openrouter"
+                          },
+                          "artifacts": []
+                        },
+                        "output": {
+                          "payload": {
+                            "finish_reason": "tool_calls",
+                            "boundary": "native_tool_start"
+                          },
+                          "artifacts": []
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000035",
+                        "kind": "instant",
+                        "event_type": "model.reasoning",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-reasoning-prt_fed713af4001m4syEqTbJzh0rN",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000035"
+                        ],
+                        "source_sequences": [
+                          35
+                        ],
+                        "started_at": "2026-08-10T20:51:10.035Z",
+                        "ended_at": "2026-08-10T20:51:10.035Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed713889001vxPOClqHNbyri1"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000035",
+                            "sequence": 35,
+                            "event_type": "model.reasoning",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:51:10.035Z",
+                            "recorded_at": "2026-08-10T21:03:47.198Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001379"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {},
+                          "artifacts": [
+                            {
+                              "sha256": "0cd4ec6f81cfc0f6427923813be7cc32af251d667b196426023b3c2bfb9ac585",
+                              "path": "artifacts/sha256/0c/0cd4ec6f81cfc0f6427923813be7cc32af251d667b196426023b3c2bfb9ac585",
+                              "size_bytes": 2662,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.reasoning",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000037",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed7191b7001spyolNqYKSODk8",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000037",
+                          "event-00000038"
+                        ],
+                        "source_sequences": [
+                          37,
+                          38
+                        ],
+                        "started_at": "2026-08-10T20:51:11.350Z",
+                        "ended_at": "2026-08-10T20:51:11.374Z",
+                        "duration_ms": 24,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed713889001vxPOClqHNbyri1"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000037",
+                            "sequence": 37,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:51:11.350Z",
+                            "recorded_at": "2026-08-10T21:03:47.263Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001408"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000038",
+                            "sequence": 38,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:51:11.374Z",
+                            "recorded_at": "2026-08-10T21:03:47.277Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001411"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 24
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000037"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-7681ce539e4c411f9179d6d027aa3282",
+                              "arguments": {
+                                "command": "objdump -s -j .data /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "6af1f781b130f1224c2cd2daba80783481f80554abe3b8af464eca668d574cc0",
+                              "path": "artifacts/sha256/6a/6af1f781b130f1224c2cd2daba80783481f80554abe3b8af464eca668d574cc0",
+                              "size_bytes": 61,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-7681ce539e4c411f9179d6d027aa3282"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "d0327944bcd138586cb14dc42f3c21c410def10b10ec70a67cc0e14fa70594b7",
+                              "path": "artifacts/sha256/d0/d0327944bcd138586cb14dc42f3c21c410def10b10ec70a67cc0e14fa70594b7",
+                              "size_bytes": 130,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000039",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed7193d6001W1FqdpnGwqL71i",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000039",
+                          "event-00000040"
+                        ],
+                        "source_sequences": [
+                          39,
+                          40
+                        ],
+                        "started_at": "2026-08-10T20:51:12.501Z",
+                        "ended_at": "2026-08-10T20:51:12.528Z",
+                        "duration_ms": 27,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed713889001vxPOClqHNbyri1"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000039",
+                            "sequence": 39,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:51:12.501Z",
+                            "recorded_at": "2026-08-10T21:03:47.286Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001413"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000040",
+                            "sequence": 40,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:51:12.528Z",
+                            "recorded_at": "2026-08-10T21:03:47.301Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001417"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 27
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000039"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-5080caff9e1a4958aee860e4903ec8de",
+                              "arguments": {
+                                "command": "objdump -s -j .rodata /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "c866e4336f32db376fcf2763e4a585d455b67285a28f6f0f98d656addfb416b3",
+                              "path": "artifacts/sha256/c8/c866e4336f32db376fcf2763e4a585d455b67285a28f6f0f98d656addfb416b3",
+                              "size_bytes": 63,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-5080caff9e1a4958aee860e4903ec8de"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "937d5b888a715db22f6b597fc6fbbc540c7ea1418aae8c63333e76c6630786f8",
+                              "path": "artifacts/sha256/93/937d5b888a715db22f6b597fc6fbbc540c7ea1418aae8c63333e76c6630786f8",
+                              "size_bytes": 132,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000041",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed719808001AYyoqxLug4SMhw",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000041",
+                          "event-00000042"
+                        ],
+                        "source_sequences": [
+                          41,
+                          42
+                        ],
+                        "started_at": "2026-08-10T20:51:13.092Z",
+                        "ended_at": "2026-08-10T20:51:13.119Z",
+                        "duration_ms": 27,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed713889001vxPOClqHNbyri1"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000041",
+                            "sequence": 41,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:51:13.092Z",
+                            "recorded_at": "2026-08-10T21:03:47.310Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001418"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000042",
+                            "sequence": 42,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:51:13.119Z",
+                            "recorded_at": "2026-08-10T21:03:47.328Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001421"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 27
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000041"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-9838d8dae60548db8a375685bc35d196",
+                              "arguments": {
+                                "command": "objdump -s -j .dynamic /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "cb81b81dcb05d6900f7718866905834296510d9a04fc0aae27be39b40437d8a3",
+                              "path": "artifacts/sha256/cb/cb81b81dcb05d6900f7718866905834296510d9a04fc0aae27be39b40437d8a3",
+                              "size_bytes": 64,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-9838d8dae60548db8a375685bc35d196"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "ae7761fa0541a72f920327a9616226e98165957975c46603ec7647ea673a7f54",
+                              "path": "artifacts/sha256/ae/ae7761fa0541a72f920327a9616226e98165957975c46603ec7647ea673a7f54",
+                              "size_bytes": 1933,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000043",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed719a98001LtmQRnjY7brI7N",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000043",
+                          "event-00000044"
+                        ],
+                        "source_sequences": [
+                          43,
+                          44
+                        ],
+                        "started_at": "2026-08-10T20:51:14.145Z",
+                        "ended_at": "2026-08-10T20:51:14.170Z",
+                        "duration_ms": 25,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed713889001vxPOClqHNbyri1"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000043",
+                            "sequence": 43,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:51:14.145Z",
+                            "recorded_at": "2026-08-10T21:03:47.342Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001423"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000044",
+                            "sequence": 44,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:51:14.170Z",
+                            "recorded_at": "2026-08-10T21:03:47.355Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001426"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 25
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000043"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-681063553a554006977173ec30236ec1",
+                              "arguments": {
+                                "command": "objdump -s -j .got /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "f7991f8cf19e923f8993f3ff731aed60f2237a5c2a3ea491cc2277ca80ecc19a",
+                              "path": "artifacts/sha256/f7/f7991f8cf19e923f8993f3ff731aed60f2237a5c2a3ea491cc2277ca80ecc19a",
+                              "size_bytes": 60,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-681063553a554006977173ec30236ec1"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "4e1bf1df3c01e448f4c755636fcf91a832d9eab2cab05dee034dadcc03f7631c",
+                              "path": "artifacts/sha256/4e/4e1bf1df3c01e448f4c755636fcf91a832d9eab2cab05dee034dadcc03f7631c",
+                              "size_bytes": 369,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000045",
+                        "kind": "instant",
+                        "event_type": "model.output",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-text-prt_fed718e59001bo8KHrmv7aHF6N",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000045"
+                        ],
+                        "source_sequences": [
+                          45
+                        ],
+                        "started_at": "2026-08-10T20:51:14.186Z",
+                        "ended_at": "2026-08-10T20:51:14.186Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed713889001vxPOClqHNbyri1"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000045",
+                            "sequence": 45,
+                            "event_type": "model.output",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:51:14.186Z",
+                            "recorded_at": "2026-08-10T21:03:47.365Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00001427"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {
+                            "content_type": "text"
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "c2d4ad32db9bfab74f3487c867417ce3b0b6596c6dcf613d07d7255f93ccf9d8",
+                              "path": "artifacts/sha256/c2/c2d4ad32db9bfab74f3487c867417ce3b0b6596c6dcf613d07d7255f93ccf9d8",
+                              "size_bytes": 113,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.response",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000046",
+                        "kind": "activity",
+                        "event_type": "model.turn_start",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-model-msg_fed719ef4001SCjiYwXh0MtEcn",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000046",
+                          "event-00000048"
+                        ],
+                        "source_sequences": [
+                          46,
+                          48
+                        ],
+                        "started_at": "2026-08-10T20:51:14.292Z",
+                        "ended_at": "2026-08-10T20:52:07.668Z",
+                        "duration_ms": 53376,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed719ef4001SCjiYwXh0MtEcn"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000046",
+                            "sequence": 46,
+                            "event_type": "model.turn_start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:51:14.292Z",
+                            "recorded_at": "2026-08-10T21:03:47.378Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00001432"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000048",
+                            "sequence": 48,
+                            "event_type": "model.turn_end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:07.668Z",
+                            "recorded_at": "2026-08-10T21:03:52.307Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00003871"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 53376
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000046"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "model": "poolside/laguna-s-2.1:free",
+                            "provider": "openrouter"
+                          },
+                          "artifacts": []
+                        },
+                        "output": {
+                          "payload": {
+                            "finish_reason": "tool_calls",
+                            "boundary": "native_tool_start"
+                          },
+                          "artifacts": []
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000047",
+                        "kind": "instant",
+                        "event_type": "model.reasoning",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-reasoning-prt_fed71a694001Qo8UbCLQu2rXAS",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000047"
+                        ],
+                        "source_sequences": [
+                          47
+                        ],
+                        "started_at": "2026-08-10T20:52:07.452Z",
+                        "ended_at": "2026-08-10T20:52:07.452Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed719ef4001SCjiYwXh0MtEcn"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000047",
+                            "sequence": 47,
+                            "event_type": "model.reasoning",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:07.452Z",
+                            "recorded_at": "2026-08-10T21:03:52.278Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00003858"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {},
+                          "artifacts": [
+                            {
+                              "sha256": "4f0939dca2fde96b059cff698c77a047f439b82da24bfb8411b66432c5fc001b",
+                              "path": "artifacts/sha256/4f/4f0939dca2fde96b059cff698c77a047f439b82da24bfb8411b66432c5fc001b",
+                              "size_bytes": 5387,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.reasoning",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000049",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed726eef001by121nWmu1sOB4",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000049",
+                          "event-00000050"
+                        ],
+                        "source_sequences": [
+                          49,
+                          50
+                        ],
+                        "started_at": "2026-08-10T20:52:07.668Z",
+                        "ended_at": "2026-08-10T20:52:07.721Z",
+                        "duration_ms": 53,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed719ef4001SCjiYwXh0MtEcn"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000049",
+                            "sequence": 49,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:52:07.668Z",
+                            "recorded_at": "2026-08-10T21:03:52.319Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00003871"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000050",
+                            "sequence": 50,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:07.721Z",
+                            "recorded_at": "2026-08-10T21:03:52.344Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00003875"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 53
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000049"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-706103db6627423d9f87638e1b4cd5d8",
+                              "arguments": {
+                                "command": "objdump -d /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "aad6fdff1f1250459769ccbde1e60a62bb38177d9226672f59b0396276597819",
+                              "path": "artifacts/sha256/aa/aad6fdff1f1250459769ccbde1e60a62bb38177d9226672f59b0396276597819",
+                              "size_bytes": 52,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-706103db6627423d9f87638e1b4cd5d8"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "a8747fdf635070ac0bbe0a1731920e80a1a72264ab59ae1fd5677aa98ef02543",
+                              "path": "artifacts/sha256/a8/a8747fdf635070ac0bbe0a1731920e80a1a72264ab59ae1fd5677aa98ef02543",
+                              "size_bytes": 5949,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000051",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed726f8d001jBU9PdFzrCrAzu",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000051",
+                          "event-00000053"
+                        ],
+                        "source_sequences": [
+                          51,
+                          53
+                        ],
+                        "started_at": "2026-08-10T20:52:07.955Z",
+                        "ended_at": "2026-08-10T20:52:07.978Z",
+                        "duration_ms": 23,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed719ef4001SCjiYwXh0MtEcn"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000051",
+                            "sequence": 51,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:52:07.955Z",
+                            "recorded_at": "2026-08-10T21:03:52.361Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00003877"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000053",
+                            "sequence": 53,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:07.978Z",
+                            "recorded_at": "2026-08-10T21:03:52.380Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00003881"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 23
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000051"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-0f9c7cab14424a3fac9ca6e91f39fca3",
+                              "arguments": {
+                                "command": "objdump -s -j .init_array /app/a.out; echo \"===\"; objdump -s -j .fini_array /app/a.out; echo \"===\"; objdump -s -j .bss /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "125c6fcc0ec7f50600deb2b6748222eba352365ff2a707aa8b5835bb7d3a356e",
+                              "path": "artifacts/sha256/12/125c6fcc0ec7f50600deb2b6748222eba352365ff2a707aa8b5835bb7d3a356e",
+                              "size_bytes": 164,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-0f9c7cab14424a3fac9ca6e91f39fca3"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "8075aec786e66b03c1cfec25b5d1eedacb8d768aed55deaaaa7826c41763b5fa",
+                              "path": "artifacts/sha256/80/8075aec786e66b03c1cfec25b5d1eedacb8d768aed55deaaaa7826c41763b5fa",
+                              "size_bytes": 409,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000052",
+                        "kind": "instant",
+                        "event_type": "model.output",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-text-prt_fed726ea1001q2lKVD4Jc7AhVS",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000052"
+                        ],
+                        "source_sequences": [
+                          52
+                        ],
+                        "started_at": "2026-08-10T20:52:07.972Z",
+                        "ended_at": "2026-08-10T20:52:07.972Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed719ef4001SCjiYwXh0MtEcn"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000052",
+                            "sequence": 52,
+                            "event_type": "model.output",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:07.972Z",
+                            "recorded_at": "2026-08-10T21:03:52.370Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00003879"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {
+                            "content_type": "text"
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "5747bab282f65a549490ac9617ce44c4f84afad96c4cd4f09423a111d71a794f",
+                              "path": "artifacts/sha256/57/5747bab282f65a549490ac9617ce44c4f84afad96c4cd4f09423a111d71a794f",
+                              "size_bytes": 54,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.response",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000054",
+                        "kind": "activity",
+                        "event_type": "model.turn_start",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-model-msg_fed7270ff001GUUGQ3hqsrXYgj",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000054",
+                          "event-00000056"
+                        ],
+                        "source_sequences": [
+                          54,
+                          56
+                        ],
+                        "started_at": "2026-08-10T20:52:08.063Z",
+                        "ended_at": "2026-08-10T20:52:36.918Z",
+                        "duration_ms": 28855,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed7270ff001GUUGQ3hqsrXYgj"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000054",
+                            "sequence": 54,
+                            "event_type": "model.turn_start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:52:08.063Z",
+                            "recorded_at": "2026-08-10T21:03:52.393Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00003886"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000056",
+                            "sequence": 56,
+                            "event_type": "model.turn_end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:36.918Z",
+                            "recorded_at": "2026-08-10T21:03:54.189Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00004784"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 28855
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000054"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "model": "poolside/laguna-s-2.1:free",
+                            "provider": "openrouter"
+                          },
+                          "artifacts": []
+                        },
+                        "output": {
+                          "payload": {
+                            "finish_reason": "tool_calls",
+                            "boundary": "native_tool_start"
+                          },
+                          "artifacts": []
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000055",
+                        "kind": "instant",
+                        "event_type": "model.reasoning",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-reasoning-prt_fed7276c9001GLmFrNSH6Awh2C",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000055"
+                        ],
+                        "source_sequences": [
+                          55
+                        ],
+                        "started_at": "2026-08-10T20:52:35.288Z",
+                        "ended_at": "2026-08-10T20:52:35.288Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed7270ff001GUUGQ3hqsrXYgj"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000055",
+                            "sequence": 55,
+                            "event_type": "model.reasoning",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:35.288Z",
+                            "recorded_at": "2026-08-10T21:03:54.158Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00004769"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {},
+                          "artifacts": [
+                            {
+                              "sha256": "712c33f848d3b10051954e9e007457e645cde547fd82ec3518bcc453dcef71c1",
+                              "path": "artifacts/sha256/71/712c33f848d3b10051954e9e007457e645cde547fd82ec3518bcc453dcef71c1",
+                              "size_bytes": 2700,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.reasoning",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000057",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed72dbfc001V0XvZHWmSUWrwl",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000057",
+                          "event-00000058"
+                        ],
+                        "source_sequences": [
+                          57,
+                          58
+                        ],
+                        "started_at": "2026-08-10T20:52:36.918Z",
+                        "ended_at": "2026-08-10T20:52:36.937Z",
+                        "duration_ms": 19,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed7270ff001GUUGQ3hqsrXYgj"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000057",
+                            "sequence": 57,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:52:36.918Z",
+                            "recorded_at": "2026-08-10T21:03:54.197Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00004784"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000058",
+                            "sequence": 58,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:36.937Z",
+                            "recorded_at": "2026-08-10T21:03:54.214Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00004787"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 19
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000057"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-93989c6fce284f16916a5fe601cffc80",
+                              "arguments": {
+                                "command": "readelf -l /app/a.out",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "a5244b39b0578163b9e24ad01a7b7b11f92177f3dadd1ff2accaa994484720b0",
+                              "path": "artifacts/sha256/a5/a5244b39b0578163b9e24ad01a7b7b11f92177f3dadd1ff2accaa994484720b0",
+                              "size_bytes": 52,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-93989c6fce284f16916a5fe601cffc80"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "ea9f14f50c3e03ddd969747e88117cee0b4a3f24c949f52bdb037d1b926a492a",
+                              "path": "artifacts/sha256/ea/ea9f14f50c3e03ddd969747e88117cee0b4a3f24c949f52bdb037d1b926a492a",
+                              "size_bytes": 2788,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000059",
+                        "kind": "activity",
+                        "event_type": "shell.start",
+                        "event_family": "shell",
+                        "status": "completed",
+                        "span_id": "opencode-tool-prt_fed72e415001MPl06PyBf50hFW",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000059",
+                          "event-00000060"
+                        ],
+                        "source_sequences": [
+                          59,
+                          60
+                        ],
+                        "started_at": "2026-08-10T20:52:41.055Z",
+                        "ended_at": "2026-08-10T20:52:41.095Z",
+                        "duration_ms": 40,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed7270ff001GUUGQ3hqsrXYgj"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000059",
+                            "sequence": 59,
+                            "event_type": "shell.start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:52:41.055Z",
+                            "recorded_at": "2026-08-10T21:03:54.228Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00004790"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000060",
+                            "sequence": 60,
+                            "event_type": "shell.end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:41.095Z",
+                            "recorded_at": "2026-08-10T21:03:54.241Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00004793"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 40
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000059"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-68c2ae476ff64a978728024d5c15418b",
+                              "arguments": {
+                                "command": "python3 -c \"\nimport struct\nwith open('/app/a.out','rb') as f:\n    data = f.read()\n# Check the example values\nprint('4194304 =', hex(4194304))\nprint('4194308 =', hex(4194308))\nprint('1784774249 =', hex(1784774249))\nprint('1718378344 =', hex(1718378344))\n\"",
+                                "workdir": "/app"
+                              }
+                            }
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "1f4d345ba1461fb65946a7f93426e0ddf21f38a910a45749d619dd9a22ac89d7",
+                              "path": "artifacts/sha256/1f/1f4d345ba1461fb65946a7f93426e0ddf21f38a910a45749d619dd9a22ac89d7",
+                              "size_bytes": 296,
+                              "media_type": "application/json",
+                              "encoding": "utf-8",
+                              "role": "tool.input",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "output": {
+                          "payload": {
+                            "tool": {
+                              "name": "bash",
+                              "call_id": "chatcmpl-tool-68c2ae476ff64a978728024d5c15418b"
+                            },
+                            "exit_code": 0
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "32111e318be87fa57162984b7b47b834e5651f5607b42759d268cb0166fac0df",
+                              "path": "artifacts/sha256/32/32111e318be87fa57162984b7b47b834e5651f5607b42759d268cb0166fac0df",
+                              "size_bytes": 86,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "tool.output",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000061",
+                        "kind": "instant",
+                        "event_type": "model.output",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-text-prt_fed72db65001iAwoDF4bQ6mAgr",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000061"
+                        ],
+                        "source_sequences": [
+                          61
+                        ],
+                        "started_at": "2026-08-10T20:52:41.106Z",
+                        "ended_at": "2026-08-10T20:52:41.106Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed7270ff001GUUGQ3hqsrXYgj"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000061",
+                            "sequence": 61,
+                            "event_type": "model.output",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:52:41.106Z",
+                            "recorded_at": "2026-08-10T21:03:54.248Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00004794"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {
+                            "content_type": "text"
+                          },
+                          "artifacts": [
+                            {
+                              "sha256": "afcb105ffbfd9d5780216a4ded1ce34f35909e00c98cfc55eb882da172faf281",
+                              "path": "artifacts/sha256/af/afcb105ffbfd9d5780216a4ded1ce34f35909e00c98cfc55eb882da172faf281",
+                              "size_bytes": 67,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.response",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000062",
+                        "kind": "activity",
+                        "event_type": "model.turn_start",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-model-msg_fed72f274001ORR368WR8NWOe3",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000062",
+                          "event-00000064"
+                        ],
+                        "source_sequences": [
+                          62,
+                          64
+                        ],
+                        "started_at": "2026-08-10T20:52:41.204Z",
+                        "ended_at": "2026-08-10T21:00:19.021Z",
+                        "duration_ms": 457817,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed72f274001ORR368WR8NWOe3"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000062",
+                            "sequence": 62,
+                            "event_type": "model.turn_start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:52:41.204Z",
+                            "recorded_at": "2026-08-10T21:03:54.263Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00004799"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000064",
+                            "sequence": 64,
+                            "event_type": "model.turn_end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T21:00:19.021Z",
+                            "recorded_at": "2026-08-10T21:04:43.044Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00029661"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 457817
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000062"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "model": "poolside/laguna-s-2.1:free",
+                            "provider": "openrouter"
+                          },
+                          "artifacts": []
+                        },
+                        "output": {
+                          "payload": {
+                            "finish_reason": "unknown"
+                          },
+                          "artifacts": []
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000063",
+                        "kind": "instant",
+                        "event_type": "model.reasoning",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-reasoning-prt_fed72fb22001Gdx4pXpDXFrDZx",
+                        "parent_span_id": "opencode-session-ses_0128f1731ffeEFlrIqKbbIGHRk",
+                        "source_event_ids": [
+                          "event-00000063"
+                        ],
+                        "source_sequences": [
+                          63
+                        ],
+                        "started_at": "2026-08-10T21:00:18.890Z",
+                        "ended_at": "2026-08-10T21:00:18.890Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_0128f1731ffeEFlrIqKbbIGHRk",
+                          "turn_id": "msg_fed72f274001ORR368WR8NWOe3"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000063",
+                            "sequence": 63,
+                            "event_type": "model.reasoning",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T21:00:18.890Z",
+                            "recorded_at": "2026-08-10T21:04:42.992Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00029658"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {},
+                          "artifacts": [
+                            {
+                              "sha256": "b4a2f6cf6131b6acbd7f3409313f6dfc694802e6a358de550e8d289daed460a2",
+                              "path": "artifacts/sha256/b4/b4a2f6cf6131b6acbd7f3409313f6dfc694802e6a358de550e8d289daed460a2",
+                              "size_bytes": 76712,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.reasoning",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "node_id": "event-00000067",
+                "kind": "activity",
+                "event_type": "harness.shutdown_start",
+                "event_family": "harness",
+                "status": "completed",
+                "span_id": "opencode-shutdown-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                "parent_span_id": "attempt-trace-914ed492a4e241f5a2be0d2c3fe65eba",
+                "source_event_ids": [
+                  "event-00000067",
+                  "event-00000068"
+                ],
+                "source_sequences": [
+                  67,
+                  68
+                ],
+                "started_at": "2026-08-10T21:00:19.512Z",
+                "ended_at": "2026-08-10T21:00:19.512Z",
+                "duration_ms": 0,
+                "timing_fidelity": "native_wall",
+                "completeness": "complete",
+                "actor": {},
+                "boundaries": [
+                  {
+                    "event_id": "event-00000067",
+                    "sequence": 67,
+                    "event_type": "harness.shutdown_start",
+                    "phase": "start",
+                    "status": "started",
+                    "occurred_at": "2026-08-10T21:00:19.512Z",
+                    "recorded_at": "2026-08-10T21:04:43.056Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "derived"
+                    }
+                  },
+                  {
+                    "event_id": "event-00000068",
+                    "sequence": 68,
+                    "event_type": "harness.shutdown_end",
+                    "phase": "end",
+                    "status": "completed",
+                    "occurred_at": "2026-08-10T21:00:19.512Z",
+                    "recorded_at": "2026-08-10T21:04:43.060Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "native_wall",
+                      "duration_ms": 0
+                    }
+                  }
+                ],
+                "input": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "output": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "overlaps_with": [],
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "warnings": []
+}

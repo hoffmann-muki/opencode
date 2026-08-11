@@ -1,0 +1,71 @@
+<path>/testbed/astropy/io/fits/tests/test_connect.py</path>
+<type>file</type>
+<content>
+1: import gc
+2: import warnings
+3: 
+4: import numpy as np
+5: import pytest
+6: from numpy.testing import assert_allclose, assert_array_equal
+7: 
+8: from astropy import units as u
+9: from astropy.io import fits
+10: from astropy.io.fits import BinTableHDU, HDUList, ImageHDU, PrimaryHDU, table_to_hdu
+11: from astropy.io.fits.column import (
+12:     _fortran_to_python_format,
+13:     _parse_tdisp_format,
+14:     python_to_tdisp,
+15: )
+16: from astropy.io.tests.mixin_columns import compare_attrs, mixin_cols, serialized_names
+17: from astropy.table import Column, QTable, Table
+18: from astropy.table.table_helpers import simple_table
+19: from astropy.time import Time
+20: from astropy.units import allclose as quantity_allclose
+21: from astropy.units.format.fits import UnitScaleError
+22: from astropy.units.quantity import QuantityInfo
+23: from astropy.utils.compat import NUMPY_LT_1_22
+24: from astropy.utils.data import get_pkg_data_filename
+25: from astropy.utils.exceptions import AstropyDeprecationWarning, AstropyUserWarning
+26: from astropy.utils.misc import _NOT_OVERWRITING_MSG_MATCH
+27: 
+28: # FITS does not preserve precision, in_subfmt, and out_subfmt.
+29: time_attrs = ["value", "shape", "format", "scale", "location"]
+30: compare_attrs = {
+31:     name: (time_attrs if isinstance(col, Time) else compare_attrs[name])
+32:     for name, col in mixin_cols.items()
+33: }
+34: # FITS does not support multi-element location, array with object dtype,
+35: # or logarithmic quantities.
+36: unsupported_cols = {
+37:     name: col
+38:     for name, col in mixin_cols.items()
+39:     if (
+40:         isinstance(col, Time)
+41:         and col.location.shape != ()
+42:         or isinstance(col, np.ndarray)
+43:         and col.dtype.kind == "O"
+44:         or isinstance(col, u.LogQuantity)
+45:     )
+46: }
+47: mixin_cols = {
+48:     name: col for name, col in mixin_cols.items() if name not in unsupported_cols
+49: }
+50: 
+51: 
+52: def equal_data(a, b):
+53:     return all(np.all(a[name] == b[name]) for name in a.dtype.names)
+54: 
+55: 
+56: class TestSingleTable:
+57:     def setup_class(self):
+58:         self.data = np.array(
+59:             list(zip([1, 2, 3, 4], ["a", "b", "c", "d"], [2.3, 4.5, 6.7, 8.9])),
+60:             dtype=[("a", int), ("b", "U1"), ("c", float)],
+61:         )
+62: 
+63:     def test_simple(self, tmp_path):
+64:         filename = tmp_path / "test_simple.fts"
+65:         t1 = Table(self.data)
+
+(Showing lines 1-65 of 1004. Use offset=66 to continue.)
+</content>

@@ -1,0 +1,7 @@
+Let me start by understanding the task. I need to:
+1. Analyze a compiled C binary (`/app/a.out`)
+2. Write a `extract.js` program that extracts memory values from the binary
+3. Output them as JSON with memory addresses as keys and integer values
+4. The values must match a reference solution, and I need to extract at least 75% of the memory values
+
+Let me first inspect the binary to understand its structure.

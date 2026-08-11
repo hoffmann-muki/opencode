@@ -1,0 +1,1 @@
+Now I understand the issue. The regex uses `$` which matches a trailing newline. Let me fix both validators by using `\A` and `\Z` instead.

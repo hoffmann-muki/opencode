@@ -1,0 +1,3 @@
+Before axvline: [10. 20.]
+After axvline(0): [-8.8817842e-16  2.0000000e+01]
+After axvline(15): [-8.8817842e-16  2.0000000e+01]

@@ -1,0 +1,49 @@
+So `axvline(0)` affects the data limits, adding 0 to the x data limits. This is the root cause.
+
+Now, the fix. The edge handles are `axvline`/`axhline` lines. These lines affect the data limits. 
+
+Let me think about the cleanest fix. 
+
+Option 1: Make the edge handles not affect the data limits. 
+
+Looking at the `Line2D` class, I need to find a way to make a line not affect the data limits. Let me check if there's a method like `set_transform` that could help, or if there's a way to exclude the line from the data limits computation.
+
+Actually, I recall that in matplotlib, the data limits are computed by `Axes.dataLim` which is updated by `update_datalim` when artists are added. The `Line2D` class has a method `get_path` that returns the path, and the data limits are computed from the path.
+
+Hmm, but actually, the data limits are computed from the data coordinates of the artists. For a line with a blended transform, the x-data is in data coordinates and the y-data is in axes coordinates. The data limits computation... let me check.
+
+Actually, let me look at how `add_line` and the data limits work.
+
+Let me look at the `Line2D` class to see if there's a way to control whether it affects the data limits.
+
+Actually, I think the cleanest approach is to look at what the actual fix was. But I shouldn't look at the gold patch. Let me think about this.
+
+The issue is that the edge handles (axvline/axhline) affect the data limits. The fix should make them not affect the data limits.
+
+Let me look at the `Line2D` class for any method that controls data limits contribution.
+
+Actually, I recall that there's no direct way to make a line not affect the data limits in older matplotlib. But there might be a way using `set_transform` with a transform that's not data-based.
+
+Wait, but the edge handles need to be at a specific data position (the extent). So they need to use data coordinates for the position.
+
+Hmm, let me think about this differently. 
+
+Actually, let me look at the `ToolLineHandles` class again. The handles are created with `ax.axvline(p, ...)`. The `axvline` uses a blended transform where x is in data coordinates.
+
+What if instead of using `axvline`/`axhline`, we use `Line2D` with a transform that's a blend of data and axes coordinates, but we set the line's data limits contribution to False?
+
+Actually, let me check if `Line2D` has a way to not affect the data limits. Let me search for "dataLim" or "update_datalim" in the Line2D class.
+
+Actually, I think the issue might be solved differently. Let me look at the actual approach.
+
+Let me reconsider. The `axvline`/`axhline` lines are added to the axes and affect the data limits. The fix could be:
+
+1. After creating the edge handles, set their data limits contribution to False. But `Line2D` doesn't have this option directly.
+
+2. Use a different approach for the edge handles that doesn't affect the data limits.
+
+Let me look at how the `RectangleSelector` handles this, since it also has edge handles.
+
+Actually, let me look at the `ToolLineHandles` class more carefully and see if there's a way to make the lines not affect the data limits.
+
+Let me check the `Line2D` class for any relevant methods.

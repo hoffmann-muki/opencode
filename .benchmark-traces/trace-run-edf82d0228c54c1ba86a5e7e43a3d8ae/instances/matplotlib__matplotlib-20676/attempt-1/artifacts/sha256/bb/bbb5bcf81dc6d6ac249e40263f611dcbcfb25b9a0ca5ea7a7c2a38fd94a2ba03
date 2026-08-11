@@ -1,0 +1,1 @@
+{"include":"*.py","path":"/testbed/lib/matplotlib/widgets.py","pattern":"class _SelectorWidget|def update|def set_visible|def _draw_shape|def _setup_edge_handle"}

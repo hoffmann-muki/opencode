@@ -1,0 +1,41 @@
+<path>/testbed/lib/matplotlib/widgets.py</path>
+<type>file</type>
+<content>
+1958:             key = key.replace('ctrl', 'control')
+1959:             if key == self.state_modifier_keys['clear']:
+1960:                 for artist in self.artists:
+1961:                     artist.set_visible(False)
+1962:                 self.update()
+1963:                 return
+1964:             for (state, modifier) in self.state_modifier_keys.items():
+1965:                 if modifier in key:
+1966:                     self._state.add(state)
+1967:             self._on_key_press(event)
+1968: 
+1969:     def _on_key_press(self, event):
+1970:         """Key press event handler - for widget-specific key press actions."""
+1971: 
+1972:     def on_key_release(self, event):
+1973:         """Key release event handler and validator."""
+1974:         if self.active:
+1975:             key = event.key or ''
+1976:             for (state, modifier) in self.state_modifier_keys.items():
+1977:                 if modifier in key:
+1978:                     self._state.discard(state)
+1979:             self._on_key_release(event)
+1980: 
+1981:     def _on_key_release(self, event):
+1982:         """Key release event handler."""
+1983: 
+1984:     def set_visible(self, visible):
+1985:         """Set the visibility of our artists."""
+1986:         self.visible = visible
+1987:         for artist in self.artists:
+1988:             artist.set_visible(visible)
+1989: 
+1990: 
+1991: class SpanSelector(_SelectorWidget):
+1992:     """
+
+(Showing lines 1958-1992 of 3409. Use offset=1993 to continue.)
+</content>

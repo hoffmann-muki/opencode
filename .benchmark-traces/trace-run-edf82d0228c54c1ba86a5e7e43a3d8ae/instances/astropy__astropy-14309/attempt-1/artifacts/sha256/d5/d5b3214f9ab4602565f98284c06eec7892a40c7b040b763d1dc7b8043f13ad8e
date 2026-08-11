@@ -1,0 +1,10 @@
+All cases work correctly now:
+- `ecsv read` (real file): `['ascii.ecsv']`
+- `ecsv write` (real file): `['ascii.ecsv']`
+- `fits read` (real file): `['fits']`
+- `fits write` (real file): `['fits']`
+
+And the original issue case:
+- `identify_format('write', Table, 'bububu.ecsv', None, [], {})` returns `['ascii.ecsv']`
+
+Now let me also test the case where `filepath` is None and `args` is empty (which would have also raised `IndexError` in the original code):

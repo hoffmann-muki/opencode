@@ -1,0 +1,107 @@
+Now I understand the issue. The original code was:
+
+```python
+    elif isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU)):
+        return True
+    else:
+        return False
+```
+
+The `elif` meant that `args[0]` was only accessed when `filepath is not None` was False (i.e., `filepath is None`). But wait, let me re-read.
+
+Actually, the original code structure was:
+```python
+    if fileobj is not None:
+        ...
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(...):
+            return True
+    elif isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU)):
+        return True
+    else:
+        return False
+```
+
+Wait, let me look at the original more carefully. The diff shows:
+```python
+-    elif isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU)):
+-        return True
+-    else:
+-        return False
++    return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+```
+
+So the original was:
+```python
+    if fileobj is not None:
+        pos = fileobj.tell()
+        sig = fileobj.read(30)
+        fileobj.seek(pos)
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(
+            (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+        ):
+            return True
+    elif isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU)):
+        return True
+    else:
+        return False
+```
+
+So in the original, the `elif isinstance(args[0], ...)` was only reached when `filepath is None` (because the previous `elif filepath is not None` would have been True otherwise). And when `filepath is None`, the function would check `args[0]`.
+
+But wait, the issue is that when `filepath` is a string without a FITS extension (e.g., "bububu.ecsv"), the original code would fall through to the `elif isinstance(args[0], ...)` branch... no wait.
+
+Let me re-read. The original:
+```python
+    if fileobj is not None:
+        ...
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(...):
+            return True
+        # falls through here if filepath doesn't end with fits extension
+    elif isinstance(args[0], ...):
+        return True
+    else:
+        return False
+```
+
+Hmm, so in the original, if `filepath is not None` but doesn't end with a FITS extension, the `elif filepath is not None` branch is taken (returns nothing from that branch, falls through), and then... actually no. The `elif` chain means only one branch executes. If `filepath is not None` is True, then the `elif isinstance(args[0], ...)` is NOT evaluated. So the function would fall through to the end and return `None` (implicitly).
+
+So in the original code, when `filepath` is "bububu.ecsv" (not None, doesn't end with fits extension), the function returns `None` (implicitly). That's the behavior @saimn described: "When `filepath` is a string without a FITS extension, the function was returning None".
+
+Now the new code:
+```python
+    if fileobj is not None:
+        ...
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(...):
+            return True
+    return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+```
+
+Now, when `filepath` is "bububu.ecsv", the `elif filepath is not None` branch is taken but doesn't return (the inner `if` is False), so it falls through to `return isinstance(args[0], ...)`. But `args` is empty (`[]`), so `args[0]` raises `IndexError`.
+
+So the fix should restore the original behavior: when `filepath` is a string without a FITS extension, return `False` (or `None`?). Actually, the original returned `None` implicitly. But returning `False` would be more correct semantically.
+
+Wait, let me think about what the correct behavior should be. The `is_fits` function is an identifier function. It should return `True` if the file is a FITS file, `False` otherwise. Returning `None` is falsy, so it works the same as `False` in a boolean context.
+
+The issue is the `args[0]` access when `args` is empty. The fix should handle the case where `args` is empty.
+
+Let me think about the cleanest fix. The original behavior was:
+- If `fileobj is not None`: check signature
+- elif `filepath is not None`: check extension, return True if matches, else fall through (return None)
+- elif `args[0]` is a FITS type: return True
+- else: return False
+
+The problem with the new code is that the `return isinstance(args[0], ...)` is now reached even when `filepath is not None` but doesn't match the extension.
+
+The cleanest fix that preserves the original behavior would be to check if `args` is non-empty before accessing `args[0]`. Let me think about what makes sense.
+
+Actually, the real question is: what should `is_fits` return when called with a filepath that doesn't have a FITS extension and no args? It should return `False` (it's not a FITS file).
+
+Let me look at how `is_fits` is registered and called.

@@ -1,0 +1,69 @@
+I've confirmed the issue. Now let me fix the `is_fits` function. The fix is to guard the `args[0]` access.
+
+Let me look at the original code again to understand the intended behavior:
+
+Original:
+```python
+    if fileobj is not None:
+        pos = fileobj.tell()
+        sig = fileobj.read(30)
+        fileobj.seek(pos)
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(
+            (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+        ):
+            return True
+    elif isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU)):
+        return True
+    else:
+        return False
+```
+
+The original behavior:
+- `fileobj is not None`: check signature, return result
+- `filepath is not None` (and fileobj is None): check extension, return True if matches, else fall through (return None implicitly)
+- `filepath is None` (and fileobj is None): check `args[0]`, return True if FITS type, else return False
+
+The new (buggy) code:
+```python
+    if fileobj is not None:
+        pos = fileobj.tell()
+        sig = fileobj.read(30)
+        fileobj.seek(pos)
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(
+            (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+        ):
+            return True
+    return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+```
+
+The new behavior:
+- `fileobj is not None`: check signature, return result
+- `filepath is not None` (and fileobj is None): check extension, return True if matches, else fall through to `return isinstance(args[0], ...)`
+- `filepath is None` (and fileobj is None): fall through to `return isinstance(args[0], ...)`
+
+The bug: when `filepath is not None` but doesn't match the extension, OR when `filepath is None`, the code reaches `return isinstance(args[0], ...)`. If `args` is empty, `IndexError`.
+
+The fix: guard the `args[0]` access. The cleanest way:
+```python
+    return len(args) > 0 and isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+```
+
+This preserves the original behavior:
+- When `filepath` is a string without FITS extension and `args` is empty: returns `False` (original returned `None`, both falsy)
+- When `filepath` is None and `args` is empty: returns `False` (original raised `IndexError`, but this is an improvement)
+- When `filepath` is None and `args` has a FITS object: returns `True`
+- When `filepath` is None and `args` has a non-FITS object: returns `False`
+
+This is the correct fix. Let me apply it.
+
+Actually, let me think about whether there's a more semantically correct approach. The `args[0]` check is meant to handle the case where the input is an in-memory object (like an HDUList) passed directly to `read`/`write`. In that case, `filepath` would be None and `fileobj` would be None, and the object would be in `args[0]`.
+
+So the check `isinstance(args[0], ...)` is only meaningful when `args` is non-empty. When `args` is empty, there's nothing to check, so return `False`.
+
+The fix `len(args) > 0 and isinstance(args[0], ...)` is correct and clean.
+
+Let me apply this fix.

@@ -1,0 +1,40 @@
+63:    def test_simple(self, tmp_path):
+70:    def test_simple_pathlib(self, tmp_path):
+77:    def test_simple_meta(self, tmp_path):
+95:    def test_simple_meta_conflicting(self, tmp_path):
+110:    def test_simple_noextension(self, tmp_path):
+121:    def test_with_units(self, table_type, tmp_path):
+132:    def test_with_custom_units_qtable(self, tmp_path):
+171:    def test_read_with_unit_aliases(self, table_type):
+181:    def test_with_format(self, table_type, tmp_path):
+194:    def test_masked(self, tmp_path):
+208:    def test_masked_nan(self, masked, tmp_path):
+231:    def test_masked_serialize_data_mask(self, tmp_path):
+248:    def test_read_from_fileobj(self, tmp_path):
+256:    def test_read_with_nonstandard_units(self):
+266:    def test_write_drop_nonstandard_units(self, table_type, tmp_path):
+285:    def test_memmap(self, tmp_path):
+298:    def test_character_as_bytes(self, tmp_path, memmap):
+312:    def test_oned_single_element(self, tmp_path):
+321:    def test_write_append(self, tmp_path):
+354:    def test_write_overwrite(self, tmp_path):
+362:    def test_mask_nans_on_read(self, tmp_path):
+379:    def test_mask_null_on_read(self, tmp_path):
+395:    def test_mask_str_on_read(self, tmp_path):
+443:    def test_read(self, tmp_path):
+466:    def test_read_with_hdu_0(self, tmp_path):
+474:    def test_read_with_hdu_1(self, tmp_path, hdu):
+481:    def test_read_with_hdu_2(self, tmp_path, hdu):
+488:    def test_read_with_hdu_3(self, tmp_path, hdu):
+494:    def test_read_with_hdu_4(self, tmp_path):
+501:    def test_read_with_hdu_missing(self, tmp_path, hdu):
+513:    def test_read_with_hdu_warning(self, tmp_path, hdu):
+525:    def test_read_in_last_hdu(self, tmp_path, hdu):
+536:    def test_read_from_hdulist(self):
+555:    def test_read_from_hdulist_with_hdu_0(self):
+561:    def test_read_from_hdulist_with_single_table(self, hdu):
+566:    def test_read_from_hdulist_with_hdu_1(self, hdu):
+571:    def test_read_from_hdulist_with_hdu_2(self, hdu):
+576:    def test_read_from_hdulist_with_hdu_3(self, hdu):
+581:    def test_read_from_hdulist_with_hdu_warning(self, hdu):
+591:    def test_read_from_hdulist_with_hdu_missing(self, hdu):

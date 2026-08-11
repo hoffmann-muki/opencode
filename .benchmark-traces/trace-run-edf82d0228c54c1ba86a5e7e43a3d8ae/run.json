@@ -1,0 +1,61 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "contract": {
+    "name": "benchmark-trace",
+    "version": "1.2.0",
+    "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a"
+  },
+  "run_id": "trace-run-edf82d0228c54c1ba86a5e7e43a3d8ae",
+  "benchmark": "swe-bench-verified",
+  "framework": "opencode",
+  "created_at": "2026-08-10T19:26:34.742Z",
+  "finalized_at": "2026-08-10T20:20:02.674Z",
+  "selection": {
+    "strategy": "explicit_ids",
+    "requested_count": 5,
+    "instance_ids": [
+      "astropy__astropy-14309",
+      "django__django-11099",
+      "matplotlib__matplotlib-20676",
+      "pytest-dev__pytest-7432",
+      "sympy__sympy-12096"
+    ]
+  },
+  "attempts": [
+    {
+      "trace_id": "trace-16314525aef54180a19e7c3e41a99ef7",
+      "instance_id": "astropy__astropy-14309",
+      "attempt": 1,
+      "path": "instances/astropy__astropy-14309/attempt-1",
+      "status": "completed"
+    },
+    {
+      "trace_id": "trace-9280c0e8572547abb67d17cebf8e0341",
+      "instance_id": "django__django-11099",
+      "attempt": 1,
+      "path": "instances/django__django-11099/attempt-1",
+      "status": "completed"
+    },
+    {
+      "trace_id": "trace-6fedf9af9ea04674aead55095396dac2",
+      "instance_id": "matplotlib__matplotlib-20676",
+      "attempt": 1,
+      "path": "instances/matplotlib__matplotlib-20676/attempt-1",
+      "status": "completed"
+    },
+    {
+      "trace_id": "trace-4b06ed978aed4165a334af87356c73df",
+      "instance_id": "pytest-dev__pytest-7432",
+      "attempt": 1,
+      "path": "instances/pytest-dev__pytest-7432/attempt-1",
+      "status": "timeout"
+    },
+    {
+      "trace_id": "trace-e15041f6a3ba430db81aac1b13de88e0",
+      "instance_id": "sympy__sympy-12096",
+      "attempt": 1,
+      "path": "instances/sympy__sympy-12096/attempt-1",
+      "status": "timeout"
+    }
+  ]
+}

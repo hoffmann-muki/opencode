@@ -1,0 +1,1 @@
+All tests pass. Let me also run the broader io tests to make sure nothing else is broken. Let me also run the nddata tests since CCDData uses `is_fits`.

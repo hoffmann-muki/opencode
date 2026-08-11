@@ -1,0 +1,7 @@
+Now I understand the flow. When `evalf` is called on `f(g(2))`:
+1. `evalf` is called, which calls `evalf(self, prec + 4, options)`.
+2. `evalf` looks up `evalf_table[x.func]`. For `f`, which is an `ImplementedFunction`, the func is `f` (a class). Let me check what's in the evalf_table.
+
+Actually, let me trace through. `f(g(2))` is an `AppliedUndef` or `Function` application. Let me check what type it is.
+
+Actually, `implemented_function` creates a function. Let me look at the lambdify code.

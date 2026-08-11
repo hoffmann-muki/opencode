@@ -1,0 +1,56 @@
+<path>/testbed/lib/matplotlib/axes/_base.py</path>
+<type>file</type>
+<content>
+2302:     def _update_line_limits(self, line):
+2303:         """
+2304:         Figures out the data limit of the given line, updating self.dataLim.
+2305:         """
+2306:         path = line.get_path()
+2307:         if path.vertices.size == 0:
+2308:             return
+2309: 
+2310:         line_trf = line.get_transform()
+2311: 
+2312:         if line_trf == self.transData:
+2313:             data_path = path
+2314:         elif any(line_trf.contains_branch_seperately(self.transData)):
+2315:             # Compute the transform from line coordinates to data coordinates.
+2316:             trf_to_data = line_trf - self.transData
+2317:             # If transData is affine we can use the cached non-affine component
+2318:             # of line's path (since the non-affine part of line_trf is
+2319:             # entirely encapsulated in trf_to_data).
+2320:             if self.transData.is_affine:
+2321:                 line_trans_path = line._get_transformed_path()
+2322:                 na_path, _ = line_trans_path.get_transformed_path_and_affine()
+2323:                 data_path = trf_to_data.transform_path_affine(na_path)
+2324:             else:
+2325:                 data_path = trf_to_data.transform_path(path)
+2326:         else:
+2327:             # For backwards compatibility we update the dataLim with the
+2328:             # coordinate range of the given path, even though the coordinate
+2329:             # systems are completely different. This may occur in situations
+2330:             # such as when ax.transAxes is passed through for absolute
+2331:             # positioning.
+2332:             data_path = path
+2333: 
+2334:         if not data_path.vertices.size:
+2335:             return
+2336: 
+2337:         updatex, updatey = line_trf.contains_branch_seperately(self.transData)
+2338:         if self.name != "rectilinear":
+2339:             # This block is mostly intended to handle axvline in polar plots,
+2340:             # for which updatey would otherwise be True.
+2341:             if updatex and line_trf == self.get_yaxis_transform():
+2342:                 updatex = False
+2343:             if updatey and line_trf == self.get_xaxis_transform():
+2344:                 updatey = False
+2345:         self.dataLim.update_from_path(data_path,
+2346:                                       self.ignore_existing_data_limits,
+2347:                                       updatex=updatex, updatey=updatey)
+2348:         self.ignore_existing_data_limits = False
+2349: 
+2350:     def add_patch(self, p):
+2351:         """
+
+(Showing lines 2302-2351 of 4727. Use offset=2352 to continue.)
+</content>

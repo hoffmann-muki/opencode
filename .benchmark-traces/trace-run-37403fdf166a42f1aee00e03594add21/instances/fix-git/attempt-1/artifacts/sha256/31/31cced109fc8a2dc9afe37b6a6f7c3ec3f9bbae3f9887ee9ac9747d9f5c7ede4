@@ -1,0 +1,1 @@
+I found the issue. Looking at the reflog, I can see the lost commit. Let me examine it more closely.

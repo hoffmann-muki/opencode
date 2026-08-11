@@ -1,0 +1,56 @@
+Now I understand the structure. Let me reproduce the issue first. The issue is that when `interactive=True`, the axes limits are expanded to include 0.
+
+Let me think about what's happening. When `interactive=True`, the `SpanSelector` sets up edge handles via `_setup_edge_handle`. The edge handles are `ToolLineHandles` which use `ax.axvline` (for horizontal) or `ax.axhline` (for vertical).
+
+The `ax.axvline` and `ax.axhline` functions create lines that span the entire axes. When these lines are added to the axes, they affect the data limits of the axes. Specifically, `axvline` creates a vertical line at a given x position, and the line spans the full y-range of the axes. But the key issue is that `axvline` adds a line with x-data at the given position, and the y-data defaults to (0, 1) in axes coordinates.
+
+Wait, let me think more carefully. The issue is that the axes limits are expanded to include x=0. This is because the edge handles are created with `ax.axvline(p, ...)` where `p` is the position. But initially, the positions are `self.extents` which is `(0, 0)` (from `self._prev = (0, 0)` and the initial extents).
+
+Wait, let me re-read. In `__init__`:
+```python
+self._prev = (0, 0)
+```
+
+And `_setup_edge_handle` is called with `self.extents`. Let me check what `self.extents` returns initially.
+
+The `extents` property:
+```python
+@property
+def extents(self):
+    """Return extents of the span selector."""
+    if self.direction == 'horizontal':
+        vmin = self._rect.get_x()
+        vmax = vmin + self._rect.get_width()
+    else:
+        vmin = self._rect.get_y()
+        vmax = vmin + self._rect.get_height()
+    return vmin, vmax
+```
+
+The `_rect` is created in `new_axes`:
+```python
+self._rect = Rectangle((0, 0), w, h, ...)
+```
+
+So initially, `vmin = 0` and `vmax = 0 + w` where `w = 0` for horizontal. So `extents = (0, 0)`.
+
+So when `_setup_edge_handle` is called, it creates `ToolLineHandles` with positions `(0, 0)`. These are `ax.axvline(0, ...)` lines. The `axvline` at x=0 would add a line at x=0, which would expand the x-limits to include 0!
+
+That's the bug. When `interactive=True`, the edge handles are created at position 0 (because the initial extents are (0, 0)), and these `axvline`/`axhline` lines force the axes limits to include 0.
+
+Let me verify this by reproducing the issue.
+
+Actually, let me think about the fix. The edge handles should not affect the axes limits. One way to fix this is to make the edge handles not affect the data limits. 
+
+Looking at the `ToolLineHandles.__init__`:
+```python
+line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline
+self._line_props = line_props
+self.artists = [line_fun(p, **line_props) for p in positions]
+```
+
+The `axvline`/`axhline` lines are added to the axes and affect the data limits. 
+
+Hmm, but actually the issue is more subtle. Let me reproduce first.
+
+Let me write a reproduction script.

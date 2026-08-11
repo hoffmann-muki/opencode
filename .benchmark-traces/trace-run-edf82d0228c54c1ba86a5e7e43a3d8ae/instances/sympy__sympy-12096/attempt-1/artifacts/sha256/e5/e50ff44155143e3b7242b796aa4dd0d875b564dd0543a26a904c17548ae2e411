@@ -1,0 +1,66 @@
+<path>/testbed/sympy/core/expr.py</path>
+<type>file</type>
+<content>
+690:                     except (NotAlgebraic, NotImplementedError):
+691:                         pass
+692: 
+693:         # diff has not simplified to zero; constant is either None, True
+694:         # or the number with significance (prec != 1) that was randomly
+695:         # calculated twice as the same value.
+696:         if constant not in (True, None) and constant != 0:
+697:             return False
+698: 
+699:         if failing_expression:
+700:             return diff
+701:         return None
+702: 
+703:     def _eval_is_positive(self):
+704:         from sympy.polys.numberfields import minimal_polynomial
+705:         from sympy.polys.polyerrors import NotAlgebraic
+706:         if self.is_number:
+707:             if self.is_real is False:
+708:                 return False
+709:             try:
+710:                 # check to see that we can get a value
+711:                 n2 = self._eval_evalf(2)
+712:                 if n2 is None:
+713:                     raise AttributeError
+714:                 if n2._prec == 1:  # no significance
+715:                     raise AttributeError
+716:                 if n2 == S.NaN:
+717:                     raise AttributeError
+718:             except (AttributeError, ValueError):
+719:                 return None
+720:             n, i = self.evalf(2).as_real_imag()
+721:             if not i.is_Number or not n.is_Number:
+722:                 return False
+723:             if n._prec != 1 and i._prec != 1:
+724:                 return bool(not i and n > 0)
+725:             elif n._prec == 1 and (not i or i._prec == 1) and \
+726:                     self.is_algebraic and not self.has(Function):
+727:                 try:
+728:                     if minimal_polynomial(self).is_Symbol:
+729:                         return False
+730:                 except (NotAlgebraic, NotImplementedError):
+731:                     pass
+732: 
+733:     def _eval_is_negative(self):
+734:         from sympy.polys.numberfields import minimal_polynomial
+735:         from sympy.polys.polyerrors import NotAlgebraic
+736:         if self.is_number:
+737:             if self.is_real is False:
+738:                 return False
+739:             try:
+740:                 # check to see that we can get a value
+741:                 n2 = self._eval_evalf(2)
+742:                 if n2 is None:
+743:                     raise AttributeError
+744:                 if n2._prec == 1:  # no significance
+745:                     raise AttributeError
+746:                 if n2 == S.NaN:
+747:                     raise AttributeError
+748:             except (AttributeError, ValueError):
+749:                 return None
+
+(Showing lines 690-749 of 3309. Use offset=750 to continue.)
+</content>

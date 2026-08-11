@@ -1,0 +1,56 @@
+<path>/testbed/lib/matplotlib/axes/_base.py</path>
+<type>file</type>
+<content>
+2240:             # Make sure viewLim is not stale (mostly to match
+2241:             # pre-lazy-autoscale behavior, which is not really better).
+2242:             self._unstale_viewLim()
+2243:             datalim = collection.get_datalim(self.transData)
+2244:             points = datalim.get_points()
+2245:             if not np.isinf(datalim.minpos).all():
+2246:                 # By definition, if minpos (minimum positive value) is set
+2247:                 # (i.e., non-inf), then min(points) <= minpos <= max(points),
+2248:                 # and minpos would be superfluous. However, we add minpos to
+2249:                 # the call so that self.dataLim will update its own minpos.
+2250:                 # This ensures that log scales see the correct minimum.
+2251:                 points = np.concatenate([points, [datalim.minpos]])
+2252:             self.update_datalim(points)
+2253: 
+2254:         self.stale = True
+2255:         return collection
+2256: 
+2257:     def add_image(self, image):
+2258:         """
+2259:         Add an `.AxesImage` to the Axes; return the image.
+2260:         """
+2261:         self._deprecate_noninstance('add_image', mimage.AxesImage, image=image)
+2262:         self._set_artist_props(image)
+2263:         if not image.get_label():
+2264:             image.set_label(f'_child{len(self._children)}')
+2265:         self._children.append(image)
+2266:         image._remove_method = self._children.remove
+2267:         self.stale = True
+2268:         return image
+2269: 
+2270:     def _update_image_limits(self, image):
+2271:         xmin, xmax, ymin, ymax = image.get_extent()
+2272:         self.axes.update_datalim(((xmin, ymin), (xmax, ymax)))
+2273: 
+2274:     def add_line(self, line):
+2275:         """
+2276:         Add a `.Line2D` to the Axes; return the line.
+2277:         """
+2278:         self._deprecate_noninstance('add_line', mlines.Line2D, line=line)
+2279:         self._set_artist_props(line)
+2280:         if line.get_clip_path() is None:
+2281:             line.set_clip_path(self.patch)
+2282: 
+2283:         self._update_line_limits(line)
+2284:         if not line.get_label():
+2285:             line.set_label(f'_child{len(self._children)}')
+2286:         self._children.append(line)
+2287:         line._remove_method = self._children.remove
+2288:         self.stale = True
+2289:         return line
+
+(Showing lines 2240-2289 of 4727. Use offset=2290 to continue.)
+</content>

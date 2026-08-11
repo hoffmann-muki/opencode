@@ -1,0 +1,7 @@
+astropy/nddata/tests/test_ccddata.py:609:def test_history_preserved_if_metadata_is_fits_header(tmp_path):
+astropy/nddata/ccddata.py:816:    registry.register_identifier("fits", CCDData, fits.connect.is_fits)
+astropy/visualization/wcsaxes/wcsapi.py:42:    is_fits_wcs = isinstance(wcs, WCS) or (
+astropy/visualization/wcsaxes/wcsapi.py:110:        if is_fits_wcs:
+astropy/io/fits/connect.py:48:def is_fits(origin, filepath, fileobj, *args, **kwargs):
+astropy/io/fits/connect.py:59:    is_fits : bool
+astropy/io/fits/connect.py:454:io_registry.register_identifier("fits", Table, is_fits)

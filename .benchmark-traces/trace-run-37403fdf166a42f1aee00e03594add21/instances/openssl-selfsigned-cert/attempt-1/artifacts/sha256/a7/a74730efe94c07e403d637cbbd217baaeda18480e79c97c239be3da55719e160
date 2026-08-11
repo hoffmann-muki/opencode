@@ -1,0 +1,9 @@
+Let me verify the certificate details one more time to make sure everything is correct:
+1. Directory at `/app/ssl/` - ✓
+2. 2048-bit RSA private key at `/app/ssl/server.key` with permissions 600 - ✓ (shown as -rw-------)
+3. Self-signed certificate at `/app/ssl/server.crt` valid for 365 days with O=DevOps Team and CN=dev-internal.company.local - ✓
+4. Combined PEM file at `/app/ssl/server.pem` - ✓
+5. verification.txt with subject, validity dates, and SHA-256 fingerprint - ✓
+6. Python script at `/app/check_cert.py` - ✓
+
+Let me also verify the certificate details one more time to make sure everything is correct.

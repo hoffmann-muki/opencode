@@ -1,0 +1,658 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a",
+  "format": "benchmark-trace/execution-tree-v1",
+  "trace_id": "trace-2770715658fe487e9eabc70b60e32b90",
+  "run_id": "trace-run-37403fdf166a42f1aee00e03594add21",
+  "benchmark": "terminal-bench-2.1",
+  "framework": "opencode",
+  "instance_id": "regex-log",
+  "attempt": 1,
+  "generated_at": "2026-08-10T21:07:46.335Z",
+  "complete": true,
+  "source": {
+    "path": "events.jsonl",
+    "sha256": "f8408fa200b72bee5c11bc58dac3962700992fbb8a444029b1cd1df2175025ec",
+    "event_count": 16,
+    "represented_event_count": 16
+  },
+  "root": {
+    "node_id": "trace-root",
+    "started_at": "2026-08-10T20:25:09.786Z",
+    "ended_at": "2026-08-10T20:36:53.011Z",
+    "duration_ms": 703225,
+    "children": [
+      {
+        "node_id": "event-00000001",
+        "kind": "activity",
+        "event_type": "instance.start",
+        "event_family": "instance",
+        "status": "completed",
+        "span_id": "instance-trace-2770715658fe487e9eabc70b60e32b90",
+        "source_event_ids": [
+          "event-00000001",
+          "event-00000016"
+        ],
+        "source_sequences": [
+          1,
+          16
+        ],
+        "started_at": "2026-08-10T20:25:09.786Z",
+        "ended_at": "2026-08-10T20:36:53.011Z",
+        "duration_ms": 703225,
+        "timing_fidelity": "native_wall",
+        "completeness": "complete",
+        "actor": {},
+        "boundaries": [
+          {
+            "event_id": "event-00000001",
+            "sequence": 1,
+            "event_type": "instance.start",
+            "phase": "start",
+            "status": "started",
+            "occurred_at": "2026-08-10T20:25:09.786Z",
+            "recorded_at": "2026-08-10T21:04:59.776Z",
+            "origin": {
+              "component": "opencode-benchmark-runner",
+              "capture_method": "generic_harness"
+            },
+            "timing": {
+              "fidelity": "native_wall"
+            }
+          },
+          {
+            "event_id": "event-00000016",
+            "sequence": 16,
+            "event_type": "instance.end",
+            "phase": "end",
+            "status": "completed",
+            "occurred_at": "2026-08-10T20:36:53.011Z",
+            "recorded_at": "2026-08-10T21:07:46.335Z",
+            "origin": {
+              "component": "opencode-benchmark-runner",
+              "capture_method": "generic_harness"
+            },
+            "timing": {
+              "fidelity": "native_wall",
+              "duration_ms": 703225
+            }
+          }
+        ],
+        "input": {
+          "payload": {},
+          "artifacts": []
+        },
+        "output": {
+          "payload": {},
+          "artifacts": []
+        },
+        "overlaps_with": [],
+        "children": [
+          {
+            "node_id": "event-00000002",
+            "kind": "activity",
+            "event_type": "attempt.start",
+            "event_family": "attempt",
+            "status": "completed",
+            "span_id": "attempt-trace-2770715658fe487e9eabc70b60e32b90",
+            "parent_span_id": "instance-trace-2770715658fe487e9eabc70b60e32b90",
+            "source_event_ids": [
+              "event-00000002",
+              "event-00000015"
+            ],
+            "source_sequences": [
+              2,
+              15
+            ],
+            "started_at": "2026-08-10T20:25:09.786Z",
+            "ended_at": "2026-08-10T20:36:53.011Z",
+            "duration_ms": 703225,
+            "timing_fidelity": "native_wall",
+            "completeness": "complete",
+            "actor": {},
+            "boundaries": [
+              {
+                "event_id": "event-00000002",
+                "sequence": 2,
+                "event_type": "attempt.start",
+                "phase": "start",
+                "status": "started",
+                "occurred_at": "2026-08-10T20:25:09.786Z",
+                "recorded_at": "2026-08-10T21:04:59.779Z",
+                "origin": {
+                  "component": "opencode-benchmark-runner",
+                  "capture_method": "generic_harness"
+                },
+                "timing": {
+                  "fidelity": "native_wall"
+                }
+              },
+              {
+                "event_id": "event-00000015",
+                "sequence": 15,
+                "event_type": "attempt.end",
+                "phase": "end",
+                "status": "completed",
+                "occurred_at": "2026-08-10T20:36:53.011Z",
+                "recorded_at": "2026-08-10T21:07:46.330Z",
+                "origin": {
+                  "component": "opencode-benchmark-runner",
+                  "capture_method": "generic_harness"
+                },
+                "timing": {
+                  "fidelity": "native_wall",
+                  "duration_ms": 703225
+                }
+              }
+            ],
+            "input": {
+              "payload": {
+                "agent_configuration": {
+                  "delegation_enabled": false,
+                  "coordination_mode": "framework_native",
+                  "delegation_sequence": [],
+                  "sequence_enforcement": "prompt_guided"
+                }
+              },
+              "artifacts": []
+            },
+            "output": {
+              "payload": {},
+              "artifacts": []
+            },
+            "overlaps_with": [],
+            "children": [
+              {
+                "node_id": "event-00000003",
+                "kind": "activity",
+                "event_type": "harness.startup_start",
+                "event_family": "harness",
+                "status": "completed",
+                "span_id": "opencode-startup-trace-2770715658fe487e9eabc70b60e32b90",
+                "parent_span_id": "attempt-trace-2770715658fe487e9eabc70b60e32b90",
+                "source_event_ids": [
+                  "event-00000003",
+                  "event-00000005"
+                ],
+                "source_sequences": [
+                  3,
+                  5
+                ],
+                "started_at": "2026-08-10T20:25:09.786Z",
+                "ended_at": "2026-08-10T20:25:09.786Z",
+                "duration_ms": 0,
+                "timing_fidelity": "native_wall",
+                "completeness": "complete",
+                "actor": {},
+                "boundaries": [
+                  {
+                    "event_id": "event-00000003",
+                    "sequence": 3,
+                    "event_type": "harness.startup_start",
+                    "phase": "start",
+                    "status": "started",
+                    "occurred_at": "2026-08-10T20:25:09.786Z",
+                    "recorded_at": "2026-08-10T21:04:59.781Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "derived"
+                    }
+                  },
+                  {
+                    "event_id": "event-00000005",
+                    "sequence": 5,
+                    "event_type": "harness.startup_end",
+                    "phase": "end",
+                    "status": "completed",
+                    "occurred_at": "2026-08-10T20:25:09.786Z",
+                    "recorded_at": "2026-08-10T21:04:59.785Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "native_wall",
+                      "duration_ms": 0
+                    }
+                  }
+                ],
+                "input": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "output": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "overlaps_with": [],
+                "children": [
+                  {
+                    "node_id": "event-00000004",
+                    "kind": "instant",
+                    "event_type": "container.observed",
+                    "event_family": "container",
+                    "status": "completed",
+                    "span_id": "opencode-container-trace-2770715658fe487e9eabc70b60e32b90",
+                    "parent_span_id": "opencode-startup-trace-2770715658fe487e9eabc70b60e32b90",
+                    "source_event_ids": [
+                      "event-00000004"
+                    ],
+                    "source_sequences": [
+                      4
+                    ],
+                    "started_at": "2026-08-10T20:25:09.786Z",
+                    "ended_at": "2026-08-10T20:25:09.786Z",
+                    "duration_ms": 0,
+                    "timing_fidelity": "derived",
+                    "completeness": "instant",
+                    "actor": {},
+                    "boundaries": [
+                      {
+                        "event_id": "event-00000004",
+                        "sequence": 4,
+                        "event_type": "container.observed",
+                        "phase": "instant",
+                        "status": "completed",
+                        "occurred_at": "2026-08-10T20:25:09.786Z",
+                        "recorded_at": "2026-08-10T21:04:59.783Z",
+                        "origin": {
+                          "component": "opencode-benchmark-runner",
+                          "capture_method": "generic_harness"
+                        },
+                        "timing": {
+                          "fidelity": "derived"
+                        }
+                      }
+                    ],
+                    "data": {
+                      "payload": {
+                        "image": "alexgshaw/regex-log:20251031",
+                        "session_id": "regex-log__Den5D7P__agent"
+                      },
+                      "artifacts": []
+                    },
+                    "overlaps_with": [],
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "node_id": "event-00000006",
+                "kind": "activity",
+                "event_type": "agent.execution_start",
+                "event_family": "agent",
+                "status": "completed",
+                "span_id": "opencode-execution-trace-2770715658fe487e9eabc70b60e32b90",
+                "parent_span_id": "attempt-trace-2770715658fe487e9eabc70b60e32b90",
+                "source_event_ids": [
+                  "event-00000006",
+                  "event-00000012"
+                ],
+                "source_sequences": [
+                  6,
+                  12
+                ],
+                "started_at": "2026-08-10T20:25:09.786Z",
+                "ended_at": "2026-08-10T20:36:53.011Z",
+                "duration_ms": 703225,
+                "timing_fidelity": "native_wall",
+                "completeness": "complete",
+                "actor": {},
+                "boundaries": [
+                  {
+                    "event_id": "event-00000006",
+                    "sequence": 6,
+                    "event_type": "agent.execution_start",
+                    "phase": "start",
+                    "status": "started",
+                    "occurred_at": "2026-08-10T20:25:09.786Z",
+                    "recorded_at": "2026-08-10T21:04:59.787Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "derived"
+                    }
+                  },
+                  {
+                    "event_id": "event-00000012",
+                    "sequence": 12,
+                    "event_type": "agent.execution_end",
+                    "phase": "end",
+                    "status": "completed",
+                    "occurred_at": "2026-08-10T20:36:53.011Z",
+                    "recorded_at": "2026-08-10T21:07:46.314Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "native_wall",
+                      "duration_ms": 703225
+                    }
+                  }
+                ],
+                "input": {
+                  "payload": {
+                    "entered": true
+                  },
+                  "artifacts": []
+                },
+                "output": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "overlaps_with": [],
+                "children": [
+                  {
+                    "node_id": "event-00000007",
+                    "kind": "activity",
+                    "event_type": "agent.session_start",
+                    "event_family": "agent",
+                    "status": "completed",
+                    "span_id": "opencode-session-ses_012a632bcffeliua9o7ryTA3L6",
+                    "parent_span_id": "opencode-execution-trace-2770715658fe487e9eabc70b60e32b90",
+                    "source_event_ids": [
+                      "event-00000007",
+                      "event-00000011"
+                    ],
+                    "source_sequences": [
+                      7,
+                      11
+                    ],
+                    "started_at": "2026-08-10T20:25:13.375Z",
+                    "ended_at": "2026-08-10T20:36:52.333Z",
+                    "duration_ms": 698958,
+                    "timing_fidelity": "native_wall",
+                    "completeness": "complete",
+                    "actor": {
+                      "session_id": "ses_012a632bcffeliua9o7ryTA3L6"
+                    },
+                    "boundaries": [
+                      {
+                        "event_id": "event-00000007",
+                        "sequence": 7,
+                        "event_type": "agent.session_start",
+                        "phase": "start",
+                        "status": "started",
+                        "occurred_at": "2026-08-10T20:25:13.375Z",
+                        "recorded_at": "2026-08-10T21:04:59.795Z",
+                        "origin": {
+                          "component": "opencode",
+                          "capture_method": "native_stream",
+                          "native_event_type": "server.connected",
+                          "native_event_id": "opencode-session-start-ses_012a632bcffeliua9o7ryTA3L6"
+                        },
+                        "timing": {
+                          "fidelity": "native_wall"
+                        }
+                      },
+                      {
+                        "event_id": "event-00000011",
+                        "sequence": 11,
+                        "event_type": "agent.session_end",
+                        "phase": "end",
+                        "status": "completed",
+                        "occurred_at": "2026-08-10T20:36:52.333Z",
+                        "recorded_at": "2026-08-10T21:07:46.302Z",
+                        "origin": {
+                          "component": "opencode",
+                          "capture_method": "native_stream",
+                          "native_event_type": "session.status",
+                          "native_event_id": "opencode-session-end-ses_012a632bcffeliua9o7ryTA3L6"
+                        },
+                        "timing": {
+                          "fidelity": "native_wall",
+                          "duration_ms": 698958
+                        }
+                      }
+                    ],
+                    "input": {
+                      "payload": {
+                        "role": "root"
+                      },
+                      "artifacts": []
+                    },
+                    "output": {
+                      "payload": {
+                        "reason": "native_idle"
+                      },
+                      "artifacts": []
+                    },
+                    "overlaps_with": [],
+                    "children": [
+                      {
+                        "node_id": "event-00000008",
+                        "kind": "activity",
+                        "event_type": "model.turn_start",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-model-msg_fed59d183001ci3ljkorSXbE8L",
+                        "parent_span_id": "opencode-session-ses_012a632bcffeliua9o7ryTA3L6",
+                        "source_event_ids": [
+                          "event-00000008",
+                          "event-00000010"
+                        ],
+                        "source_sequences": [
+                          8,
+                          10
+                        ],
+                        "started_at": "2026-08-10T20:25:14.371Z",
+                        "ended_at": "2026-08-10T20:36:52.274Z",
+                        "duration_ms": 697903,
+                        "timing_fidelity": "native_wall",
+                        "completeness": "complete",
+                        "actor": {
+                          "session_id": "ses_012a632bcffeliua9o7ryTA3L6",
+                          "agent_id": "benchmark-single-agent",
+                          "turn_id": "msg_fed59d183001ci3ljkorSXbE8L"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000008",
+                            "sequence": 8,
+                            "event_type": "model.turn_start",
+                            "phase": "start",
+                            "status": "started",
+                            "occurred_at": "2026-08-10T20:25:14.371Z",
+                            "recorded_at": "2026-08-10T21:04:59.811Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00000007"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall"
+                            }
+                          },
+                          {
+                            "event_id": "event-00000010",
+                            "sequence": 10,
+                            "event_type": "model.turn_end",
+                            "phase": "end",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:36:52.274Z",
+                            "recorded_at": "2026-08-10T21:07:46.282Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.updated",
+                              "native_event_id": "opencode-native-00032092"
+                            },
+                            "timing": {
+                              "fidelity": "native_wall",
+                              "duration_ms": 697903
+                            },
+                            "relations": [
+                              {
+                                "type": "caused_by",
+                                "event_id": "event-00000008"
+                              }
+                            ]
+                          }
+                        ],
+                        "input": {
+                          "payload": {
+                            "model": "poolside/laguna-s-2.1:free",
+                            "provider": "openrouter"
+                          },
+                          "artifacts": []
+                        },
+                        "output": {
+                          "payload": {
+                            "finish_reason": "length"
+                          },
+                          "artifacts": []
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      },
+                      {
+                        "node_id": "event-00000009",
+                        "kind": "instant",
+                        "event_type": "model.reasoning",
+                        "event_family": "model",
+                        "status": "completed",
+                        "span_id": "opencode-reasoning-prt_fed59d840001kjAjcFt6TkNqSm",
+                        "parent_span_id": "opencode-session-ses_012a632bcffeliua9o7ryTA3L6",
+                        "source_event_ids": [
+                          "event-00000009"
+                        ],
+                        "source_sequences": [
+                          9
+                        ],
+                        "started_at": "2026-08-10T20:36:52.168Z",
+                        "ended_at": "2026-08-10T20:36:52.168Z",
+                        "duration_ms": 0,
+                        "timing_fidelity": "not_available",
+                        "completeness": "instant",
+                        "actor": {
+                          "session_id": "ses_012a632bcffeliua9o7ryTA3L6",
+                          "turn_id": "msg_fed59d183001ci3ljkorSXbE8L"
+                        },
+                        "boundaries": [
+                          {
+                            "event_id": "event-00000009",
+                            "sequence": 9,
+                            "event_type": "model.reasoning",
+                            "phase": "instant",
+                            "status": "completed",
+                            "occurred_at": "2026-08-10T20:36:52.168Z",
+                            "recorded_at": "2026-08-10T21:07:46.207Z",
+                            "origin": {
+                              "component": "opencode",
+                              "capture_method": "native_stream",
+                              "native_event_type": "message.part.updated",
+                              "native_event_id": "opencode-native-00032090"
+                            },
+                            "timing": {
+                              "fidelity": "not_available"
+                            }
+                          }
+                        ],
+                        "data": {
+                          "payload": {},
+                          "artifacts": [
+                            {
+                              "sha256": "65368de00b50de8c7a3ff7a294e897c12c7cf821e0081264d3458c97a74c0f86",
+                              "path": "artifacts/sha256/65/65368de00b50de8c7a3ff7a294e897c12c7cf821e0081264d3458c97a74c0f86",
+                              "size_bytes": 89403,
+                              "media_type": "text/plain",
+                              "encoding": "utf-8",
+                              "role": "model.reasoning",
+                              "redaction": {
+                                "status": "not_required",
+                                "matches": 0,
+                                "rules": []
+                              }
+                            }
+                          ]
+                        },
+                        "overlaps_with": [],
+                        "children": []
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "node_id": "event-00000013",
+                "kind": "activity",
+                "event_type": "harness.shutdown_start",
+                "event_family": "harness",
+                "status": "completed",
+                "span_id": "opencode-shutdown-trace-2770715658fe487e9eabc70b60e32b90",
+                "parent_span_id": "attempt-trace-2770715658fe487e9eabc70b60e32b90",
+                "source_event_ids": [
+                  "event-00000013",
+                  "event-00000014"
+                ],
+                "source_sequences": [
+                  13,
+                  14
+                ],
+                "started_at": "2026-08-10T20:36:53.011Z",
+                "ended_at": "2026-08-10T20:36:53.011Z",
+                "duration_ms": 0,
+                "timing_fidelity": "native_wall",
+                "completeness": "complete",
+                "actor": {},
+                "boundaries": [
+                  {
+                    "event_id": "event-00000013",
+                    "sequence": 13,
+                    "event_type": "harness.shutdown_start",
+                    "phase": "start",
+                    "status": "started",
+                    "occurred_at": "2026-08-10T20:36:53.011Z",
+                    "recorded_at": "2026-08-10T21:07:46.319Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "derived"
+                    }
+                  },
+                  {
+                    "event_id": "event-00000014",
+                    "sequence": 14,
+                    "event_type": "harness.shutdown_end",
+                    "phase": "end",
+                    "status": "completed",
+                    "occurred_at": "2026-08-10T20:36:53.011Z",
+                    "recorded_at": "2026-08-10T21:07:46.324Z",
+                    "origin": {
+                      "component": "opencode-benchmark-runner",
+                      "capture_method": "generic_harness"
+                    },
+                    "timing": {
+                      "fidelity": "native_wall",
+                      "duration_ms": 0
+                    }
+                  }
+                ],
+                "input": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "output": {
+                  "payload": {},
+                  "artifacts": []
+                },
+                "overlaps_with": [],
+                "children": []
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "warnings": []
+}

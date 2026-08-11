@@ -1,0 +1,1 @@
+The `ecsv write` case now works correctly (returns `['ascii.ecsv']`). The `ecsv read` error is a separate, pre-existing behavior of the `is_votable` identifier (it tries to open the file to check if it's VOTable) — not related to our fix. Let me verify this is pre-existing and test with a real file:

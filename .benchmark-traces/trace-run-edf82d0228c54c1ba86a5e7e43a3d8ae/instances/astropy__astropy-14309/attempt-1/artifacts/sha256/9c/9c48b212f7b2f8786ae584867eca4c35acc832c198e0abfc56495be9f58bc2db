@@ -1,0 +1,44 @@
+I've reached the maximum steps for this agent. Here is a summary of the work accomplished.
+
+## Summary
+
+### Problem
+`identify_format("write", Table, "bububu.ecsv", None, [], {})` raised `IndexError: tuple index out of range` in `astropy/io/fits/connect.py`'s `is_fits` function.
+
+### Root Cause
+Commit `2a0c5c6` (a ruff SIM103 refactor) flattened the original `elif`/`else` chain in `is_fits` into a single `return isinstance(args[0], ...)`. In the original code, the `args[0]` access was guarded by an `elif filepath is not None` branch — so it was only reached when `filepath` was `None`. After the refactor, the `return isinstance(args[0], ...)` line is reached whenever the earlier branches don't return, including when `filepath` is a non-FITS string (e.g. `"bububu.ecsv"`) with empty `args`, causing `args[0]` to raise `IndexError`.
+
+### Fix
+**File: `astropy/io/fits/connect.py`** (line 72)
+
+Guarded the `args[0]` access so it only runs when `args` is non-empty:
+
+```python
+    return len(args) > 0 and isinstance(
+        args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU)
+    )
+```
+
+This restores the original behavior (returning a falsy value when there's nothing to check) while fixing the `IndexError`.
+
+### Regression Test
+**File: `astropy/io/fits/tests/test_connect.py`**
+
+Added `test_is_fits_no_args` which verifies:
+- `is_fits` with a non-FITS filepath and no args returns `False` (no crash)
+- `identify_format("write", Table, "bububu.ecsv", None, [], {})` returns `["ascii.ecsv"]`
+- FITS filepaths are still correctly identified
+- In-memory FITS objects (e.g. `HDUList`) passed via `args` are still identified as FITS
+
+### Verification
+- Reproduced the original `IndexError` before the fix.
+- Confirmed the exact issue case now returns `['ascii.ecsv']`.
+- Tested edge cases: `filepath=None` with empty args (returns `[]`), `filepath=None` with `HDUList` arg (returns `['fits']`), `filepath=None` with `Table` arg (returns `[]`).
+- Ran test suites — all pass:
+  - `astropy/io/fits/tests/test_connect.py`: 142 passed, 8 skipped, 5 xfailed
+  - `astropy/io/registry/tests/test_registries.py`: 221 passed, 14 skipped
+  - `astropy/nddata/tests/test_ccddata.py`: 102 passed (CCDData also uses `is_fits`)
+
+### Residual Risk
+- The `is_votable` identifier (in `astropy/io/votable/connect.py`) attempts to open the file to check if it's VOTable, so `identify_format("read", Table, "bububu.ecsv", None, [], {})` on a non-existent file raises `FileNotFoundError`. This is pre-existing, separate behavior unrelated to this fix (it only becomes reachable now because `is_fits` no longer crashes first). With a real file present, the read path works correctly.
+- The change is minimal and localized to the `is_fits` identifier function, preserving all prior behavior while fixing the crash.

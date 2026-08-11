@@ -1,0 +1,33 @@
+Now I understand. The `axvline` creates a `Line2D` with x-data `[x, x]` and y-data `[ymin, ymax]` in axes coordinates (using a blended transform). The line is added to the axes via `add_line`, and `_request_autoscale_view` is called.
+
+The key issue is that the `axvline`/`axhline` lines affect the data limits. When the edge handles are at position 0, the data limits include 0.
+
+Now, the question is: how to fix this? 
+
+The edge handles are `axvline`/`axhline` lines. These lines span the full axes in one direction and are at a specific position in the other direction. The position in data coordinates affects the data limits.
+
+One approach: Instead of using `axvline`/`axhline`, use `Line2D` objects with a blended transform where the data-coordinate part doesn't affect the data limits. But that's tricky.
+
+Actually, wait. Let me reconsider. The `axvline` uses `get_xaxis_transform(which='grid')`. This is a blended transform where x is in data coordinates and y is in axes coordinates. The x-data `[x, x]` is in data coordinates, so it affects the x data limits.
+
+Hmm, but actually, the issue is that the line's x-data is `[x, x]` where x=0. So the data limits include 0.
+
+Let me think about the cleanest fix. 
+
+Option 1: Don't use `axvline`/`axhline`. Instead, create `Line2D` objects with a transform that doesn't affect data limits. But this is complex.
+
+Option 2: After creating the edge handles, set their data limits contribution to False. But `Line2D` doesn't have such an option... or does it?
+
+Let me check if there's a way to make a line not affect the data limits.
+
+Actually, I recall that in matplotlib, there's no direct way to make a line not affect the data limits. But there might be a way using `set_transform` with a transform that's not data-based.
+
+Wait, actually, let me reconsider the problem. The issue is specifically about the initial state where the edge handles are at position 0. 
+
+Let me look at the `ToolLineHandles` more carefully. The handles are created with `ax.axvline(p, ...)` where `p` is the position. Initially, the positions are `(0, 0)`.
+
+Actually, I think the real fix is to make the edge handles not affect the data limits. Let me look at how this could be done.
+
+Actually, let me look at the git blame / history to understand what the intended behavior is.
+
+Let me check the test file to understand the expected behavior.

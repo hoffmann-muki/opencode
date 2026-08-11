@@ -1,0 +1,3 @@
+Now let me add a regression test at the end of the test file. The test should verify that `is_fits` doesn't raise an `IndexError` when called with empty args and a non-FITS filepath.
+
+Let me add a test that directly tests the `is_fits` function and the `identify_format` function with the scenario from the issue.

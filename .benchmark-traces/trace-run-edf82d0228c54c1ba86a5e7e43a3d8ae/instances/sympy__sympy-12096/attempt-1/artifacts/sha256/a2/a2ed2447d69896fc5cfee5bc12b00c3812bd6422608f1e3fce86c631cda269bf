@@ -1,0 +1,102 @@
+So `f` is not in the evalf_table. So `evalf` falls back to `x._eval_evalf(prec)` (line 1284).
+
+In `Function._eval_evalf`:
+- `fname = self.func.__name__` = `f`
+- `hasattr(mpmath, 'f')` is False
+- So it goes to the `except` branch
+- `return Float(self._imp_(*self.args), prec)`
+- `self._imp_` is `lambda x: x ** 2`
+- `self.args` is `(g(2),)`
+- So `self._imp_(g(2))` = `g(2) ** 2`
+- `Float(g(2) ** 2, prec)` - this fails because `g(2) ** 2` is not a number
+
+Wait, but the result is `f(g(2))`, not an error. Let me check what happens.
+
+Actually, `Float(g(2) ** 2, prec)` - let me check what this does. It might raise a TypeError or ValueError, which is caught by the `except (AttributeError, TypeError, ValueError)` and returns `None`.
+
+When `_eval_evalf` returns `None`, the `evalf` function (line 1284) gets `xe = None`, then `xe.as_real_imag()` raises `AttributeError`, which is caught at line 1301 and raises `NotImplementedError`.
+
+Then in `EvalfMixin.evalf` (line 1387), `NotImplementedError` is caught, and it falls back to `v = self._eval_evalf(prec)` (line 1389). This returns `None` again. Then `if v is None: return self` (line 1390-1391). So it returns `self`, which is `f(g(2))`.
+
+So the fix is to evalf the args before passing them to `_imp_`. Let me modify line 510.
+
+The fix should be:
+```python
+return Float(self._imp_(*[s._eval_evalf(prec) for s in self.args]), prec)
+```
+
+Wait, but `_eval_evalf` might return `None`. Let me think about this.
+
+Actually, let me look at how the args should be processed. The args need to be evalf'd. Let me check what `_eval_evalf` returns for various types.
+
+For a number like `2`, `_eval_evalf` returns a `Float`. For `g(2)`, `_eval_evalf` would recursively call `Function._eval_evalf`, which would evalf `g(2)` to `4.0`.
+
+But wait, there's a subtlety. The `_eval_evalf` might return `None` if it can't be evaluated. In that case, we should probably not try to evalf.
+
+Let me think about the cleanest fix. The issue says "It isn't calling evalf recursively on the return of `_imp_`." 
+
+Hmm, actually re-reading the issue: "The code for this is in `Function._eval_evalf`. It isn't calling evalf recursively on the return of `_imp_`."
+
+So the issue is about calling evalf on the return of `_imp_`. But actually, the problem is that the args aren't evalf'd first. Let me think.
+
+If we evalf the args first:
+- `f(g(2))`: args = `(g(2),)`. evalf args = `(4.0,)`. Then `self._imp_(4.0)` = `4.0 ** 2` = `16.0`. Then `Float(16.0, prec)` = `16.0`. 
+
+Wait, but `g(2)` should evalf to `4.0`? Let me check. `g(2)` = `2 * 2` = `4`. So `g(2).evalf()` = `4.0`. Yes.
+
+So if we evalf the args first, then `f(g(2))` would work:
+- args = `(g(2),)`
+- evalf args = `(4.0,)` (since `g(2)._eval_evalf(prec)` returns `Float(4.0, prec)`)
+- `self._imp_(4.0)` = `4.0 ** 2` = `16.0`
+- `Float(16.0, prec)` = `16.0`
+
+Wait, but the expected result is `f(g(2))` = `f(4)` = `4 ** 2` = `16`. So `16.0` is correct.
+
+Hmm wait, let me re-read the example:
+```
+>>> print(f(g(2)).evalf())
+f(g(2))
+```
+
+So `f(g(2))` = `f(2*2)` = `f(4)` = `4 ** 2` = `16`. So the expected result is `16.0000000000000`.
+
+Let me verify: `f(2)` = `2 ** 2` = `4`. `g(2)` = `2 * 2` = `4`. `f(g(2))` = `f(4)` = `4 ** 2` = `16`. Yes.
+
+So the fix is to evalf the args first. Let me think about the best way.
+
+Actually, the issue title says "evalf does not call _imp_ recursively". And the description says "It isn't calling evalf recursively on the return of `_imp_`."
+
+Hmm, so there are two interpretations:
+1. Evalf the args before passing to `_imp_`.
+2. Evalf the return of `_imp_`.
+
+Let me think about which is correct.
+
+If we evalf the return of `_imp_`:
+- `f(g(2))`: `self._imp_(g(2))` = `g(2) ** 2`. Then evalf `g(2) ** 2` = `(g(2).evalf()) ** 2`... wait, `g(2) ** 2` is a Mul. evalf of `g(2) ** 2` would evalf `g(2)` first (to 4.0), then `4.0 ** 2` = `16.0`. So this would also work.
+
+Actually, both approaches would work for this example. But let me think about which is more correct.
+
+Actually, the cleaner approach is to evalf the args first, because the `_imp_` function expects numerical arguments. If the args are symbolic, the `_imp_` function might not work correctly (e.g., if it does something that only works with numbers).
+
+But wait, the issue says "It isn't calling evalf recursively on the return of `_imp_`." This suggests the fix is to evalf the return of `_imp_`.
+
+Hmm, let me think. Actually, let me consider both approaches and see which one is more robust.
+
+Approach 1: Evalf the args first.
+```python
+return Float(self._imp_(*[s._eval_evalf(prec) for s in self.args]), prec)
+```
+
+But this has a problem: if an arg can't be evalf'd (returns None), then we'd pass None to `_imp_`, which might cause issues.
+
+Approach 2: Evalf the return of `_imp_`.
+```python
+return Float(self._imp_(*self.args), prec).evalf()
+```
+
+Wait, but `Float(self._imp_(*self.args), prec)` might fail if the return is symbolic. Let me think.
+
+Actually, `Float(g(2) ** 2, prec)` - let me check what this does.
+
+Let me test.

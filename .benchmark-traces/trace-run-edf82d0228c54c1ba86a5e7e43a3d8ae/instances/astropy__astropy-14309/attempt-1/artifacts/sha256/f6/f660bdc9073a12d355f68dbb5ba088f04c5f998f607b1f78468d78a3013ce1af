@@ -1,0 +1,15 @@
+    
+        See https://github.com/astropy/astropy/issues/14309
+        """
+        from astropy.io.registry import identify_format
+    
+        # A non-FITS filepath with empty args should not raise and should not
+        # identify the file as FITS.
+>       assert is_fits("write", "bububu.ecsv", None) is False
+[1m[31mE       NameError: name 'is_fits' is not defined[0m
+
+[1m[31mastropy/io/fits/tests/test_connect.py[0m:1019: NameError
+[36m[1m=========================== short test summary info ============================[0m
+[31mFAILED[0m astropy/io/fits/tests/test_connect.py::[1mtest_is_fits_no_args[0m - NameError: name 'is_fits' is not defined
+[31m!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!![0m
+[31m[31m[1m1 failed[0m[31m in 0.16s[0m[0m

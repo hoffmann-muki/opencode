@@ -1,0 +1,25 @@
+Your changes have been successfully merged into master. Here's a summary of what happened and what I did:
+
+## What Happened
+
+When you made your "Move to Stanford" changes, you had checked out `HEAD~1` (commit `c4e38a1`), which put you in a **detached HEAD** state. You committed your changes as `c499730`, but when you checked out `master` again, that commit became **dangling** — unreachable from any branch. That's why you couldn't find your changes.
+
+## How I Found Them
+
+I used `git reflog` to trace your recent actions. The reflog showed:
+1. You checked out `HEAD~1` from master (detached HEAD)
+2. You committed "Move to Stanford" (`c499730`)
+3. You checked out `master`, leaving `c499730` dangling
+
+## What I Did
+
+I **cherry-picked** the lost commit `c499730` onto `master`. There was one conflict in `_includes/about.md` because the current master commit (`d7d3e4b` "off the job market woo") had also modified that file. I resolved the conflict in favor of your "Move to Stanford" changes, since that's what you wanted to merge in.
+
+## Final State
+
+- **Branch:** `master`
+- **New HEAD:** `4a8c5b4` — "Move to Stanford" (your commit, now on master)
+- **Working tree:** clean
+- **Files changed:** `_includes/about.md` (bio updated to "Postdoctoral Researcher at Stanford CS") and `_layouts/default.html` (header changed to "Postdoc @ Stanford" plus formatting fixes)
+
+Your "Move to Stanford" changes are now safely on master.

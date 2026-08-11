@@ -1,0 +1,1 @@
+Now I can see the full picture. The lost commit `c499730` ("Move to Stanford") updates the bio and layout to reflect a move from UW PhD to Stanford Postdoc. Let me check if there will be conflicts when merging into master, since `d7d3e4b` (current master) also touched `_includes/about.md`.

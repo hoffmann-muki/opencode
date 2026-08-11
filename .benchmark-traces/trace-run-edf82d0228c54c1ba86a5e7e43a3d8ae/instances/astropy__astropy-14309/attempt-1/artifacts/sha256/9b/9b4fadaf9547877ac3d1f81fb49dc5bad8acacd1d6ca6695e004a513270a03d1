@@ -1,0 +1,13 @@
+astropy/io/registry/tests/test_registries.py:212:    def test_identify_format(self, registry, fmtcls1):
+astropy/io/registry/tests/test_registries.py:213:        """Test ``registry.identify_format()``."""
+astropy/io/registry/tests/test_registries.py:218:        formats = registry.identify_format(*args)
+astropy/io/registry/tests/test_registries.py:223:        formats = registry.identify_format(*args)
+astropy/io/registry/tests/test_registries.py:262:    def test_compat_identify_format(self, registry, fmtcls1):
+astropy/io/registry/tests/test_registries.py:268:        formats = compat.identify_format(*args, registry=registry)
+astropy/io/registry/tests/test_registries.py:278:                formats = compat.identify_format(*args)
+astropy/io/registry/tests/test_registries.py:362:        """Test ``registry.identify_format()``."""
+astropy/io/registry/tests/test_registries.py:366:        formats = registry.identify_format(*args)
+astropy/io/registry/tests/test_registries.py:372:        formats = registry.identify_format(*args)
+astropy/io/registry/tests/test_registries.py:736:        """Test ``registry.identify_format()``."""
+astropy/io/registry/tests/test_registries.py:741:        formats = registry.identify_format(*args)
+astropy/io/registry/tests/test_registries.py:747:        formats = registry.identify_format(*args)

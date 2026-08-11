@@ -1,0 +1,1 @@
+I can see interesting strings including "Debugging detected! Access denied." and "Access granted! Secret: %s". The program uses `ptrace` for anti-debugging. Let me try running it.

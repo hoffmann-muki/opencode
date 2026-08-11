@@ -1,0 +1,5 @@
+Found 2 matches
+/testbed/lib/matplotlib/axes/_axes.py:
+  Line 676:     def axhline(self, y=0, xmin=0, xmax=1, **kwargs):
+
+  Line 743:     def axvline(self, x=0, ymin=0, ymax=1, **kwargs):

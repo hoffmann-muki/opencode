@@ -1,0 +1,3 @@
+The script works but there are deprecation warnings. Let me fix those to make the script cleaner. I'll use `not_valid_after_utc` and `datetime.now(datetime.UTC)` instead.
+
+Actually, let me check if `not_valid_after_utc` is available in this version of cryptography.

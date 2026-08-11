@@ -1,0 +1,1 @@
+Interesting — before our fix, the `ecsv read` case also raised the same `IndexError` (from `is_fits`). After our fix, `is_fits` no longer crashes, so it proceeds to `is_votable` which tries to open the (non-existent) file. Let me test with a real file to confirm the read path works correctly:

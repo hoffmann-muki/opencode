@@ -1,0 +1,35 @@
+{
+  "complete": true,
+  "profileId": "agentsight-0303f32607a9ebbe6868d33903f67dbb",
+  "schema": "benchmark-agentsight-health/v1",
+  "sidecarExitCode": 0,
+  "sources": {
+    "task-container": {
+      "complete": true,
+      "ended_at_ms": 1786395801793,
+      "error": null,
+      "evidence": {
+        "diagnostics_by_type": {},
+        "events_by_source": {
+          "diagnostic": 1,
+          "http_parser": 26,
+          "process": 5544,
+          "sse_processor": 11,
+          "ssl": 406,
+          "system": 73
+        },
+        "events_written": 6061,
+        "first_capture_timestamp_ms": 1786395657659,
+        "last_capture_timestamp_ms": 1786395801714,
+        "write_errors": 0
+      },
+      "profile_id": "agentsight-0303f32607a9ebbe6868d33903f67dbb",
+      "ready_at_ms": 1786395657659,
+      "schema": "agentsight-capture-health/v1",
+      "scope_id": "task-container",
+      "started_at_ms": 1786395655604,
+      "status": "completed"
+    }
+  },
+  "status": "completed"
+}

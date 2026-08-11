@@ -1,0 +1,35 @@
+{
+  "schema": "benchmark-agentsight-health/v1",
+  "profileId": "trace-9280c0e8572547abb67d17cebf8e0341",
+  "status": "completed",
+  "complete": true,
+  "sources": {
+    "task-container": {
+      "schema": "agentsight-capture-health/v1",
+      "profile_id": "trace-9280c0e8572547abb67d17cebf8e0341",
+      "scope_id": "task-container",
+      "status": "completed",
+      "started_at_ms": 1786390372156,
+      "ready_at_ms": 1786390374205,
+      "ended_at_ms": 1786390476498,
+      "error": null,
+      "evidence": {
+        "events_written": 83884,
+        "write_errors": 0,
+        "first_capture_timestamp_ms": 1786390374206,
+        "last_capture_timestamp_ms": 1786390476440,
+        "events_by_source": {
+          "diagnostic": 1,
+          "http_parser": 44,
+          "process": 83156,
+          "sse_processor": 19,
+          "ssl": 612,
+          "system": 52
+        },
+        "diagnostics_by_type": {}
+      },
+      "complete": true
+    }
+  },
+  "sidecarExitCode": 0
+}

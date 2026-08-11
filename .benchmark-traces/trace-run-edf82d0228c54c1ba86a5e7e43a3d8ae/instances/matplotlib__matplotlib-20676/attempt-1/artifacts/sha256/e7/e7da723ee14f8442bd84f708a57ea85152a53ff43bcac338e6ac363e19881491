@@ -1,0 +1,64 @@
+So the edge handles are at position 0, and the data limits include 0 (the lower bound is -8.88e-16 which is essentially 0). This is because the `axvline(0, ...)` lines are added to the axes and affect the data limits.
+
+The fix should ensure that the edge handles don't affect the axes data limits. Let me look at how the `axvline`/`axhline` lines are created and whether there's a way to make them not affect the data limits.
+
+Looking at the `ToolLineHandles.__init__`:
+```python
+line_fun = ax.axvline if self.direction == 'horizontal' else ax.axhline
+self._line_props = line_props
+self.artists = [line_fun(p, **line_props) for p in positions]
+```
+
+The `axvline` and `axhline` functions create lines that span the entire axes. These lines have x-data (for axvline) at the given position, which affects the data limits.
+
+One approach: Instead of using `axvline`/`axhline`, we could use regular `Line2D` objects with a blended transform. But that would be a bigger change.
+
+Another approach: Set the `axvline`/`axhline` lines to not affect the data limits. But `axvline`/`axhline` don't have a direct option for that.
+
+Actually, let me think about this differently. The issue is that the initial extents are (0, 0), so the edge handles are created at position 0. 
+
+Wait, but even if we fix the initial position, the edge handles would still affect the data limits when they're moved. Let me think...
+
+Actually, the real issue is that the edge handles (axvline/axhline) affect the data limits of the axes. When you create an `axvline` at x=0, it adds x=0 to the data limits.
+
+Let me look at how `axvline` works and whether there's a way to prevent it from affecting the data limits.
+
+Actually, looking more carefully, the issue might be that the edge handles should use a transform that doesn't affect the data limits. Let me check the `axvline` implementation.
+
+Actually, let me think about the simplest fix. The problem is the edge handles affect the axes limits. 
+
+Looking at the git history might help understand what changed. Let me check the git log for this file.
+
+Actually, let me think about the cleanest fix. The edge handles are `axvline`/`axhline` lines. These lines, by default, affect the data limits. 
+
+One option is to set the lines' data limits contribution to False. But `axvline`/`axhline` don't have such an option directly.
+
+Wait, actually, let me reconsider. The issue says "The axes xlimits are expanded to include x=0." This happens because the edge handles are created at position 0 (initial extents are (0,0)).
+
+But actually, even after the user interacts and moves the handles, the handles would still affect the data limits. So the fix needs to address the data limits issue more broadly.
+
+Let me look at how `axvline` affects data limits. The `axvline` creates a `Line2D` with x-data `[x, x]` and y-data `[0, 1]` in axes coordinates (using a blended transform). When the axes computes its data limits, it includes the x-data of all lines, so x=0 gets included.
+
+Hmm, but actually `axvline` uses a blended transform where x is in data coordinates and y is in axes coordinates. The data limits computation... let me check.
+
+Actually, let me look at how the data limits are computed. The `ax.dataLim` is updated when artists are added. For `axvline`, the x-data is in data coordinates, so it affects the x data limits.
+
+Let me check if there's a way to make the line not affect the data limits. 
+
+Actually, I recall that `Line2D` has a method to control whether it affects the data limits. Let me check.
+
+Actually, looking at the matplotlib source, there's no direct "don't affect data limits" flag for lines. But there might be a way.
+
+Let me think about this differently. The cleanest fix might be to not use `axvline`/`axhline` for the edge handles, but instead use `Line2D` with a blended transform that spans the axes. But that's a bigger change.
+
+Alternatively, the fix could be to set the initial extents to something that doesn't include 0, or to not create the edge handles at position 0.
+
+Wait, but the issue is about the axes limits being expanded to include 0. Even if we set the initial position to something else, the edge handles would still affect the data limits.
+
+Let me look at the actual fix that was applied to matplotlib for this issue. Let me check the git history.
+
+Actually, I shouldn't look at the gold patch. Let me think about the right fix.
+
+The core issue: `axvline`/`axhline` lines affect the data limits of the axes. When the edge handles are at position 0, the data limits include 0.
+
+Let me check if `axvline` has a way to not affect data limits. Let me look at the `axvline` source.

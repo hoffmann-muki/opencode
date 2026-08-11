@@ -1,0 +1,31 @@
+I've confirmed the issue. Now let me understand the fix.
+
+The problem is in `Function._eval_evalf` at line 510:
+
+```python
+return Float(self._imp_(*self.args), prec)
+```
+
+The `self.args` are passed directly to `_imp_` without being evalf'd first. So when `f(g(2))` is evaluated, `self.args` is `(g(2),)`, and `self._imp_(g(2))` calls `lambda x: x ** 2` with `x = g(2)`, which gives `g(2) ** 2`, a symbolic expression. Then `Float(g(2) ** 2, prec)` fails because it's not a number.
+
+The fix should be to evalf the args first before passing them to `_imp_`. Let me think about how to do this.
+
+The args should be evalf'd. We can use `arg.evalf(n, **options)` but `_eval_evalf` only takes `prec`. Let me look at how other parts handle this.
+
+Actually, looking at the code, the `_eval_evalf` method takes `prec` only. The args need to be evalf'd to `prec`. 
+
+Let me think about the right approach. The args should be evalf'd first. We can do:
+
+```python
+args = [arg._eval_evalf(prec) for arg in self.args]
+```
+
+But wait, `_eval_evalf` might return `None` if it can't be evaluated. Let me check.
+
+Actually, looking at the evalf flow, when `evalf` is called on `f(g(2))`:
+1. `evalf` calls `evalf(self, prec + 4, options)`.
+2. `evalf` looks up `evalf_table[x.func]`. 
+
+Let me check what's in the evalf_table for `f`. The `f` is an `UndefinedFunction` subclass. Let me check the evalf_table.
+
+Actually, let me trace through more carefully. Let me check what `f(g(2))` is.

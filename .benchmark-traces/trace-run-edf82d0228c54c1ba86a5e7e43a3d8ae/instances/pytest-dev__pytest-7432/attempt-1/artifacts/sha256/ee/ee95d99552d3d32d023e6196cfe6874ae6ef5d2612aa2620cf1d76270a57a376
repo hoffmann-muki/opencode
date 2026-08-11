@@ -1,0 +1,3 @@
+Now I can see the exact content. The location-fixing block (lines 294-305) is an `elif` in the chain, so when `--runxfail` triggers the `pass` branch (line 273-274), this block is never reached. 
+
+The fix is to move the location-fixing block out of the `elif` chain so it runs independently. Let me replace the entire section from the `not rep.skipped and xfailed` branch through the location-fixing block:

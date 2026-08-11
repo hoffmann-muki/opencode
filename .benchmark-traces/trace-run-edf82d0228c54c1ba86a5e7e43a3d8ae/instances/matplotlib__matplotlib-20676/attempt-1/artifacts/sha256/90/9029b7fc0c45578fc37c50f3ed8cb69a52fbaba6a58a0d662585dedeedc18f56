@@ -1,0 +1,1 @@
+{"include":"*.py","path":"/testbed/lib/matplotlib/lines.py","pattern":"def get_path|def set_transform|def get_transform|_request_autoscale|update_datalim|def add_line"}

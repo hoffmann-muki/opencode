@@ -1,0 +1,28 @@
+Now I can see the issue. On line 510:
+
+```python
+return Float(self._imp_(*self.args), prec)
+```
+
+The `_imp_` is called with `self.args`, but the args are not evaluated first. So if `self.args` contains a function call like `g(2)`, it won't be evaluated recursively.
+
+Let me understand the issue better. The example is:
+
+```python
+>>> f = implemented_function('f', lambda x: x ** 2)
+>>> g = implemented_function('g', lambda x: 2 * x)
+>>> print(f(g(2)).evalf())
+f(g(2))
+```
+
+So `f(g(2))` is a function application. When `evalf` is called, it goes to `Function._eval_evalf`. The `fname` is `f`, which is not in mpmath, so it goes to the `except` branch and tries `self._imp_(*self.args)`.
+
+`self.args` is `(g(2),)`. So `self._imp_(g(2))` calls `lambda x: x ** 2` with `x = g(2)`. The result is `g(2) ** 2`, which is a symbolic expression, not a number. Then `Float(g(2) ** 2, prec)` fails because `g(2) ** 2` is not a number.
+
+Wait, let me check. Actually `Float(g(2) ** 2, prec)` - `g(2) ** 2` is a symbolic expression. `Float` of a symbolic expression... let me think. Actually `Float` would try to convert it. Let me check what happens.
+
+Actually, the issue is that the args are not being evalf'd first. So when we call `self._imp_(*self.args)`, the args are still symbolic. We need to evalf the args first.
+
+Let me look at how the args should be processed. The fix should be to evalf the args before passing them to `_imp_`.
+
+Let me look at the broader context of the `_eval_evalf` method.

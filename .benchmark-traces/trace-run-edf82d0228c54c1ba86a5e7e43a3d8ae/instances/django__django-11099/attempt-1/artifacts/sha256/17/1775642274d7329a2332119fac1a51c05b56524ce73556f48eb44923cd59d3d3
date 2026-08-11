@@ -1,0 +1,1 @@
+{"command":"cd /testbed && ls -la setup.cfg tox.ini 2>/dev/null; echo \"---\"; cat setup.cfg 2>/dev/null | head -40"}

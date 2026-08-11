@@ -1,0 +1,17 @@
+
+/app/a.out:     file format elf64-x86-64
+
+Contents of section .init_array:
+ 3db8 40110000 00000000                    @.......        
+===
+
+/app/a.out:     file format elf64-x86-64
+
+Contents of section .fini_array:
+ 3dc0 00110000 00000000                    ........        
+===
+
+/app/a.out:     file format elf64-x86-64
+
+Contents of section .bss:
+ 4010 00000000 00000000                    ........        

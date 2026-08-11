@@ -1,0 +1,231 @@
+{
+  "format": "benchmark-trace/preflight-v1",
+  "created_at": "2026-08-10T21:07:47.721Z",
+  "identity": {
+    "trace_id": "trace-330979477c8249ec8164fc9c3ff54f28",
+    "run_id": "trace-run-37403fdf166a42f1aee00e03594add21",
+    "benchmark": "terminal-bench-2.1",
+    "framework": "opencode",
+    "instance_id": "vulnerable-secret",
+    "attempt": 1
+  },
+  "producer": {
+    "name": "opencode.benchmarks.tracing.opencode",
+    "version": "1.2.0"
+  },
+  "provenance": {
+    "benchmark": {
+      "name": "opencode-benchmarks",
+      "revision": "dbf13e39a2878763a576ad7129592b91e651f1ca"
+    },
+    "framework": {
+      "name": "OpenCode",
+      "revision": "dbf13e39a2878763a576ad7129592b91e651f1ca"
+    },
+    "adapter": {
+      "name": "opencode.benchmarks.tracing.opencode",
+      "revision": "dbf13e39a2878763a576ad7129592b91e651f1ca"
+    },
+    "harness": {
+      "name": "Harbor",
+      "revision": "0.20.0"
+    },
+    "agent_image": "alexgshaw/vulnerable-secret:20251031"
+  },
+  "execution": {
+    "model": "openrouter/poolside/laguna-s-2.1:free",
+    "evaluation_workers": 1,
+    "inference_timeout_seconds": 900,
+    "benchmark_retries": 0,
+    "provider_attempts": 1
+  },
+  "capabilities": [
+    {
+      "category": "agent.session",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "agent.session_end",
+        "agent.session_start"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "model.turn",
+      "state": "derived",
+      "coverage": "partial",
+      "timing": "native_wall",
+      "evidence": [
+        "model.output",
+        "model.reasoning",
+        "model.turn_end",
+        "model.turn_start"
+      ],
+      "limitations": [
+        "Model boundaries are derived from assistant creation and the first native tool-call or message-completion boundary; exact provider request bodies are not exposed."
+      ]
+    },
+    {
+      "category": "provider.exchange",
+      "state": "not_exposed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": [
+        "Exact provider request and response payloads are not exposed by the OpenCode event stream."
+      ]
+    },
+    {
+      "category": "tool.invocation",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "shell.start"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "tool.result",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "shell.end"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "tool.timing",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "shell.end"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "shell",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "shell.end",
+        "shell.start"
+      ],
+      "limitations": [
+        "Nested operating-system subprocesses are outside the OpenCode shell-tool boundary."
+      ]
+    },
+    {
+      "category": "file",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "search",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "browser",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "delegation",
+      "state": "disabled",
+      "coverage": "none",
+      "timing": "not_applicable",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "context.compaction",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "memory",
+      "state": "not_exposed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": [
+        "OpenCode does not expose a distinct durable memory subsystem in this benchmark configuration."
+      ]
+    },
+    {
+      "category": "harness.lifecycle",
+      "state": "derived",
+      "coverage": "full",
+      "timing": "derived",
+      "evidence": [
+        "harness.shutdown_end",
+        "harness.shutdown_start",
+        "harness.startup_end",
+        "harness.startup_start"
+      ],
+      "limitations": [
+        "Startup and shutdown are coarse harness-owned phases; benchmark-specific infrastructure is intentionally not subdivided."
+      ]
+    },
+    {
+      "category": "container.lifecycle",
+      "state": "captured",
+      "coverage": "metadata_only",
+      "timing": "derived",
+      "evidence": [
+        "container.observed"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "evaluator.lifecycle",
+      "state": "not_exposed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "patch",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "native.evidence",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "agent.session_end",
+        "agent.session_start",
+        "model.output",
+        "model.reasoning",
+        "model.turn_end",
+        "model.turn_start",
+        "shell.end",
+        "shell.start"
+      ],
+      "limitations": []
+    }
+  ]
+}

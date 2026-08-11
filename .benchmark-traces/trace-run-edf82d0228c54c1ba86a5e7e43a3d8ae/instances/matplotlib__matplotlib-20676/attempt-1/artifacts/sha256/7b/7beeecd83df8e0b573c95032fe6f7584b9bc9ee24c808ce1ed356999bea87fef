@@ -1,0 +1,106 @@
+<path>/testbed/lib/matplotlib/tests/test_widgets.py</path>
+<type>file</type>
+<content>
+200:     def onmove(vmin, vmax):
+201:         assert vmin == 100
+202:         assert vmax == 199
+203:         ax._got_on_move = True
+204: 
+205:     if 'onmove_callback' in kwargs:
+206:         kwargs['onmove_callback'] = onmove
+207: 
+208:     tool = widgets.SpanSelector(ax, onselect, *args, **kwargs)
+209:     do_event(tool, 'press', xdata=100, ydata=100, button=1)
+210:     # move outside of axis
+211:     do_event(tool, 'onmove', xdata=199, ydata=199, button=1)
+212:     do_event(tool, 'release', xdata=250, ydata=250, button=1)
+213: 
+214:     assert ax._got_onselect
+215: 
+216:     if 'onmove_callback' in kwargs:
+217:         assert ax._got_on_move
+218: 
+219: 
+220: def test_span_selector():
+221:     check_span('horizontal', minspan=10, useblit=True)
+222:     check_span('vertical', onmove_callback=True, button=1)
+223:     check_span('horizontal', rectprops=dict(fill=True))
+224: 
+225: 
+226: @pytest.mark.parametrize('drag_from_anywhere', [True, False])
+227: def test_span_selector_drag(drag_from_anywhere):
+228:     ax = get_ax()
+229: 
+230:     def onselect(epress, erelease):
+231:         pass
+232: 
+233:     # Create span
+234:     tool = widgets.SpanSelector(ax, onselect, 'horizontal', interactive=True,
+235:                                 drag_from_anywhere=drag_from_anywhere)
+236:     do_event(tool, 'press', xdata=10, ydata=10, button=1)
+237:     do_event(tool, 'onmove', xdata=100, ydata=120, button=1)
+238:     do_event(tool, 'release', xdata=100, ydata=120, button=1)
+239:     assert tool.extents == (10, 100)
+240:     # Drag inside span
+241:     #
+242:     # If drag_from_anywhere == True, this will move the span by 10,
+243:     # giving new value extents = 20, 110
+244:     #
+245:     # If drag_from_anywhere == False, this will create a new span with
+246:     # value extents = 25, 35
+247:     do_event(tool, 'press', xdata=25, ydata=15, button=1)
+248:     do_event(tool, 'onmove', xdata=35, ydata=25, button=1)
+249:     do_event(tool, 'release', xdata=35, ydata=25, button=1)
+250:     if drag_from_anywhere:
+251:         assert tool.extents == (20, 110)
+252:     else:
+253:         assert tool.extents == (25, 35)
+254: 
+255:     # Check that in both cases, dragging outside the span draws a new span
+256:     do_event(tool, 'press', xdata=175, ydata=185, button=1)
+257:     do_event(tool, 'onmove', xdata=185, ydata=195, button=1)
+258:     do_event(tool, 'release', xdata=185, ydata=195, button=1)
+259:     assert tool.extents == (175, 185)
+260: 
+261: 
+262: def test_span_selector_direction():
+263:     ax = get_ax()
+264: 
+265:     def onselect(epress, erelease):
+266:         pass
+267: 
+268:     tool = widgets.SpanSelector(ax, onselect, 'horizontal', interactive=True)
+269:     assert tool.direction == 'horizontal'
+270:     assert tool._edge_handles.direction == 'horizontal'
+271: 
+272:     with pytest.raises(ValueError):
+273:         tool = widgets.SpanSelector(ax, onselect, 'invalid_direction')
+274: 
+275:     tool.direction = 'vertical'
+276:     assert tool.direction == 'vertical'
+277:     assert tool._edge_handles.direction == 'vertical'
+278: 
+279:     with pytest.raises(ValueError):
+280:         tool.direction = 'invalid_string'
+281: 
+282: 
+283: def test_tool_line_handle():
+284:     ax = get_ax()
+285: 
+286:     positions = [20, 30, 50]
+287: 
+288:     tool_line_handle = widgets.ToolLineHandles(ax, positions, 'horizontal',
+289:                                                useblit=False)
+290: 
+291:     for artist in tool_line_handle.artists:
+292:         assert not artist.get_animated()
+293:         assert not artist.get_visible()
+294: 
+295:     tool_line_handle.set_visible(True)
+296:     tool_line_handle.set_animated(True)
+297: 
+298:     for artist in tool_line_handle.artists:
+299:         assert artist.get_animated()
+
+(Showing lines 200-299 of 731. Use offset=300 to continue.)
+</content>

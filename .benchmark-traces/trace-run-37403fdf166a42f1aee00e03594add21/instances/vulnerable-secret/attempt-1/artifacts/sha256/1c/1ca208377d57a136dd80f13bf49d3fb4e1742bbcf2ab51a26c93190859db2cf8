@@ -1,0 +1,11 @@
+I can see some interesting strings:
+- "Debugging detected! Access denied."
+- "Welcome to the Security Challenge!"
+- "This program processes user input."
+- "Find a way to extract the hidden information."
+- "Access granted! Secret: %s"
+- "Enter your input: "
+- "Authentication bypassed!"
+- "Input processed successfully."
+
+The program uses `ptrace` which is often used for anti-debugging. Let me try running it first to see what happens.

@@ -1,0 +1,26 @@
+The `ecsv write` case now works (returns `['ascii.ecsv']`). The `ecsv read` case fails because the votable identifier tries to actually open the file `bububu.ecsv` which doesn't exist. That's a separate issue with the votable identifier, not related to our fix. Let me test with a file that exists or use a different approach.
+
+Actually, the `is_votable` function tries to read the file to check if it's a votable file. This is a different identifier. The issue is that when reading, the votable identifier tries to open the file. But this is not related to our fix - it's the existing behavior of the votable identifier.
+
+Let me test the read case with a real file or just focus on the write case which is what the issue is about. Actually, let me test with a file that exists.
+
+Actually, the issue is specifically about the `is_fits` function. The `is_votable` function has its own behavior. Let me test the read case more carefully - the issue is that `is_votable` tries to open the file. But that's a pre-existing behavior, not something we need to fix.
+
+Wait, but the original issue is about `identify_format("write", ...)`. Let me re-read the issue.
+
+The issue is:
+```python
+identify_format("write", Table, "bububu.ecsv", None, [], {})
+```
+
+This is the write case. And our fix handles it correctly - it returns `['ascii.ecsv']`.
+
+The read case fails because `is_votable` tries to open the file. But that's a different identifier and a different issue. Let me verify that the read case also worked before our change by checking if it's a pre-existing issue.
+
+Actually, let me just test with a real file to make sure the read case works too. Let me create a temporary ecsv file.
+
+Actually, the key point is that our fix resolves the `IndexError` in `is_fits`. The `is_votable` error is a separate, pre-existing behavior (it tries to open the file to check if it's votable). Let me verify this is pre-existing by checking with git stash.
+
+Actually, let me not worry about the votable issue - it's not part of this bug. The bug is specifically about `is_fits` raising `IndexError`. Let me verify our fix works for the write case (which is the reported issue) and also test the read case with a real file.
+
+Let me test with a real file.

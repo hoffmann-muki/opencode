@@ -1,0 +1,1 @@
+All cases work correctly now. Let me also test edge cases — when `filepath` is `None` with empty `args` (which would also have raised `IndexError` in the original code), and when an in-memory FITS object is passed:

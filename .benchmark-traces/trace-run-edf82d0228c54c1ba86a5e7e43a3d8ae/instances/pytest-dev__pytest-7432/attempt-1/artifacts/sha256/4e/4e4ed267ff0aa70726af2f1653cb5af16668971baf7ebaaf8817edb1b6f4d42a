@@ -1,0 +1,86 @@
+<path>/testbed/testing/test_skipping.py</path>
+<type>file</type>
+<content>
+580:                 pass
+581:         """
+582:         )
+583:         rec = testdir.inline_run()
+584:         rec.assertoutcome(skipped=1)
+585: 
+586:     def test_arg_as_reason(self, testdir):
+587:         testdir.makepyfile(
+588:             """
+589:             import pytest
+590:             @pytest.mark.skip('testing stuff')
+591:             def test_bar():
+592:                 pass
+593:         """
+594:         )
+595:         result = testdir.runpytest("-rs")
+596:         result.stdout.fnmatch_lines(["*testing stuff*", "*1 skipped*"])
+597: 
+598:     def test_skip_no_reason(self, testdir):
+599:         testdir.makepyfile(
+600:             """
+601:             import pytest
+602:             @pytest.mark.skip
+603:             def test_foo():
+604:                 pass
+605:         """
+606:         )
+607:         result = testdir.runpytest("-rs")
+608:         result.stdout.fnmatch_lines(["*unconditional skip*", "*1 skipped*"])
+609: 
+610:     def test_skip_with_reason(self, testdir):
+611:         testdir.makepyfile(
+612:             """
+613:             import pytest
+614:             @pytest.mark.skip(reason="for lolz")
+615:             def test_bar():
+616:                 pass
+617:         """
+618:         )
+619:         result = testdir.runpytest("-rs")
+620:         result.stdout.fnmatch_lines(["*for lolz*", "*1 skipped*"])
+621: 
+622:     def test_only_skips_marked_test(self, testdir):
+623:         testdir.makepyfile(
+624:             """
+625:             import pytest
+626:             @pytest.mark.skip
+627:             def test_foo():
+628:                 pass
+629:             @pytest.mark.skip(reason="nothing in particular")
+630:             def test_bar():
+631:                 pass
+632:             def test_baz():
+633:                 assert True
+634:         """
+635:         )
+636:         result = testdir.runpytest("-rs")
+637:         result.stdout.fnmatch_lines(["*nothing in particular*", "*1 passed*2 skipped*"])
+638: 
+639:     def test_strict_and_skip(self, testdir):
+640:         testdir.makepyfile(
+641:             """
+642:             import pytest
+643:             @pytest.mark.skip
+644:             def test_hello():
+645:                 pass
+646:         """
+647:         )
+648:         result = testdir.runpytest("-rs")
+649:         result.stdout.fnmatch_lines(["*unconditional skip*", "*1 skipped*"])
+650: 
+651: 
+652: class TestSkipif:
+653:     def test_skipif_conditional(self, testdir):
+654:         item = testdir.getitem(
+655:             """
+656:             import pytest
+657:             @pytest.mark.skipif("hasattr(os, 'sep')")
+658:             def test_func():
+659:                 pass
+
+(Showing lines 580-659 of 1207. Use offset=660 to continue.)
+</content>

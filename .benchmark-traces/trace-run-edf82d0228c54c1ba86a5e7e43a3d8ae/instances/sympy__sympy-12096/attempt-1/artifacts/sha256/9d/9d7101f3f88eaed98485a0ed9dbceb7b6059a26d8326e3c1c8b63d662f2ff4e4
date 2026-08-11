@@ -1,0 +1,193 @@
+Found 74 matches
+/testbed/sympy/polys/tests/test_rootoftools.py:
+  Line 247:     assert str(c._eval_evalf(2)) == '-0.e-1'
+
+
+/testbed/sympy/functions/special/bessel.py:
+  Line 595:     def _eval_evalf(self, prec):
+
+  Line 597:             return self._rewrite()._eval_evalf(prec)
+
+  Line 1450:     def _eval_evalf(self, prec):
+
+  Line 1606:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/functions/special/error_functions.py:
+  Line 1075:     def _eval_evalf(self, prec):
+
+  Line 1077:             return Function._eval_evalf(self, prec) + (I*pi)._eval_evalf(prec)
+
+  Line 1078:         return Function._eval_evalf(self, prec)
+
+  Line 1535:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/functions/special/hyper.py:
+  Line 612:     def _eval_evalf(self, prec):
+
+  Line 624:         znum = self.argument._eval_evalf(prec)
+
+
+/testbed/sympy/functions/special/spherical_harmonics.py:
+  Line 219:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/core/operations.py:
+  Line 295:     def _eval_evalf(self, prec):
+
+  Line 314:             # call _eval_evalf (here) so we must break the recursion
+
+  Line 325:                     # here we call to _eval_evalf since we don't know what we
+
+  Line 326:                     # are dealing with and all other _eval_evalf routines should
+
+  Line 329:                     newa = a._eval_evalf(prec)
+
+  Line 342:             newa = a._eval_evalf(prec)
+
+
+/testbed/sympy/polys/rootoftools.py:
+  Line 595:     def _eval_evalf(self, prec):
+
+  Line 941:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/core/evalf.py:
+  Line 758:         return evalf(v._eval_evalf(prec), prec, options)
+
+  Line 850:             b = b._eval_evalf(prec)
+
+  Line 1284:             xe = x._eval_evalf(prec)
+
+  Line 1389:             v = self._eval_evalf(prec)
+
+  Line 1415:         r = self._eval_evalf(prec)
+
+  Line 1420:     def _eval_evalf(self, prec):
+
+  Line 1441:             v = self._eval_evalf(prec)
+
+
+/testbed/sympy/core/mul.py:
+  Line 640:     def _eval_evalf(self, prec):
+
+  Line 644:                 rv = -AssocOp._eval_evalf(m, prec)
+
+  Line 646:                 mnew = m._eval_evalf(prec)
+
+  Line 651:             rv = AssocOp._eval_evalf(self, prec)
+
+
+/testbed/sympy/core/power.py:
+  Line 1019:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/functions/special/gamma_functions.py:
+  Line 313:     def _eval_evalf(self, prec):
+
+  Line 412:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/core/expr.py:
+  Line 711:                 n2 = self._eval_evalf(2)
+
+  Line 741:                 n2 = self._eval_evalf(2)
+
+
+/testbed/sympy/core/function.py:
+  Line 500:     def _eval_evalf(self, prec):
+
+  Line 2639:         # Pow._eval_evalf special cases Integer exponents so if
+
+
+/testbed/sympy/core/relational.py:
+  Line 96:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/core/numbers.py:
+  Line 428:     def _eval_evalf(self, prec):
+
+  Line 1466:                 return self._eval_evalf(expt._prec)**expt
+
+  Line 2165:     def _eval_evalf(self, prec):
+
+  Line 3101:     def _eval_evalf(self, prec):
+
+  Line 3544:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/sets/sets.py:
+  Line 1151:         return mpi(mpf(self.start._eval_evalf(prec)),
+
+  Line 1152:             mpf(self.end._eval_evalf(prec)))
+
+  Line 1154:     def _eval_evalf(self, prec):
+
+  Line 1155:         return Interval(self.left._eval_evalf(prec),
+
+  Line 1156:             self.right._eval_evalf(prec),
+
+  Line 1394:     def _eval_evalf(self, prec):
+
+  Line 1396:             return Union(set._eval_evalf(prec) for set in self.args)
+
+  Line 2018:     def _eval_evalf(self, prec):
+
+  Line 2019:         return FiniteSet(*[elem._eval_evalf(prec) for elem in self])
+
+
+/testbed/sympy/core/tests/test_evalf.py:
+  Line 501:     raises(ValueError, lambda: e._eval_evalf(2))
+
+
+/testbed/sympy/functions/combinatorial/numbers.py:
+  Line 679:     def _eval_evalf(self, prec):
+
+  Line 682:             return self.rewrite(polygamma)._eval_evalf(prec)
+
+  Line 756:     def _eval_evalf(self, prec):
+
+  Line 895:     def _eval_evalf(self, prec):
+
+  Line 898:             return self.rewrite(gamma)._eval_evalf(prec)
+
+
+/testbed/sympy/functions/elementary/exponential.py:
+  Line 159:     def _eval_evalf(self, prec):
+
+  Line 169:         res = exp(self.args[0])._eval_evalf(prec)
+
+
+/testbed/sympy/functions/elementary/complexes.py:
+  Line 826:     def _eval_evalf(self, prec):
+
+  Line 828:         return self.args[0]._eval_evalf(prec)
+
+  Line 913:     def _eval_evalf(self, prec):
+
+  Line 920:             return unbranched._eval_evalf(prec)
+
+  Line 921:         ub = periodic_argument(z, oo)._eval_evalf(prec)
+
+  Line 922:         return (ub - ceiling(ub/period - S(1)/2)*period)._eval_evalf(prec)
+
+  Line 1006:     def _eval_evalf(self, prec):
+
+  Line 1009:         p = periodic_argument(z, period)._eval_evalf(prec)
+
+  Line 1012:         return (abs(z)*exp(I*p))._eval_evalf(prec)
+
+
+/testbed/sympy/functions/elementary/trigonometric.py:
+  Line 2778:     def _eval_evalf(self, prec):
+
+  Line 2781:             super(atan2, self)._eval_evalf(prec)
+
+
+/testbed/sympy/functions/elementary/piecewise.py:
+  Line 195:     def _eval_evalf(self, prec):
+
+
+/testbed/sympy/functions/elementary/tests/test_complexes.py:
+  Line 823:     # TODO XXX why does abs(x)._eval_evalf() not fall back to global evalf?

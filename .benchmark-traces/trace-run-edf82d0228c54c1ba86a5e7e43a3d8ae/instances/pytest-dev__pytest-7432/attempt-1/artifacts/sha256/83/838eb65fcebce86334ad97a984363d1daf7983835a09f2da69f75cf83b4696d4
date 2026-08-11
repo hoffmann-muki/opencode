@@ -1,0 +1,1 @@
+I keep making the same edit. Let me be very precise. The fix is to change the location-fixing block from an `elif` (which is skipped when `--runxfail` triggers the `pass` branch) to a separate `if` statement that runs independently:

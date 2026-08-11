@@ -1,0 +1,96 @@
+<path>/testbed/lib/matplotlib/axes/_axes.py</path>
+<type>file</type>
+<content>
+676:     def axhline(self, y=0, xmin=0, xmax=1, **kwargs):
+677:         """
+678:         Add a horizontal line across the axis.
+679: 
+680:         Parameters
+681:         ----------
+682:         y : float, default: 0
+683:             y position in data coordinates of the horizontal line.
+684: 
+685:         xmin : float, default: 0
+686:             Should be between 0 and 1, 0 being the far left of the plot, 1 the
+687:             far right of the plot.
+688: 
+689:         xmax : float, default: 1
+690:             Should be between 0 and 1, 0 being the far left of the plot, 1 the
+691:             far right of the plot.
+692: 
+693:         Returns
+694:         -------
+695:         `~matplotlib.lines.Line2D`
+696: 
+697:         Other Parameters
+698:         ----------------
+699:         **kwargs
+700:             Valid keyword arguments are `.Line2D` properties, with the
+701:             exception of 'transform':
+702: 
+703:             %(Line2D:kwdoc)s
+704: 
+705:         See Also
+706:         --------
+707:         hlines : Add horizontal lines in data coordinates.
+708:         axhspan : Add a horizontal span (rectangle) across the axis.
+709:         axline : Add a line with an arbitrary slope.
+710: 
+711:         Examples
+712:         --------
+713:         * draw a thick red hline at 'y' = 0 that spans the xrange::
+714: 
+715:             >>> axhline(linewidth=4, color='r')
+716: 
+717:         * draw a default hline at 'y' = 1 that spans the xrange::
+718: 
+719:             >>> axhline(y=1)
+720: 
+721:         * draw a default hline at 'y' = .5 that spans the middle half of
+722:           the xrange::
+723: 
+724:             >>> axhline(y=.5, xmin=0.25, xmax=0.75)
+725:         """
+726:         self._check_no_units([xmin, xmax], ['xmin', 'xmax'])
+727:         if "transform" in kwargs:
+728:             raise ValueError("'transform' is not allowed as a keyword "
+729:                              "argument; axhline generates its own transform.")
+730:         ymin, ymax = self.get_ybound()
+731: 
+732:         # Strip away the units for comparison with non-unitized bounds.
+733:         yy, = self._process_unit_info([("y", y)], kwargs)
+734:         scaley = (yy < ymin) or (yy > ymax)
+735: 
+736:         trans = self.get_yaxis_transform(which='grid')
+737:         l = mlines.Line2D([xmin, xmax], [y, y], transform=trans, **kwargs)
+738:         self.add_line(l)
+739:         self._request_autoscale_view(scalex=False, scaley=scaley)
+740:         return l
+741: 
+742:     @docstring.dedent_interpd
+743:     def axvline(self, x=0, ymin=0, ymax=1, **kwargs):
+744:         """
+745:         Add a vertical line across the Axes.
+746: 
+747:         Parameters
+748:         ----------
+749:         x : float, default: 0
+750:             x position in data coordinates of the vertical line.
+751: 
+752:         ymin : float, default: 0
+753:             Should be between 0 and 1, 0 being the bottom of the plot, 1 the
+754:             top of the plot.
+755: 
+756:         ymax : float, default: 1
+757:             Should be between 0 and 1, 0 being the bottom of the plot, 1 the
+758:             top of the plot.
+759: 
+760:         Returns
+761:         -------
+762:         `~matplotlib.lines.Line2D`
+763: 
+764:         Other Parameters
+765:         ----------------
+
+(Showing lines 676-765 of 8140. Use offset=766 to continue.)
+</content>

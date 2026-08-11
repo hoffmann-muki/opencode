@@ -1,0 +1,1 @@
+I can see the conflict. The master branch changed "sixth year PhD student" to "sixth PhD candidate" and removed the job-seeking prefix, while the lost commit completely rewrote the bio to "Postdoctoral Researcher at Stanford CS." Since you want to merge your "Move to Stanford" changes, I'll resolve the conflict in favor of your commit.

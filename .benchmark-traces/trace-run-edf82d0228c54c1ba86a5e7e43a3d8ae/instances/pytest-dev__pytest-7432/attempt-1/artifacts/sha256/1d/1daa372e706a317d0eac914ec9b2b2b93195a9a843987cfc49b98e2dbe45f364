@@ -1,0 +1,5 @@
+Now I understand the structure. The location-fixing block (lines 294-305) is the last `elif` in the chain. When `--runxfail` is set, the `elif item.config.option.runxfail: pass` branch (lines 273-274) catches everything and prevents the location-fixing block from running.
+
+The fix: Move the location-fixing block to be a separate `if` statement after the elif chain, so it runs regardless of `--runxfail`.
+
+Let me make the edit. I'll replace the entire elif chain + location-fixing block with the elif chain (without the location-fixing block) followed by a separate `if` for the location-fixing block.

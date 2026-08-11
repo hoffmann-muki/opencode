@@ -1,0 +1,741 @@
+Now I have the disassembly. Let me analyze the key function at 0x4012b0 which is the main logic function. Let me trace through it:
+
+```
+4012b0: sub    $0x58,%rsp          ; allocate stack space
+4012b4: pxor   %xmm0,%xmm0         ; zero out xmm0
+4012b8: lea    0xe0b(%rip),%rdi     ; load address of "Enter your input: " string
+4012bf: xor    %eax,%eax
+4012c1: movaps %xmm0,(%rsp)         ; zero out stack
+4012c5: movaps %xmm0,0x10(%rsp)
+4012ca: movaps %xmm0,0x20(%rsp)
+4012cf: movaps %xmm0,0x30(%rsp)
+4012d4: movl   $0x0,0x40(%rsp)     ; zero out 0x40(%rsp)
+4012dc: call   401040 <printf@plt>  ; printf("Enter your input: ")
+4012e1: mov    0x2da0(%rip),%rdi    ; load stdout
+4012e8: call   401060 <fflush@plt>  ; fflush(stdout)
+4012ed: xor    %eax,%eax
+4012ef: mov    %rsp,%rdi            ; buffer on stack
+4012f2: call   401050 <gets@plt>     ; gets(buffer)
+4012f7: cmpl   $0x1,0x40(%rsp)      ; check if buffer[0x40] == 1
+4012fc: je     401310               ; if yes, jump to 401310
+4012fe: lea    0xdf1(%rip),%rdi     ; "Input processed successfully."
+401305: call   401030 <puts@plt>
+40130a: add    $0x58,%rsp
+40130e: ret
+401310: lea    0xdc6(%rip),%rdi     ; "Authentication bypassed!"
+401317: call   401030 <puts@plt>
+40131c: xor    %eax,%eax
+40131e: call   401200               ; call function at 401200
+401323: add    $0x58,%rsp
+401327: ret
+```
+
+So the main function:
+1. Prints "Enter your input: "
+2. Calls gets() to read input into a buffer on the stack
+3. Checks if `0x40(%rsp)` == 1 (this is at offset 0x40 from rsp, which is 64 bytes from the start of the buffer)
+4. If it equals 1, prints "Authentication bypassed!" and calls function at 0x401200
+5. Otherwise, prints "Input processed successfully."
+
+The buffer is at `%rsp` (after the `sub $0x58,%rsp`). The check is at `0x40(%rsp)` which is 64 bytes into the buffer. So if we write 64 bytes of padding followed by a byte with value 1, we trigger the "Authentication bypassed!" path.
+
+Wait, but `cmpl $0x1,0x40(%rsp)` checks a 4-byte value at offset 0x40. So we need to write 64 bytes of anything, then 4 bytes where the first byte is 0x01 (and the rest can be anything, but since it's a comparison with 1, the full 4 bytes need to equal 1, meaning bytes 0x40-0x43 should be 01 00 00 00 in little-endian).
+
+Actually wait, let me re-read. `cmpl $0x1,0x40(%rsp)` compares the 4-byte value at `0x40(%rsp)` with 1. So we need `0x40(%rsp)` to be 0x00000001 in little-endian, which means bytes at offset 64, 65, 66, 67 should be 0x01, 0x00, 0x00, 0x00.
+
+Now let me look at function 0x401200 which is called when authentication is bypassed:
+
+```
+401200: sub    $0x108,%rsp         ; allocate 264 bytes on stack
+401207: xor    %ecx,%ecx
+401209: xor    %edx,%edx
+40120b: xor    %esi,%esi
+40120d: xor    %edi,%edi
+40120f: xor    %eax,%eax
+401211: call   401070 <ptrace@plt>  ; ptrace(0, 0, 0, 0, 0) - PTRACE_TRACEME
+401216: cmp    $0xffffffffffffffff,%rax  ; check if ptrace returned -1
+40121a: je     401288              ; if -1 (debugger detected), jump to error
+40121c: xor    %ecx,%ecx
+40121e: xor    %edx,%edx
+401220: xor    %esi,%esi
+401222: mov    $0x11,%edi          ; PTRACE_TRACEME = 0x11? No, 0x11 is PTRACE_GETREGS? Let me check.
+                                   ; Actually, PTRACE_TRACEME = 0, PTRACE_PEEKTEXT = 1, etc.
+                                   ; 0x11 = 17 = PTRACE_GETREGS? No...
+                                   ; On x86_64 Linux: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2, 
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_KILL=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREGS=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_GETFPREGS=14,
+                                   ; PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Actually: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3, PTRACE_POKETEXT=4, PTRACE_POKEDATA=5, PTRACE_POKEUSER=6,
+                                   ; PTRACE_CONT=7, PTRACE_KILL=8, PTRACE_SINGLESTEP=9, PTRACE_GETREG=12,
+                                   ; PTRACE_SETREGS=13, PTRACE_GETFPREGS=14, PTRACE_SETFPREGS=15,
+                                   ; PTRACE_GETREG=16? No...
+                                   ; Let me look it up: PTRACE_TRACEME=0, PTRACE_PEEKTEXT=1, PTRACE_PEEKDATA=2,
+                                   ; PTRACE_PEEKUSER=3

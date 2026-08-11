@@ -1,0 +1,9 @@
+Traceback (most recent call last):
+  File "<string>", line 4, in <module>
+  File "/testbed/astropy/io/registry/compat.py", line 52, in wrapper
+    return getattr(registry, method_name)(*args, **kwargs)
+  File "/testbed/astropy/io/registry/base.py", line 313, in identify_format
+    if self._identifiers[(data_format, data_class)](
+  File "/testbed/astropy/io/fits/connect.py", line 72, in is_fits
+    return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+IndexError: tuple index out of range

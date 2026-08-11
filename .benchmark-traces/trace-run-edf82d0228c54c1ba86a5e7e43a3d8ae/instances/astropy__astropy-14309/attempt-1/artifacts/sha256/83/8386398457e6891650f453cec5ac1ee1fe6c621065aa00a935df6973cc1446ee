@@ -1,0 +1,1 @@
+{"command":"cd /testbed && grep -rn \"is_fits\\|identify_format\\|def test\" astropy/io/fits/tests/test_connect.py | head -40"}

@@ -1,0 +1,7 @@
+Interesting! So before our fix, the `ecsv read` case also raised `IndexError: tuple index out of range`. This is the same bug - the `is_fits` function raises `IndexError` when called with empty args. The `is_votable` error I saw earlier was because the `is_fits` error happened first (in the loop over identifiers), and after our fix, `is_fits` no longer raises, so it proceeds to `is_votable` which then tries to open the file.
+
+Wait, let me re-read. Before our fix, `identify_format('read', Table, 'bububu.ecsv', None, [], {})` raised `IndexError: tuple index out of range`. This is the `is_fits` bug. After our fix, `is_fits` no longer raises, so it proceeds to check `is_votable`, which tries to open the file `bububu.ecsv` and raises `FileNotFoundError`.
+
+So the `is_votable` `FileNotFoundError` is a separate issue that only manifests after our fix because `is_fits` no longer crashes first. But this is expected behavior - `is_votable` tries to open the file to check if it's votable. When the file doesn't exist, it raises `FileNotFoundError`.
+
+Let me test with a real file to confirm the read case works properly.

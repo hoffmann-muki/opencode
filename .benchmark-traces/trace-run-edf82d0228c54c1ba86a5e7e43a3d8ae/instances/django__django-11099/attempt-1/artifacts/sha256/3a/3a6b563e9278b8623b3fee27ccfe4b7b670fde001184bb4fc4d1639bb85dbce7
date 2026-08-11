@@ -1,0 +1,1 @@
+{"command":"cd /testbed && ls tests/ | head -20 && echo \"---\" && ls *.py 2>/dev/null | head"}

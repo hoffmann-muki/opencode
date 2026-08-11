@@ -1,0 +1,1 @@
+{"command":"python3 -c \"\nimport struct\nwith open('/app/a.out','rb') as f:\n    data = f.read()\n# Check the example values\nprint('4194304 =', hex(4194304))\nprint('4194308 =', hex(4194308))\nprint('1784774249 =', hex(1784774249))\nprint('1718378344 =', hex(1718378344))\n\"","workdir":"/app"}

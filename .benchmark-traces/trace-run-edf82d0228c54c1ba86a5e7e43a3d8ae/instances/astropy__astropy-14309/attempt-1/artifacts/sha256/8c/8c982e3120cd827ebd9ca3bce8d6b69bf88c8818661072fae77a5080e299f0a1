@@ -1,0 +1,66 @@
+<path>/testbed/astropy/io/fits/tests/test_connect.py</path>
+<type>file</type>
+<content>
+945:     t.write(filename, overwrite=True)
+946: 
+947:     t2 = Table.read(filename)
+948:     assert t2["col0"].description == "hello" * 40
+949:     assert t2["col0"].format == "{:8.4f}"
+950:     assert t2["col0"].meta["a"] == {"b": "c"}
+951: 
+952: 
+953: @pytest.mark.parametrize("method", ["set_cols", "names", "class"])
+954: def test_round_trip_masked_table_serialize_mask(tmp_path, method):
+955:     """
+956:     Same as previous test but set the serialize_method to 'data_mask' so mask is
+957:     written out and the behavior is all correct.
+958:     """
+959:     filename = tmp_path / "test.fits"
+960: 
+961:     t = simple_table(masked=True)  # int, float, and str cols with one masked element
+962: 
+963:     # MaskedColumn but no masked elements.  See table the MaskedColumnInfo class
+964:     # _represent_as_dict() method for info about we test a column with no masked elements.
+965:     t["d"] = [1, 2, 3]
+966: 
+967:     if method == "set_cols":
+968:         for col in t.itercols():
+969:             col.info.serialize_method["fits"] = "data_mask"
+970:         t.write(filename)
+971:     elif method == "names":
+972:         t.write(
+973:             filename,
+974:             serialize_method={
+975:                 "a": "data_mask",
+976:                 "b": "data_mask",
+977:                 "c": "data_mask",
+978:                 "d": "data_mask",
+979:             },
+980:         )
+981:     elif method == "class":
+982:         t.write(filename, serialize_method="data_mask")
+983: 
+984:     t2 = Table.read(filename)
+985:     assert t2.masked is False
+986:     assert t2.colnames == t.colnames
+987:     for name in t2.colnames:
+988:         assert np.all(t2[name].mask == t[name].mask)
+989:         assert np.all(t2[name] == t[name])
+990: 
+991:         # Data under the mask round-trips also (unmask data to show this).
+992:         t[name].mask = False
+993:         t2[name].mask = False
+994:         assert np.all(t2[name] == t[name])
+995: 
+996: 
+997: def test_meta_not_modified(tmp_path):
+998:     filename = tmp_path / "test.fits"
+999:     t = Table(data=[Column([1, 2], "a", description="spam")])
+1000:     t.meta["comments"] = ["a", "b"]
+1001:     assert len(t.meta) == 1
+1002:     t.write(filename)
+1003:     assert len(t.meta) == 1
+1004:     assert t.meta["comments"] == ["a", "b"]
+
+(End of file - total 1004 lines)
+</content>

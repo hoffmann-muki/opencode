@@ -1,0 +1,7 @@
+I've confirmed the bug. Without `--runxfail`, the skip location points to `test_it.py:2` (the item definition). With `--runxfail`, it points to `src/_pytest/skipping.py:239` (where the `skip()` was called in `pytest_runtest_setup`).
+
+Now let me fix the issue. The problem is in the `pytest_runtest_makereport` hook. When `--runxfail` is set, the `elif item.config.option.runxfail: pass` branch catches everything and prevents the location-fixing block from running.
+
+The fix: Move the location-fixing block to be a separate `if` statement after the elif chain, so it runs regardless of `--runxfail`.
+
+Let me make the edit.

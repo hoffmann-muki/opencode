@@ -1,0 +1,1 @@
+{"command":"git checkout --theirs _includes/about.md && git add _includes/about.md","workdir":"/app/personal-site"}

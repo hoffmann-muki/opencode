@@ -1,0 +1,3 @@
+The `cryptography` library is not available. Let me check if I can install it, or I'll write the script using subprocess to call OpenSSL commands.
+
+Let me try to install it first.

@@ -1,0 +1,66 @@
+<path>/app/check_cert.py</path>
+<type>file</type>
+<content>
+1: #!/usr/bin/env python3
+2: """Script to verify and display details of the self-signed TLS certificate."""
+3: 
+4: import os
+5: import sys
+6: from datetime import datetime
+7: 
+8: from cryptography import x509
+9: from cryptography.hazmat.backends import default_backend
+10: 
+11: CERT_PATH = "/app/ssl/server.crt"
+12: 
+13: 
+14: def main():
+15:     # Verify that the certificate file exists
+16:     if not os.path.exists(CERT_PATH):
+17:         print(f"ERROR: Certificate file not found at {CERT_PATH}")
+18:         sys.exit(1)
+19: 
+20:     # Load the certificate
+21:     try:
+22:         with open(CERT_PATH, "rb") as f:
+23:             cert_data = f.read()
+24:         cert = x509.load_pem_x509_certificate(cert_data, default_backend())
+25:     except Exception as e:
+26:         print(f"ERROR: Failed to load certificate: {e}")
+27:         sys.exit(1)
+28: 
+29:     # Extract the Common Name from the subject
+30:     subject = cert.subject
+31:     common_name = None
+32:     for attribute in subject:
+33:         if attribute.oid == x509.NameOID.COMMON_NAME:
+34:             common_name = attribute.value
+35:             break
+36: 
+37:     if common_name is None:
+38:         print("ERROR: Common Name not found in certificate subject")
+39:         sys.exit(1)
+40: 
+41:     # Extract the expiration date and format as YYYY-MM-DD
+42:     not_after = cert.not_valid_after
+43:     expiration_date = not_after.strftime("%Y-%m-%d")
+44: 
+45:     # Print certificate details
+46:     print(f"Certificate loaded successfully from: {CERT_PATH}")
+47:     print(f"Common Name: {common_name}")
+48:     print(f"Expiration Date: {expiration_date}")
+49: 
+50:     # Verify the certificate is not expired
+51:     current_time = datetime.utcnow()
+52:     if current_time > not_after:
+53:         print("ERROR: Certificate has expired")
+54:         sys.exit(1)
+55: 
+56:     print("Certificate verification successful")
+57: 
+58: 
+59: if __name__ == "__main__":
+60:     main()
+
+(End of file - total 60 lines)
+</content>

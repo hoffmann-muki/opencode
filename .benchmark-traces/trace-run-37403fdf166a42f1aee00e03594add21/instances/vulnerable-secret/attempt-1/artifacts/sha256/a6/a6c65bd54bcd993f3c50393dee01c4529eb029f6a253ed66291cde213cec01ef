@@ -1,0 +1,1 @@
+{"command":"which objdump gdb radare2 r2 ghidra strace ltrace nm readelf 2>/dev/null; echo \"---\"; ls /usr/bin/ | grep -iE \"objdump|gdb|radare|strace|ltrace|nm|readelf|disasm\" 2>/dev/null"}

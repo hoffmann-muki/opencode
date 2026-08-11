@@ -1,0 +1,1 @@
+Both commits modify `_includes/about.md`, so there may be a conflict. Let me cherry-pick the lost commit onto master and handle any conflicts.

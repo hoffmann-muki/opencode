@@ -1,0 +1,207 @@
+{
+  "schema_version": "benchmark-trace/v1",
+  "schema_digest": "c54f3134f6d71167a7af3647f729a706dc5677edac914b89860a2a50c1d32d9a",
+  "trace_id": "trace-8d72f7758e154fbb8f5080e0d8c9e05c",
+  "framework": "opencode",
+  "generated_at": "2026-08-10T21:04:59.572Z",
+  "capabilities": [
+    {
+      "category": "agent.session",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "agent.session_end",
+        "agent.session_start"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "model.turn",
+      "state": "derived",
+      "coverage": "partial",
+      "timing": "native_wall",
+      "evidence": [
+        "model.output",
+        "model.reasoning",
+        "model.turn_end",
+        "model.turn_start"
+      ],
+      "limitations": [
+        "Model boundaries are derived from assistant creation and the first native tool-call or message-completion boundary; exact provider request bodies are not exposed."
+      ]
+    },
+    {
+      "category": "provider.exchange",
+      "state": "not_exposed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": [
+        "Exact provider request and response payloads are not exposed by the OpenCode event stream."
+      ]
+    },
+    {
+      "category": "tool.invocation",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "file.read",
+        "file.write",
+        "shell.start"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "tool.result",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "file.read",
+        "file.write",
+        "shell.end"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "tool.timing",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "file.read",
+        "file.write",
+        "shell.end"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "shell",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "shell.end",
+        "shell.start"
+      ],
+      "limitations": [
+        "Nested operating-system subprocesses are outside the OpenCode shell-tool boundary."
+      ]
+    },
+    {
+      "category": "file",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "file.read",
+        "file.write"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "search",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "browser",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "delegation",
+      "state": "disabled",
+      "coverage": "none",
+      "timing": "not_applicable",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "context.compaction",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "memory",
+      "state": "not_exposed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": [
+        "OpenCode does not expose a distinct durable memory subsystem in this benchmark configuration."
+      ]
+    },
+    {
+      "category": "harness.lifecycle",
+      "state": "derived",
+      "coverage": "full",
+      "timing": "derived",
+      "evidence": [
+        "harness.shutdown_end",
+        "harness.shutdown_start",
+        "harness.startup_end",
+        "harness.startup_start"
+      ],
+      "limitations": [
+        "Startup and shutdown are coarse harness-owned phases; benchmark-specific infrastructure is intentionally not subdivided."
+      ]
+    },
+    {
+      "category": "container.lifecycle",
+      "state": "captured",
+      "coverage": "metadata_only",
+      "timing": "derived",
+      "evidence": [
+        "container.observed"
+      ],
+      "limitations": []
+    },
+    {
+      "category": "evaluator.lifecycle",
+      "state": "not_exposed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "patch",
+      "state": "not_observed",
+      "coverage": "none",
+      "timing": "not_available",
+      "evidence": [],
+      "limitations": []
+    },
+    {
+      "category": "native.evidence",
+      "state": "captured",
+      "coverage": "full",
+      "timing": "native_wall",
+      "evidence": [
+        "agent.session_end",
+        "agent.session_start",
+        "file.read",
+        "file.write",
+        "model.output",
+        "model.reasoning",
+        "model.turn_end",
+        "model.turn_start",
+        "shell.end",
+        "shell.start"
+      ],
+      "limitations": []
+    }
+  ]
+}

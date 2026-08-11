@@ -1,0 +1,1 @@
+The edge handles are at position 0 (initial extents are `(0, 0)`), and the `axvline`/`axhline` lines affect the data limits. Let me look at how `axvline` is implemented:

@@ -1,0 +1,36 @@
+<path>/testbed/sympy/utilities/lambdify.py</path>
+<type>file</type>
+<content>
+670:     implementation : callable
+671:        numerical implementation to be called by ``evalf()`` or ``lambdify``
+672: 
+673:     Returns
+674:     -------
+675:     afunc : sympy.FunctionClass instance
+676:        function with attached implementation
+677: 
+678:     Examples
+679:     ========
+680: 
+681:     >>> from sympy.abc import x
+682:     >>> from sympy.utilities.lambdify import lambdify, implemented_function
+683:     >>> from sympy import Function
+684:     >>> f = implemented_function(Function('f'), lambda x: x+1)
+685:     >>> lam_f = lambdify(x, f(x))
+686:     >>> lam_f(4)
+687:     5
+688:     """
+689:     # Delayed import to avoid circular imports
+690:     from sympy.core.function import UndefinedFunction
+691:     # if name, create function to hold implementation
+692:     if isinstance(symfunc, string_types):
+693:         symfunc = UndefinedFunction(symfunc)
+694:     elif not isinstance(symfunc, UndefinedFunction):
+695:         raise ValueError('symfunc should be either a string or'
+696:                          ' an UndefinedFunction instance.')
+697:     # We need to attach as a method because symfunc will be a class
+698:     symfunc._imp_ = staticmethod(implementation)
+699:     return symfunc
+
+(End of file - total 699 lines)
+</content>

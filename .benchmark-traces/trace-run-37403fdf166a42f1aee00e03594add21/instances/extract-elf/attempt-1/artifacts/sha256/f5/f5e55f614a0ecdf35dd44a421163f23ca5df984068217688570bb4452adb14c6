@@ -1,0 +1,1 @@
+{"command":"readelf -s /app/a.out 2>/dev/null | head -80","workdir":"/app"}

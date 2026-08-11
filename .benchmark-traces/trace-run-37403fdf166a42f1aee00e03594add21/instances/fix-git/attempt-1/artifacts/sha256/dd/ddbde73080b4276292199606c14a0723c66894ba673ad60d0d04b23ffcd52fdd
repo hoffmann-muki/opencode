@@ -1,0 +1,9 @@
+Auto-merging _includes/about.md
+CONFLICT (content): Merge conflict in _includes/about.md
+error: could not apply c499730... Move to Stanford
+hint: After resolving the conflicts, mark them with
+hint: "git add/rm <pathspec>", then run
+hint: "git cherry-pick --continue".
+hint: You can instead skip this commit with "git cherry-pick --skip".
+hint: To abort and get back to the state before "git cherry-pick",
+hint: run "git cherry-pick --abort".

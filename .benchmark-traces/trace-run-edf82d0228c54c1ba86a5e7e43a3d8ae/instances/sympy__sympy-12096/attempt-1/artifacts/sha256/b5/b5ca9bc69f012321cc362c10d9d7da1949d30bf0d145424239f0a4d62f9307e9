@@ -1,0 +1,2 @@
+expr: g(2)**2
+Error: TypeError cannot create mpf from g(2)**2

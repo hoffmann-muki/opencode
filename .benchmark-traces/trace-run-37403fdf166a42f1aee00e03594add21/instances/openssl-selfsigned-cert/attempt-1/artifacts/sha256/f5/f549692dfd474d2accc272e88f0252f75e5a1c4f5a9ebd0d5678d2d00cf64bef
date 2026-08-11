@@ -1,0 +1,1 @@
+Everything looks good. Let me also verify that the PEM file contains both the private key and the certificate by checking for both BEGIN markers.

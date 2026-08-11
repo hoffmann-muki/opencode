@@ -1,0 +1,1 @@
+{"command":"cd /testbed/tests && python runtests.py auth_tests.test_validators -v 2 2>&1 | tail -40"}

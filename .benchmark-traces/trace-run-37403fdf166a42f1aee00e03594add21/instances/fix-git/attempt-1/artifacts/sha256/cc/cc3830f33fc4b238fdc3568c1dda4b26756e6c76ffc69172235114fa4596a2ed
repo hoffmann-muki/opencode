@@ -1,0 +1,10 @@
+On branch master
+You are currently cherry-picking commit c499730.
+  (all conflicts fixed: run "git cherry-pick --continue")
+  (use "git cherry-pick --skip" to skip this patch)
+  (use "git cherry-pick --abort" to cancel the cherry-pick operation)
+
+Changes to be committed:
+	modified:   _includes/about.md
+	modified:   _layouts/default.html
+

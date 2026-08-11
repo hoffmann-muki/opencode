@@ -1,0 +1,31 @@
+<path>/testbed/django/contrib/auth/validators.py</path>
+<type>file</type>
+<content>
+1: import re
+2: 
+3: from django.core import validators
+4: from django.utils.deconstruct import deconstructible
+5: from django.utils.translation import gettext_lazy as _
+6: 
+7: 
+8: @deconstructible
+9: class ASCIIUsernameValidator(validators.RegexValidator):
+10:     regex = r'\A[\w.@+-]+\Z'
+11:     message = _(
+12:         'Enter a valid username. This value may contain only English letters, '
+13:         'numbers, and @/./+/-/_ characters.'
+14:     )
+15:     flags = re.ASCII
+16: 
+17: 
+18: @deconstructible
+19: class UnicodeUsernameValidator(validators.RegexValidator):
+20:     regex = r'\A[\w.@+-]+\Z'
+21:     message = _(
+22:         'Enter a valid username. This value may contain only letters, '
+23:         'numbers, and @/./+/-/_ characters.'
+24:     )
+25:     flags = 0
+
+(End of file - total 25 lines)
+</content>

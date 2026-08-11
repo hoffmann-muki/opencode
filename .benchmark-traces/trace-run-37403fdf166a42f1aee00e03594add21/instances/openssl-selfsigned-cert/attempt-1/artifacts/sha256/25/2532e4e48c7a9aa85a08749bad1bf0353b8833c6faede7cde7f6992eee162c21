@@ -1,0 +1,6 @@
+The cryptography library is now installed. Let me write the Python script using the cryptography library. The script should:
+- Verify that the certificate exists and can be loaded
+- Print certificate details including the Common Name and expiration date in YYYY-MM-DD format
+- Print "Certificate verification successful" if all checks pass
+
+Let me write the script.

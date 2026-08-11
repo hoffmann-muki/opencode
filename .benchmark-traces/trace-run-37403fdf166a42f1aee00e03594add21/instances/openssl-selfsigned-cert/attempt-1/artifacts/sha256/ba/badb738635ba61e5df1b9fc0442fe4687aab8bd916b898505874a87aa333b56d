@@ -1,0 +1,6 @@
+Now let me create the self-signed certificate. I'll use the openssl req command with the -x509 flag to create a self-signed certificate. I need to specify:
+- Valid for 365 days
+- Organization Name: "DevOps Team"
+- Common Name: "dev-internal.company.local"
+
+I can use the -subj flag to specify the subject directly.

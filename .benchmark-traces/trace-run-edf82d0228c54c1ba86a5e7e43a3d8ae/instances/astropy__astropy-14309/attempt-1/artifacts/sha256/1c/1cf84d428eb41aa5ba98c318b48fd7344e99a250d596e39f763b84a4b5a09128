@@ -1,0 +1,1 @@
+{"command":"cd /testbed && python -m pytest astropy/nddata/tests/test_ccddata.py -q 2>&1 | tail -10"}

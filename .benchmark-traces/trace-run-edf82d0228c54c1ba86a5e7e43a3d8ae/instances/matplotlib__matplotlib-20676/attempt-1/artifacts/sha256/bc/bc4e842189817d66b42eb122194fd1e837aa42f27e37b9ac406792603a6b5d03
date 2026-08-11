@@ -1,0 +1,1 @@
+Let me start by investigating the issue. The bug is about `SpanSelector` with `interactive=True` incorrectly forcing axes limits to include 0. Let me look at the relevant code.

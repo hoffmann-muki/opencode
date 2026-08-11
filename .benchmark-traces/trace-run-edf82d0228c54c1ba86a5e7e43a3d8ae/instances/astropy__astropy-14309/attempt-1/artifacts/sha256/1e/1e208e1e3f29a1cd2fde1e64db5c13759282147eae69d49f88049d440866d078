@@ -1,0 +1,1 @@
+{"command":"cd /testbed && grep -rn \"is_fits\" astropy/io/fits/connect.py"}

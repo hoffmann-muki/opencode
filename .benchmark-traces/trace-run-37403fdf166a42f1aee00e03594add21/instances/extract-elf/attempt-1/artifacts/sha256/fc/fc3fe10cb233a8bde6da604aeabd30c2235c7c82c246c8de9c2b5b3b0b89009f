@@ -1,0 +1,1 @@
+{"command":"xxd /app/a.out | head -50","workdir":"/app"}

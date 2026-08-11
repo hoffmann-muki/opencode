@@ -1,0 +1,94 @@
+Now I understand the full picture. The `is_fits` function is called as an identifier. When `identify_format` is called with `args=[]` (empty), the `is_fits` function receives `*args` as empty, and then `args[0]` raises `IndexError`.
+
+The fix should be in `is_fits` to handle the case where `args` is empty. Let me think about the correct behavior.
+
+The original code (before the ruff fix) was:
+```python
+    if fileobj is not None:
+        pos = fileobj.tell()
+        sig = fileobj.read(30)
+        fileobj.seek(pos)
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(
+            (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+        ):
+            return True
+    elif isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU)):
+        return True
+    else:
+        return False
+```
+
+In the original, when `filepath` is not None but doesn't end with a FITS extension, the `elif filepath is not None` branch is taken but doesn't return, so the function falls through and returns `None` (implicitly). The `elif isinstance(args[0], ...)` is NOT reached because the previous `elif` was True.
+
+So the original behavior for `is_fits("write", "bububu.ecsv", None)` (with empty args) was to return `None`.
+
+The new code changed this so that `return isinstance(args[0], ...)` is always reached when the previous branches don't return. This causes the `IndexError` when `args` is empty.
+
+The cleanest fix that preserves the original behavior AND fixes the bug: check if `args` is non-empty before accessing `args[0]`.
+
+Let me think about what the correct semantics should be. The `is_fits` function determines whether the input is a FITS file. The `args[0]` check is for when the input is an in-memory object (like an HDUList) passed directly. 
+
+When `filepath` is a string without a FITS extension and `args` is empty, the function should return `False` (it's not a FITS file based on the available info).
+
+So the fix should be:
+```python
+    if fileobj is not None:
+        pos = fileobj.tell()
+        sig = fileobj.read(30)
+        fileobj.seek(pos)
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(
+            (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+        ):
+            return True
+    return isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+```
+
+Wait, but this still has the issue. When `filepath` is "bububu.ecsv" (not None), the `elif filepath is not None` branch is taken, the inner `if` is False, so it doesn't return, and then it falls through to `return isinstance(args[0], ...)`. If `args` is empty, `IndexError`.
+
+So I need to guard the `args[0]` access. The fix:
+```python
+    if fileobj is not None:
+        pos = fileobj.tell()
+        sig = fileobj.read(30)
+        fileobj.seek(pos)
+        return sig == FITS_SIGNATURE
+    elif filepath is not None:
+        if filepath.lower().endswith(
+            (".fits", ".fits.gz", ".fit", ".fit.gz", ".fts", ".fts.gz")
+        ):
+            return True
+    return len(args) > 0 and isinstance(args[0], (HDUList, TableHDU, BinTableHDU, GroupsHDU))
+```
+
+This way, if `args` is empty, it returns `False` (because `len(args) > 0` is False). If `args` is non-empty, it checks `isinstance(args[0], ...)`.
+
+This preserves the original behavior:
+- When `filepath` is "bububu.ecsv" and `args` is empty: original returned `None`, new returns `False`. Both are falsy, so behavior is the same in boolean context.
+- When `filepath` is None and `args` is non-empty with a FITS object: returns `True`.
+- When `filepath` is None and `args` is empty: original would raise `IndexError` too (in the `elif isinstance(args[0], ...)` branch)... wait, no. In the original, if `filepath is None`, then `elif filepath is not None` is False, so it goes to `elif isinstance(args[0], ...)`. If `args` is empty, this raises `IndexError`. So the original also had this bug when `filepath is None` and `args` is empty.
+
+Hmm, but actually, let me reconsider. The issue is specifically about the case where `filepath` is a string without a FITS extension. Let me re-read the issue.
+
+The issue says: "When `filepath` is a string without a FITS extension, the function was returning None, now it executes `isinstance(args[0], ...)`".
+
+So the regression is: before, when `filepath` was a string without a FITS extension, the function returned `None` (because the `elif filepath is not None` branch was taken and fell through). Now, it falls through to `return isinstance(args[0], ...)` which raises `IndexError` when `args` is empty.
+
+So the fix needs to handle the case where `args` is empty. The `len(args) > 0 and isinstance(...)` approach handles this.
+
+But wait, should I also consider the case where `filepath is None` and `args` is empty? In that case, the original code would also raise `IndexError`. But that's a separate case. Let me focus on the reported issue.
+
+Actually, let me think about this more carefully. The `is_fits` function is an identifier. It's called with `origin, path, fileobj, *args, **kwargs`. The `args` here are the positional arguments for the `read` or `write` function. 
+
+When `identify_format("write", Table, "bububu.ecsv", None, [], {})` is called, `args=[]` and `kwargs={}`. So `is_fits` is called as `is_fits("write", "bububu.ecsv", None)` with no additional args. So `args` is empty.
+
+The fix `len(args) > 0 and isinstance(args[0], ...)` would return `False` in this case, which is correct (it's not a FITS file).
+
+Let me also check: are there other identifier functions with the same pattern? Let me check the other io modules.
+
+Actually, let me focus on the specific fix. The cleanest fix is to guard the `args[0]` access. Let me look at the test files to understand the expected behavior.
+
+Let me check if there are existing tests for `is_fits` or `identify_format`.

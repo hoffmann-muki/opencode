@@ -1,0 +1,10 @@
+--- ASCII UsernameValidator ---
+  [OK] username='valid_user' -> accepted (expected: accepted)
+  [OK] username='user\n' -> rejected (expected: rejected)
+  [OK] username='user\n\n' -> rejected (expected: rejected)
+  [OK] username='user\nname' -> rejected (expected: rejected)
+--- Unicode UsernameValidator ---
+  [OK] username='valid_user' -> accepted (expected: accepted)
+  [OK] username='user\n' -> rejected (expected: rejected)
+  [OK] username='user\n\n' -> rejected (expected: rejected)
+  [OK] username='user\nname' -> rejected (expected: rejected)

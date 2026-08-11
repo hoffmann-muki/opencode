@@ -1,0 +1,3 @@
+As expected, there's a conflict in `_includes/about.md`. Let me look at the conflict and resolve it. The user wants to merge their "Move to Stanford" changes, so I should resolve the conflict in favor of the lost commit's changes for the parts that the lost commit modified, while keeping any master-only changes that don't conflict.
+
+Let me look at the conflicted file.
